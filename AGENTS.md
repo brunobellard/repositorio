@@ -39,3 +39,17 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Git: enviar mudanças ao GitHub (rotina do projeto)
+
+Repositório: https://github.com/brunobellard/repositorio (público, branch `main`).
+
+Sempre que terminar uma mudança no código (e lint + typecheck passarem):
+
+1. Mostre ao usuário, em poucas linhas, o que mudou e a mensagem de commit proposta (em português).
+2. **Peça autorização** antes de enviar. Não faça commit nem push sem um "sim" do usuário para aquela mudança.
+3. Com o "sim", rode você mesmo: `git add .`, `git commit -m "<mensagem>"` e `git push`.
+4. Antes do commit, confira que nenhum segredo entra (`.env.local` deve continuar ignorado; nunca enviar `sb_secret_`, `service_role` ou senha do banco). O repositório é público.
+5. Confirme ao usuário que o push foi feito, com o link do repositório.
+
+O autor dos commits já está configurado neste repositório com o e-mail noreply do GitHub; não troque para o e-mail pessoal.
