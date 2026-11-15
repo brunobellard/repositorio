@@ -8,8 +8,10 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ToastHost } from '@/components/toast';
+import { UpgradeHost } from '@/components/upgrade-modal';
 import { AuthProvider, useAuth } from '@/data/auth';
 import { BiometricLockProvider } from '@/data/biometric-lock';
+import { effectivePlan, planHas } from '@/hooks/usePlanAccess';
 import { StoreProvider, useStore } from '@/data/store';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { registerForPushAsync, useNotificationNavigation } from '@/services/notifications';
@@ -59,8 +61,17 @@ function PushSetup({ active }: { active: boolean }) {
   const registeredFor = useRef<string | null>(null);
   useNotificationNavigation(active);
 
+  // Push é recurso do plano Intermediário em diante
+  const hasPush = planHas(effectivePlan(profile), 'push');
+
   useEffect(() => {
-    if (!active || !profile.id || !profile.pushNotificationsEnabled) return;
+    if (!active || !profile.id) return;
+    // Plano sem push: apaga o token, para o aparelho deixar de receber avisos
+    if (!hasPush) {
+      if (profile.expoPushToken) updateProfile({ expoPushToken: undefined });
+      return;
+    }
+    if (!profile.pushNotificationsEnabled) return;
     if (registeredFor.current === profile.id) return;
     registeredFor.current = profile.id;
     registerForPushAsync()
@@ -68,7 +79,7 @@ function PushSetup({ active }: { active: boolean }) {
         if (r.ok && r.token !== profile.expoPushToken) updateProfile({ expoPushToken: r.token });
       })
       .catch(() => {}); // falha de push nunca deve atrapalhar o uso do app
-  }, [active, profile.id, profile.pushNotificationsEnabled, profile.expoPushToken, updateProfile]);
+  }, [active, hasPush, profile.id, profile.pushNotificationsEnabled, profile.expoPushToken, updateProfile]);
 
   return null;
 }
@@ -113,8 +124,10 @@ function AppStack() {
         <Stack.Screen name="pacote/novo" options={{ presentation: 'modal', title: 'Vender pacote' }} />
         <Stack.Screen name="ajustes/retorno" options={{ title: 'Retorno de clientes' }} />
         <Stack.Screen name="agendamento/recibo" options={{ presentation: 'modal', title: 'Comprovante' }} />
+        <Stack.Screen name="ajustes/assinatura" options={{ title: 'Planos' }} />
       </Stack.Protected>
     </Stack>
+    {loggedIn && !isPublic ? <UpgradeHost /> : null}
     </>
   );
 }

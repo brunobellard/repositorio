@@ -14,6 +14,8 @@ import {
   sessionPosition,
 } from '@/lib/recurrence';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { notify } from '@/lib/confirm';
 import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
@@ -37,6 +39,7 @@ export default function AgendamentoDetalhe() {
     cancelAppointments,
     packages,
   } = useStore();
+  const access = usePlanAccess();
   const [askPayment, setAskPayment] = useState(false);
   const [askCancelScope, setAskCancelScope] = useState(false);
   // Forma de pagamento sendo processada ('pacote' para sessão de pacote): trava toques repetidos
@@ -110,6 +113,7 @@ export default function AgendamentoDetalhe() {
   }
 
   async function email() {
+    if (!requireFeature(access.hasAutoEmail, 'autoEmail')) return;
     if (!client!.email) {
       notify('Cliente sem e-mail', 'Cadastre um e-mail na ficha da cliente.');
       return;

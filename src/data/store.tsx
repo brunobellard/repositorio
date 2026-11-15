@@ -2,6 +2,8 @@
 // As telas usam useStore(); cada ação grava no banco e atualiza a tela.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { openUpgrade } from '@/lib/upgrade';
+import { LIMIT_TO_FEATURE } from '@/constants/plans';
 import { useAuth } from '@/data/auth';
 import {
   defaultBusinessHours,
@@ -81,6 +83,11 @@ const toProfile = (r: any): Profile => ({
   bookingAutoApprove: !!r.booking_auto_approve,
   expoPushToken: r.expo_push_token ?? undefined,
   pushNotificationsEnabled: r.push_notifications_enabled ?? true,
+  // Sem as colunas (migração de planos pendente): não bloqueia nada
+  planTier: r.plan_tier ?? 'pro',
+  subscriptionStatus: r.subscription_status ?? 'active',
+  trialEndsAt: r.trial_ends_at ?? undefined,
+  billingCycle: r.billing_cycle ?? 'monthly',
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -326,11 +333,20 @@ const emptyProfile: Profile = {
   recallDays: 20,
   bookingAutoApprove: false,
   pushNotificationsEnabled: true,
+  planTier: 'pro',
+  subscriptionStatus: 'active',
+  billingCycle: 'monthly',
 };
 
 const StoreContext = createContext<Store | null>(null);
 
 function fail(error: { code?: string; message?: string } | null) {
+  // Limite do plano barrado pelo banco: mostra o aviso de upgrade em vez de um erro
+  const limit = error?.message?.match(/PLAN_LIMIT:(\w+)/)?.[1];
+  if (limit && LIMIT_TO_FEATURE[limit]) {
+    openUpgrade(LIMIT_TO_FEATURE[limit]);
+    return false;
+  }
   notify('Não foi possível salvar', friendlyError(error));
   return false;
 }

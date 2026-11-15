@@ -52,6 +52,8 @@ interface PublicStudio {
   address_state: string | null;
   address_zip: string | null;
   slot_minutes: number;
+  /** false quando o plano do estúdio não inclui agendamento online */
+  booking_enabled?: boolean;
   services: PublicService[];
   hours: {
     day_of_week: number;
@@ -215,6 +217,40 @@ export default function AgendarOnline() {
     return (
       <View className="flex-1 items-center justify-center bg-bg">
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+  if (studio.booking_enabled === false) {
+    const digits = onlyDigits(studio.phone ?? '');
+    return (
+      <View className="flex-1 items-center justify-center bg-bg px-8">
+        <Stack.Screen options={{ title: studio.business_name }} />
+        {studio.logo_url ? (
+          <Image source={{ uri: studio.logo_url }} style={{ width: 72, height: 72, borderRadius: 20 }} contentFit="cover" />
+        ) : (
+          <View className="h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-primary-soft">
+            <Text className="text-2xl font-bold text-primary-dark">{initials(studio.business_name)}</Text>
+          </View>
+        )}
+        <Text className="mt-4 text-center text-lg font-semibold text-ink">{studio.business_name}</Text>
+        <Text className="mt-1 text-center text-[14px] leading-5 text-muted">
+          O agendamento online está indisponível no momento.
+          {digits ? ' Fale com o estúdio pelo WhatsApp para marcar seu horário.' : ''}
+        </Text>
+        {digits ? (
+          <View className="mt-5 w-full max-w-[320px]">
+            <Button
+              title="Chamar no WhatsApp"
+              icon="logo-whatsapp"
+              variant="whatsapp"
+              onPress={() =>
+                Linking.openURL(
+                  `https://wa.me/${digits.length <= 11 ? `55${digits}` : digits}?text=${encodeURIComponent('Olá! Gostaria de agendar um horário.')}`,
+                )
+              }
+            />
+          </View>
+        ) : null}
       </View>
     );
   }

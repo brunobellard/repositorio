@@ -20,6 +20,8 @@ import {
   toRRule,
 } from '@/lib/recurrence';
 import { availableCredits, usablePackages } from '@/lib/packages';
+import { openUpgrade, requireFeature } from '@/lib/upgrade';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
 import {
   addDays,
   atMinutes,
@@ -52,6 +54,7 @@ export default function NovoAgendamento() {
     packages,
     online,
   } = useStore();
+  const access = usePlanAccess();
 
   // Modo edição: a mesma tela, já preenchida com o agendamento existente
   const editing = appointments.find((a) => a.id === params.editId);
@@ -158,6 +161,7 @@ export default function NovoAgendamento() {
 
   async function saveNewClient() {
     if (!newClient?.name.trim() || saving) return;
+    if (!requireFeature(access.canAddClient(), 'unlimitedClients')) return;
     setSaving(true);
     const c = await addClient({
       name: newClient.name.trim(),
@@ -228,6 +232,15 @@ export default function NovoAgendamento() {
       else await applyEdit('one');
       return;
     }
+    // Limites do plano (o banco confere de novo ao gravar)
+    if (occurrences.length > 1 && !requireFeature(access.hasRecurrence, 'recurrence')) return;
+    if (
+      !requireFeature(
+        access.canAddAppointmentThisMonth(access.appointmentsInMonth(day), occurrences.length),
+        'unlimitedAppointments',
+      )
+    )
+      return;
     // Confere todas as datas futuras da série antes de criar
     const ctx = { appointments, blocks, businessHours, ignoreHours: override };
     const found = occurrences
@@ -458,7 +471,13 @@ export default function NovoAgendamento() {
         {!editing ? (
           <>
             <SectionLabel>Repetir agendamento</SectionLabel>
-            <RecurrencePicker start={firstStart ?? atMinutes(day, 9 * 60)} value={rule} onChange={setRule} />
+            <RecurrencePicker
+              start={firstStart ?? atMinutes(day, 9 * 60)}
+              value={rule}
+              onChange={setRule}
+              locked={!access.hasRecurrence}
+              onLockedPress={() => openUpgrade('recurrence')}
+            />
             {rule.freq !== 'none' ? (
               <Text className="mt-2 text-[13px] leading-5 text-muted">
                 {firstStart ? summarize(occurrences, rule) : 'Escolha o horário para ver as datas da série.'}

@@ -4,6 +4,8 @@ import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar, Button, Card, EmptyState, SectionLabel, StatusPill } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { formatDateShort, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
 import { availableCredits, isExpired, scheduledSessions } from '@/lib/packages';
@@ -22,6 +24,7 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { clients, appointments, packages, services } = useStore();
+  const access = usePlanAccess();
   const client = clients.find((c) => c.id === id);
   if (!client) {
     return (
@@ -86,7 +89,10 @@ export default function FichaCliente() {
       <View className="mb-2 mt-5 flex-row items-center justify-between">
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted">Pacotes</Text>
         <Pressable
-          onPress={() => router.push({ pathname: '/pacote/novo', params: { clientId: client.id } })}
+          onPress={() =>
+            requireFeature(access.hasPackages, 'packages') &&
+            router.push({ pathname: '/pacote/novo', params: { clientId: client.id } })
+          }
           className="py-1 active:opacity-60">
           <Text className="text-[13px] font-semibold text-primary-dark">+ Vender pacote</Text>
         </Pressable>

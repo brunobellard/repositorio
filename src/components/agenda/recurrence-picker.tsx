@@ -35,17 +35,37 @@ export function RecurrencePicker({
   start,
   value,
   onChange,
+  locked = false,
+  onLockedPress,
 }: {
   /** Data/hora da primeira sessão (para textos como "toda 3ª sexta") */
   start: Date;
   value: RecurrenceRule;
   onChange: (rule: RecurrenceRule) => void;
+  /** Recurso fora do plano: mostra o cadeado e abre o aviso de upgrade */
+  locked?: boolean;
+  onLockedPress?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [customCount, setCustomCount] = useState('');
   const repeats = value.freq !== 'none';
   const set = (patch: Partial<RecurrenceRule>) => onChange({ ...value, ...patch });
   const isMonthly = value.freq === 'monthly_day' || value.freq === 'monthly_weekday';
+
+  if (locked) {
+    return (
+      <Pressable
+        onPress={onLockedPress}
+        className="flex-row items-center rounded-card border border-line bg-surface px-4 py-3 active:opacity-70">
+        <Ionicons name="repeat" size={18} color={colors.muted} />
+        <View className="ml-3 flex-1">
+          <Text className="text-[15px] text-muted">Não se repete</Text>
+          <Text className="text-xs text-muted">Agenda recorrente a partir do plano Básico</Text>
+        </View>
+        <Ionicons name="lock-closed" size={15} color={colors.primaryDark} />
+      </Pressable>
+    );
+  }
 
   return (
     <View className="overflow-hidden rounded-card border border-line bg-surface">

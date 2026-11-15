@@ -7,6 +7,8 @@ import { ExportClientsSheet } from '@/components/export-sheets';
 import { ClientsSkeleton } from '@/components/skeleton';
 import { Avatar, EmptyState, Screen, ScreenTitle, SearchBar } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { notify } from '@/lib/confirm';
 import { formatDateShort, MONTHS } from '@/lib/dates';
 import { formatPhone, normalize } from '@/lib/format';
@@ -52,6 +54,7 @@ function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?:
 
 export default function ClientesScreen() {
   const { clients, appointments, profile, templates, loading, refresh } = useStore();
+  const access = usePlanAccess();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const refreshControl = (
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
@@ -62,7 +65,7 @@ export default function ClientesScreen() {
 
   const exportButton = (
     <Pressable
-      onPress={() => setExporting(true)}
+      onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
       accessibilityLabel="Exportar base de clientes"
       className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
       <Ionicons name="download-outline" size={14} color={colors.ink} />
@@ -109,13 +112,13 @@ export default function ClientesScreen() {
           label="Para chamar de volta"
           count={recall.length}
           active={filter === 'retorno'}
-          onPress={() => setFilter('retorno')}
+          onPress={() => requireFeature(access.hasRetentionCRM, 'retentionCRM') && setFilter('retorno')}
         />
         <FilterChip
           label={`Aniversariantes de ${MONTHS[now.getMonth()].toLowerCase()}`}
           count={birthdays.length}
           active={filter === 'aniversario'}
-          onPress={() => setFilter('aniversario')}
+          onPress={() => requireFeature(access.hasRetentionCRM, 'retentionCRM') && setFilter('aniversario')}
         />
       </ScrollView>
       {filter === 'retorno' ? (

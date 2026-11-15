@@ -27,6 +27,9 @@ export const mockProfile: Profile = {
   recallDays: 20,
   bookingAutoApprove: false,
   pushNotificationsEnabled: true,
+  planTier: 'pro',
+  subscriptionStatus: 'trialing',
+  billingCycle: 'monthly',
 };
 
 export const mockServices: Service[] = [

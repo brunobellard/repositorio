@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { serviceCategories } from '@/data/mock';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { closeModal, confirmAction, notify } from '@/lib/confirm';
 import { formatDuration } from '@/lib/dates';
 import { formatBRL, maskBRL, onlyDigits } from '@/lib/format';
@@ -16,6 +18,7 @@ const DURATIONS = [15, 30, 45, 60, 90, 120, 150, 180];
 export default function EditarServico() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { services, saveService, deleteService, setServiceActive } = useStore();
+  const access = usePlanAccess();
   const insets = useSafeAreaInsets();
   const existing = services.find((s) => s.id === id);
 
@@ -35,6 +38,8 @@ export default function EditarServico() {
 
   async function save() {
     if (!canSave) return;
+    // Serviço novo entra ativo: respeita o limite de serviços ativos do plano
+    if (!existing && !requireFeature(access.canAddService(), 'unlimitedServices')) return;
     setSaving(true);
     const ok = await saveService({
       id: existing?.id,

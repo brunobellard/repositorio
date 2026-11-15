@@ -8,6 +8,8 @@ import { FinanceSkeleton } from '@/components/skeleton';
 import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { Card, EmptyState, Fab, Screen, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { formatDateShort, formatTime, isSameDay, startOfDay, startOfWeek } from '@/lib/dates';
 import { formatBRL } from '@/lib/format';
 import { colors, paymentLabels } from '@/theme/colors';
@@ -30,6 +32,7 @@ function Stat({ label, value, tone, hint }: { label: string; value: number; tone
 
 export default function FinanceiroScreen() {
   const { transactions, loading, refresh } = useStore();
+  const access = usePlanAccess();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const [period, setPeriod] = useState<Period>('semana');
   const [exporting, setExporting] = useState(false);
@@ -65,14 +68,14 @@ export default function FinanceiroScreen() {
         right={
           <View className="flex-row gap-2">
             <Pressable
-              onPress={() => setExporting(true)}
+              onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
               accessibilityLabel="Exportar relatório"
               className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
               <Ionicons name="download-outline" size={14} color={colors.ink} />
               <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.push('/pacote/novo')}
+              onPress={() => requireFeature(access.hasPackages, 'packages') && router.push('/pacote/novo')}
               accessibilityLabel="Vender pacote"
               className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
               <Ionicons name="ticket-outline" size={14} color={colors.ink} />

@@ -9,6 +9,8 @@ import { useState } from 'react';
 
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
 import { pushUnsupportedHere, registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
@@ -53,6 +55,7 @@ export default function AjustesScreen() {
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
+  const access = usePlanAccess();
   const [loadingExample, setLoadingExample] = useState(false);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -122,6 +125,32 @@ export default function AjustesScreen() {
           </View>
         </Card>
 
+        {/* Plano atual */}
+        <Pressable
+          onPress={() => router.push('/ajustes/assinatura')}
+          className="mt-3 flex-row items-center rounded-card border border-primary/40 bg-primary-soft px-4 py-3 active:opacity-80">
+          <Ionicons name="sparkles" size={18} color={colors.primaryDark} />
+          <View className="ml-3 flex-1">
+            <Text className="text-[14px] font-semibold text-primary-dark">
+              {access.isTrialActive
+                ? `Período de teste ${access.plan.name}`
+                : access.trialExpired
+                  ? 'Teste encerrado · Plano Free'
+                  : `Plano ${access.plan.name}`}
+            </Text>
+            <Text className="text-[12px] text-primary-dark">
+              {access.isTrialActive
+                ? `${access.daysLeftInTrial} ${access.daysLeftInTrial === 1 ? 'dia restante' : 'dias restantes'}`
+                : access.currentPlan === 'free'
+                  ? 'Até 10 clientes e 20 agendamentos por mês'
+                  : 'Assinatura ativa'}
+            </Text>
+          </View>
+          <View className="rounded-full bg-primary px-3 py-1.5">
+            <Text className="text-[12px] font-semibold text-white">Ver planos</Text>
+          </View>
+        </Pressable>
+
         <SectionLabel>Estúdio</SectionLabel>
         <Card className="py-1">
           <Row icon="storefront-outline" label="Dados do estúdio" href="/ajustes/estudio" />
@@ -149,7 +178,7 @@ export default function AjustesScreen() {
                 ? `Créd. ${String(profile.paymentFees.credit).replace('.', ',')}%`
                 : 'Não definidas'
             }
-            href="/ajustes/taxas"
+            onPress={() => requireFeature(access.hasCardFees, 'cardFees') && router.push('/ajustes/taxas')}
           />
         </Card>
 
@@ -162,7 +191,9 @@ export default function AjustesScreen() {
             <View className="ml-3 flex-1">
               <Text className="text-[15px] text-ink">Avisar agendamentos online</Text>
               <Text className="text-[12px] text-muted">
-                {pushStatus ??
+                {!access.hasPush
+                  ? 'Disponível a partir do plano Intermediário'
+                  : pushStatus ??
                   (pushUnsupportedHere
                     ? 'Indisponível no Expo Go (Android): use a versão de desenvolvimento'
                     : profile.pushNotificationsEnabled
@@ -172,9 +203,12 @@ export default function AjustesScreen() {
                     : 'Desligado')}
               </Text>
             </View>
-            <Toggle value={profile.pushNotificationsEnabled} onChange={togglePush} />
+            <Toggle
+              value={access.hasPush && profile.pushNotificationsEnabled}
+              onChange={(on) => requireFeature(access.hasPush, 'push') && togglePush(on)}
+            />
           </View>
-          {profile.pushNotificationsEnabled ? (
+          {access.hasPush && profile.pushNotificationsEnabled ? (
             <Pressable onPress={testPush} disabled={testing} className="border-t border-line py-3 active:opacity-60">
               <Text className="text-[14px] font-medium text-primary-dark">
                 {testing ? 'Enviando…' : 'Enviar notificação de teste'}
@@ -190,7 +224,7 @@ export default function AjustesScreen() {
             icon="refresh-circle-outline"
             label="Retorno de clientes"
             detail={`${profile.recallDays} dias`}
-            href="/ajustes/retorno"
+            onPress={() => requireFeature(access.hasRetentionCRM, 'retentionCRM') && router.push('/ajustes/retorno')}
           />
           <Row icon="flash-outline" label="Envio automático (WhatsApp)" detail="Em breve" />
         </Card>

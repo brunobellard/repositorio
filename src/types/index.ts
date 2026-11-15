@@ -1,4 +1,5 @@
 // Tipos do domínio. Espelham as tabelas em supabase/migrations.
+import type { BillingCycle, PlanTier, SubscriptionStatus } from '@/constants/plans';
 
 export type AppointmentStatus = 'pendente' | 'confirmado' | 'concluido' | 'cancelado';
 export type PaymentMethod = 'pix' | 'credito' | 'debito' | 'dinheiro';
@@ -36,6 +37,12 @@ export interface Profile {
   /** Token do Expo Push deste aparelho (para avisar de agendamentos online) */
   expoPushToken?: string;
   pushNotificationsEnabled: boolean;
+  // Assinatura (só o sistema de pagamento altera; ver src/constants/plans.ts)
+  planTier: PlanTier;
+  subscriptionStatus: SubscriptionStatus;
+  /** Fim do período de teste (ISO) */
+  trialEndsAt?: string;
+  billingCycle: BillingCycle;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */

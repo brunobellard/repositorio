@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Field, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { openUpgrade } from '@/lib/upgrade';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
 import { notify } from '@/lib/confirm';
 import { initials, maskDocument, maskPhone, maskZip, onlyDigits } from '@/lib/format';
@@ -25,6 +27,7 @@ import { colors } from '@/theme/colors';
 
 export default function DadosEstudio() {
   const { profile, updateProfile, uploadLogo } = useStore();
+  const access = usePlanAccess();
   const insets = useSafeAreaInsets();
 
   const [form, setForm] = useState(() => ({
@@ -273,6 +276,21 @@ export default function DadosEstudio() {
 
         {/* Agendamento online */}
         <SectionLabel>Agendamento online</SectionLabel>
+        {!access.hasPublicLink ? (
+          <Pressable
+            onPress={() => openUpgrade('publicLink')}
+            className="flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
+            <Ionicons name="link-outline" size={18} color={colors.muted} />
+            <View className="ml-3 flex-1">
+              <Text className="text-[15px] text-ink">Link de agendamento online</Text>
+              <Text className="text-[12px] leading-4 text-muted">
+                Suas clientes marcam sozinhas pelo link. Disponível a partir do plano Intermediário.
+              </Text>
+            </View>
+            <Ionicons name="lock-closed" size={15} color={colors.primaryDark} />
+          </Pressable>
+        ) : (
+        <>
         <Text className="mb-1.5 text-[13px] font-medium text-muted">Link personalizado</Text>
         <View className="mb-1 flex-row items-center rounded-2xl border border-line bg-surface pl-4">
           <Text className="text-[15px] text-muted">/agendar/</Text>
@@ -323,6 +341,8 @@ export default function DadosEstudio() {
           </View>
           <Toggle value={form.bookingAutoApprove} onChange={(v) => set({ bookingAutoApprove: v })} />
         </View>
+        </>
+        )}
       </ScrollView>
 
       <View

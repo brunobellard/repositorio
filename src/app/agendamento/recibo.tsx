@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { notify } from '@/lib/confirm';
 import { formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone, initials, maskDocument } from '@/lib/format';
@@ -33,6 +35,7 @@ export default function Comprovante() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { appointments, clients, profile, transactions, packages } = useStore();
+  const access = usePlanAccess();
   const card = useRef<ComponentRef<typeof View>>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -91,6 +94,7 @@ export default function Comprovante() {
   }
 
   async function shareImage() {
+    if (!requireFeature(access.hasReceiptImage, 'receiptImage')) return;
     setSharing(true);
     try {
       if (Platform.OS === 'web') {

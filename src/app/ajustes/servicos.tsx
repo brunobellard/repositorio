@@ -5,12 +5,15 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ListSkeleton } from '@/components/skeleton';
 import { EmptyState, Fab, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { requireFeature } from '@/lib/upgrade';
 import { formatDuration } from '@/lib/dates';
 import { formatBRL } from '@/lib/format';
 import { colors } from '@/theme/colors';
 
 export default function ServicosScreen() {
   const { services, setServiceActive, loading } = useStore();
+  const access = usePlanAccess();
   const categories = [...new Set(services.map((s) => s.category))].sort();
   const activeCount = services.filter((s) => s.active).length;
 
@@ -48,7 +51,11 @@ export default function ServicosScreen() {
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginHorizontal: 8 }} />
                     </Pressable>
-                    <Toggle value={s.active} onChange={(on) => setServiceActive(s.id, on)} />
+                    <Toggle value={s.active} onChange={(on) => {
+                        // Reativar conta no limite de serviços ativos do plano
+                        if (on && !requireFeature(access.canAddService(), 'unlimitedServices')) return;
+                        setServiceActive(s.id, on);
+                      }} />
                   </View>
                 ))}
             </View>

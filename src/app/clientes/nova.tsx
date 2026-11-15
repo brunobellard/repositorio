@@ -5,8 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { notify } from '@/lib/confirm';
 import { maskPhone, onlyDigits } from '@/lib/format';
+import { requireFeature } from '@/lib/upgrade';
 import { colors } from '@/theme/colors';
 
 /** "1503" -> "15/03", "15031992" -> "15/03/1992" (máscara enquanto digita) */
@@ -30,6 +32,7 @@ export default function NovaCliente() {
   const params = useLocalSearchParams<{ name?: string }>();
   const insets = useSafeAreaInsets();
   const { addClient } = useStore();
+  const access = usePlanAccess();
 
   const [name, setName] = useState(params.name ?? '');
   const [phone, setPhone] = useState('');
@@ -45,6 +48,7 @@ export default function NovaCliente() {
 
   async function save() {
     if (!canSave) return;
+    if (!requireFeature(access.canAddClient(), 'unlimitedClients')) return;
     setSaving(true); // trava o botão no primeiro toque (evita cadastro duplicado)
     const created = await addClient({
       name: name.trim(),
