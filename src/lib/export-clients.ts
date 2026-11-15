@@ -1,5 +1,5 @@
 // Backup / exportação da base de clientes em CSV (Excel em português).
-import { csvMoney, ddmmyyyy, shareCsv, toCsv } from '@/lib/export-files';
+import { ddmmyyyy, money, shareTable, type Cell, type SheetFormat, type Table } from '@/lib/export-files';
 import { formatPhone } from '@/lib/format';
 import { clientsToRecall } from '@/lib/recall';
 import type { Appointment, Client, ClientPackage } from '@/types';
@@ -21,11 +21,12 @@ export function clientsForExport(d: ClientsData, filter: ClientFilter): Client[]
   return clientsToRecall(d.clients, d.appointments, d.recallDays).map((r) => r.client);
 }
 
-export async function exportClientsCsv(d: ClientsData, filter: ClientFilter) {
+/** Planilha da base de clientes (Excel .xlsx ou CSV). */
+export async function exportClientsSheet(d: ClientsData, filter: ClientFilter, format: SheetFormat) {
   const list = clientsForExport(d, filter);
   const nowIso = new Date().toISOString();
 
-  const rows = list.map((c) => {
+  const rows: Cell[][] = list.map((c) => {
     const done = d.appointments.filter((a) => a.clientId === c.id && a.status === 'concluido');
     // Sessões de pacote já foram pagas na venda: conta o valor do pacote, não o de cada sessão
     const spent =
@@ -39,20 +40,23 @@ export async function exportClientsCsv(d: ClientsData, filter: ClientFilter) {
       formatPhone(c.whatsapp),
       c.email ?? '',
       c.birthDate ? c.birthDate.split('-').reverse().join('/') : '',
-      csvMoney(spent),
+      money(spent),
       last ? ddmmyyyy(last) : '',
       (c.technicalNotes ?? '').replace(/\s*\n\s*/g, ' '),
     ];
   });
 
-  const csv = toCsv(
-    ['Nome', 'WhatsApp', 'E-mail', 'Data de Nascimento', 'Total Gasto (R$)', 'Última Visita', 'Observações Técnicas'],
+  const table: Table = {
+    sheetName: 'Clientes',
+    header: ['Nome', 'WhatsApp', 'E-mail', 'Data de Nascimento', 'Total Gasto (R$)', 'Última Visita', 'Observações Técnicas'],
+    widths: [28, 18, 30, 18, 16, 14, 60],
     rows,
-  );
+  };
   const stamp = ddmmyyyy(new Date()).split('/').reverse().join('-');
-  await shareCsv(
+  await shareTable(
     filter === 'todas' ? `clientes-${stamp}` : `clientes-inativas-${stamp}`,
-    csv,
+    table,
+    format,
     'Exportar base de clientes',
   );
 }

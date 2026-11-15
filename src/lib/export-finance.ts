@@ -1,6 +1,15 @@
 // Relatórios do Financeiro: planilha CSV e relatório mensal em PDF.
 import { addDays, startOfDay } from '@/lib/dates';
-import { csvMoney, ddmmyyyy, esc, fileSlug, sharePdf, shareCsv, toCsv } from '@/lib/export-files';
+import {
+  ddmmyyyy,
+  esc,
+  fileSlug,
+  money,
+  sharePdf,
+  shareTable,
+  type SheetFormat,
+  type Table,
+} from '@/lib/export-files';
 import { formatBRL, maskDocument } from '@/lib/format';
 import { formatAddress } from '@/lib/hours';
 import { paymentLabels } from '@/theme/colors';
@@ -125,22 +134,25 @@ export function countInPeriod(d: FinanceData, p: Period) {
 // ---------------------------------------------------------------------
 // CSV
 // ---------------------------------------------------------------------
-export async function exportFinanceCsv(d: FinanceData, p: Period) {
+/** Planilha das movimentações do período (Excel .xlsx ou CSV). */
+export async function exportFinanceSheet(d: FinanceData, p: Period, format: SheetFormat) {
   const rows = buildRows(d, p);
-  const csv = toCsv(
-    ['Data', 'Tipo (Entrada/Saída)', 'Categoria/Serviço', 'Cliente', 'Forma de Pagamento', 'Valor Bruto (R$)', 'Taxa (R$)', 'Valor Líquido (R$)'],
-    rows.map((r) => [
+  const table: Table = {
+    sheetName: 'Financeiro',
+    header: ['Data', 'Tipo (Entrada/Saída)', 'Categoria/Serviço', 'Cliente', 'Forma de Pagamento', 'Valor Bruto (R$)', 'Taxa (R$)', 'Valor Líquido (R$)'],
+    widths: [12, 20, 40, 24, 20, 16, 12, 18],
+    rows: rows.map((r) => [
       ddmmyyyy(r.date),
       r.income ? 'Entrada' : 'Saída',
       r.what,
       r.client,
       r.method ? paymentLabels[r.method] : '',
-      csvMoney(r.gross),
-      csvMoney(r.fee),
-      csvMoney(r.net),
+      money(r.gross),
+      money(r.fee),
+      money(r.net),
     ]),
-  );
-  await shareCsv(`financeiro-${fileSlug(p.label)}`, csv, 'Exportar planilha do financeiro');
+  };
+  await shareTable(`financeiro-${fileSlug(p.label)}`, table, format, 'Exportar planilha do financeiro');
 }
 
 // ---------------------------------------------------------------------

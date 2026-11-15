@@ -11,7 +11,7 @@ import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
-import { registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
+import { pushUnsupportedHere, registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 import type { IconName } from '@/components/ui';
 
@@ -163,7 +163,9 @@ export default function AjustesScreen() {
               <Text className="text-[15px] text-ink">Avisar agendamentos online</Text>
               <Text className="text-[12px] text-muted">
                 {pushStatus ??
-                  (profile.pushNotificationsEnabled
+                  (pushUnsupportedHere
+                    ? 'Indisponível no Expo Go (Android): use a versão de desenvolvimento'
+                    : profile.pushNotificationsEnabled
                     ? profile.expoPushToken
                       ? 'Ativo neste aparelho'
                       : 'Ativo, aguardando registro do aparelho'

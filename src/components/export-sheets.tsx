@@ -6,15 +6,15 @@ import { RangeCalendar } from '@/components/range-calendar';
 import { Sheet } from '@/components/sheet';
 import { Button, Chip } from '@/components/ui';
 import { useStore } from '@/data/store';
-import { clientsForExport, exportClientsCsv, type ClientFilter } from '@/lib/export-clients';
+import { clientsForExport, exportClientsSheet, type ClientFilter } from '@/lib/export-clients';
 import {
   countInPeriod,
-  exportFinanceCsv,
+  exportFinanceSheet,
   exportFinancePdf,
   periodFor,
   type PeriodPreset,
 } from '@/lib/export-finance';
-import { ddmmyyyy } from '@/lib/export-files';
+import { ddmmyyyy, type SheetFormat } from '@/lib/export-files';
 
 const PRESETS: { value: PeriodPreset; label: string }[] = [
   { value: 'mes_atual', label: 'Mês atual' },
@@ -35,7 +35,7 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
   const { transactions, appointments, clients, packages, profile } = useStore();
   const [preset, setPreset] = useState<PeriodPreset>('mes_atual');
   const [range, setRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
-  const [busy, setBusy] = useState<'csv' | 'pdf' | null>(null);
+  const [busy, setBusy] = useState<'xlsx' | 'csv' | 'pdf' | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'warn' | 'error' } | null>(null);
 
   const customReady = preset !== 'personalizado' || !!range.start;
@@ -43,7 +43,7 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
   const data = { transactions, appointments, clients, packages, profile };
   const count = customReady ? countInPeriod(data, period) : 0;
 
-  async function run(kind: 'csv' | 'pdf') {
+  async function run(kind: 'xlsx' | 'csv' | 'pdf') {
     setMessage(null);
     if (!count) {
       // Período sem movimentações: avisa em vez de gerar arquivo vazio
@@ -52,8 +52,8 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
     }
     setBusy(kind);
     try {
-      if (kind === 'csv') await exportFinanceCsv(data, period);
-      else await exportFinancePdf(data, period);
+      if (kind === 'pdf') await exportFinancePdf(data, period);
+      else await exportFinanceSheet(data, period, kind);
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Não foi possível gerar o arquivo.', tone: 'error' });
     } finally {
@@ -107,24 +107,29 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
 
         <View className="gap-2">
           <Button
-            title={busy === 'csv' ? 'Gerando planilha…' : 'Exportar planilha (CSV)'}
-            icon="grid-outline"
-            variant="secondary"
-            loading={busy === 'csv'}
-            disabled={!customReady || busy !== null}
-            onPress={() => run('csv')}
-          />
-          <Button
             title={busy === 'pdf' ? 'Gerando PDF…' : 'Exportar relatório (PDF)'}
             icon="document-text-outline"
             loading={busy === 'pdf'}
             disabled={!customReady || busy !== null}
             onPress={() => run('pdf')}
           />
+          <Button
+            title={busy === 'xlsx' ? 'Gerando planilha…' : 'Exportar planilha (Excel)'}
+            icon="grid-outline"
+            variant="secondary"
+            loading={busy === 'xlsx'}
+            disabled={!customReady || busy !== null}
+            onPress={() => run('xlsx')}
+          />
         </View>
-        <Text className="mt-3 text-center text-[11px] leading-4 text-muted">
-          A planilha abre direto no Excel (acentos e colunas em português). O PDF traz resumo, totais por forma de
-          pagamento e todas as movimentações.
+        <Text
+          className={`mt-3 self-center py-1 text-[13px] font-medium text-primary-dark ${busy ? 'opacity-40' : ''}`}
+          onPress={busy || !customReady ? undefined : () => run('csv')}>
+          {busy === 'csv' ? 'Gerando CSV…' : 'Prefere CSV? Exportar em CSV'}
+        </Text>
+        <Text className="mt-2 text-center text-[11px] leading-4 text-muted">
+          A planilha (.xlsx) abre com acentos e valores certos no Excel e no Google Planilhas. O PDF traz resumo,
+          totais por forma de pagamento e todas as movimentações.
         </Text>
       </ScrollView>
     </Sheet>
@@ -134,13 +139,13 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
 export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { clients, appointments, packages, profile } = useStore();
   const [filter, setFilter] = useState<ClientFilter>('todas');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<SheetFormat | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'warn' | 'error' } | null>(null);
 
   const data = { clients, appointments, packages, recallDays: profile.recallDays };
   const count = clientsForExport(data, filter).length;
 
-  async function run() {
+  async function run(format: SheetFormat) {
     setMessage(null);
     if (!count) {
       setMessage({
@@ -149,13 +154,13 @@ export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onC
       });
       return;
     }
-    setBusy(true);
+    setBusy(format);
     try {
-      await exportClientsCsv(data, filter);
+      await exportClientsSheet(data, filter, format);
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Não foi possível gerar o arquivo.', tone: 'error' });
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -164,7 +169,7 @@ export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onC
       visible={visible}
       onClose={onClose}
       title="Exportar base de clientes"
-      subtitle="Planilha CSV com contato, aniversário, total gasto, última visita e anotações técnicas.">
+      subtitle="Planilha com contato, aniversário, total gasto, última visita e anotações técnicas.">
       <View className="flex-row flex-wrap">
         <Chip
           label="Todas as clientes"
@@ -189,11 +194,17 @@ export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onC
       </Text>
       {message ? <Notice text={message.text} tone={message.tone} /> : null}
       <Button
-        title={busy ? 'Gerando planilha…' : 'Exportar planilha (CSV)'}
+        title={busy === 'xlsx' ? 'Gerando planilha…' : 'Exportar planilha (Excel)'}
         icon="download-outline"
-        loading={busy}
-        onPress={run}
+        loading={busy === 'xlsx'}
+        disabled={busy !== null}
+        onPress={() => run('xlsx')}
       />
+      <Text
+        className={`mt-3 self-center py-1 text-[13px] font-medium text-primary-dark ${busy ? 'opacity-40' : ''}`}
+        onPress={busy ? undefined : () => run('csv')}>
+        {busy === 'csv' ? 'Gerando CSV…' : 'Prefere CSV? Exportar em CSV'}
+      </Text>
     </Sheet>
   );
 }

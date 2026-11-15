@@ -62,9 +62,11 @@ function PushSetup({ active }: { active: boolean }) {
     if (!active || !profile.id || !profile.pushNotificationsEnabled) return;
     if (registeredFor.current === profile.id) return;
     registeredFor.current = profile.id;
-    registerForPushAsync().then((r) => {
-      if (r.ok && r.token !== profile.expoPushToken) updateProfile({ expoPushToken: r.token });
-    });
+    registerForPushAsync()
+      .then((r) => {
+        if (r.ok && r.token !== profile.expoPushToken) updateProfile({ expoPushToken: r.token });
+      })
+      .catch(() => {}); // falha de push nunca deve atrapalhar o uso do app
   }, [active, profile.id, profile.pushNotificationsEnabled, profile.expoPushToken, updateProfile]);
 
   return null;

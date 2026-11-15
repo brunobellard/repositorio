@@ -42,9 +42,17 @@ export type PushRegistration =
   | { ok: true; token: string }
   | { ok: false; reason: 'web' | 'simulator' | 'denied' | 'expo-go-android' | 'no-project' | 'error'; message: string };
 
-const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-/** Pede permissão e devolve o ExpoPushToken deste aparelho. */
+/** No Expo Go do Android o push remoto não existe (SDK 53+): nem tenta registrar. */
+export const pushUnsupportedHere = isExpoGoAndroid();
+function isExpoGoAndroid() {
+  return Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient';
+}
+
+/**
+ * Pede permissão e devolve o ExpoPushToken deste aparelho.
+ * Nunca lança erro: qualquer falha vira { ok: false, message } para a tela tratar.
+ */
 export async function registerForPushAsync(): Promise<PushRegistration> {
   if (Platform.OS === 'web') {
     return { ok: false, reason: 'web', message: 'Notificações push funcionam só no app do celular.' };
@@ -52,48 +60,48 @@ export async function registerForPushAsync(): Promise<PushRegistration> {
   if (!Device.isDevice) {
     return { ok: false, reason: 'simulator', message: 'Use um celular de verdade para receber notificações.' };
   }
-
-  // Android: o canal precisa existir antes do pedido de permissão / token
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(PUSH_CHANNEL, {
-      name: 'Agendamentos',
-      importance: AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#B76E79',
-    });
-  }
-
-  let { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') {
-    ({ status } = await Notifications.requestPermissionsAsync());
-  }
-  if (status !== 'granted') {
-    return {
-      ok: false,
-      reason: 'denied',
-      message: 'Permissão negada. Ative as notificações do Agenda Beleza nas configurações do celular.',
-    };
-  }
-
-  if (isExpoGo && Platform.OS === 'android') {
+  // Antes de qualquer chamada nativa: no Expo Go do Android o módulo de push não funciona
+  if (pushUnsupportedHere) {
     return {
       ok: false,
       reason: 'expo-go-android',
       message:
-        'O Expo Go no Android não recebe push remoto. Instale a versão de desenvolvimento do app (eas build) para receber os avisos.',
+        'O Expo Go no Android não recebe push. Para receber os avisos, instale a versão de desenvolvimento do app.',
     };
   }
 
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-  if (!projectId) {
-    return { ok: false, reason: 'no-project', message: 'Projeto Expo não configurado (projectId ausente).' };
-  }
-
   try {
+    // Android: o canal precisa existir antes do pedido de permissão / token
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync(PUSH_CHANNEL, {
+        name: 'Agendamentos',
+        importance: AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#B76E79',
+      });
+    }
+
+    let { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      ({ status } = await Notifications.requestPermissionsAsync());
+    }
+    if (status !== 'granted') {
+      return {
+        ok: false,
+        reason: 'denied',
+        message: 'Permissão negada. Ative as notificações do Agenda Beleza nas configurações do celular.',
+      };
+    }
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    if (!projectId) {
+      return { ok: false, reason: 'no-project', message: 'Projeto Expo não configurado (projectId ausente).' };
+    }
+
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
     return { ok: true, token: data };
   } catch (e) {
-    return { ok: false, reason: 'error', message: e instanceof Error ? e.message : 'Erro ao obter o token.' };
+    return { ok: false, reason: 'error', message: e instanceof Error ? e.message : 'Erro ao configurar notificações.' };
   }
 }
 
@@ -132,14 +140,21 @@ function openFromNotification(response: Notifications.NotificationResponse | nul
 /** Liga o toque na notificação à navegação (com o app aberto ou abrindo do zero). */
 export function useNotificationNavigation(enabled: boolean) {
   useEffect(() => {
-    if (!enabled || Platform.OS === 'web') return;
+    // No Expo Go do Android não há push: nada para ouvir
+    if (!enabled || Platform.OS === 'web' || pushUnsupportedHere) return;
     // App aberto a partir de uma notificação (estava fechado)
-    Notifications.getLastNotificationResponseAsync().then((r) => {
-      openFromNotification(r);
-      if (r) Notifications.clearLastNotificationResponseAsync();
-    });
+    Notifications.getLastNotificationResponseAsync()
+      .then((r) => {
+        openFromNotification(r);
+        if (r) return Notifications.clearLastNotificationResponseAsync();
+      })
+      .catch(() => {});
     // Toque com o app aberto ou em segundo plano
-    const sub = Notifications.addNotificationResponseReceivedListener(openFromNotification);
-    return () => sub.remove();
+    try {
+      const sub = Notifications.addNotificationResponseReceivedListener(openFromNotification);
+      return () => sub.remove();
+    } catch {
+      return;
+    }
   }, [enabled]);
 }
