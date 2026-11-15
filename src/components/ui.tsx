@@ -197,11 +197,41 @@ export function Fab({ onPress, icon = 'add' }: { onPress: () => void; icon?: Ico
   );
 }
 
-export function EmptyState({ icon, text }: { icon: IconName; text: string }) {
+/**
+ * Estado vazio: ícone fino sobre fundo suave, título, explicação opcional e um botão de ação.
+ * `text` é o título (nome mantido por compatibilidade).
+ */
+export function EmptyState({
+  icon,
+  text,
+  subtitle,
+  actionLabel,
+  onAction,
+  compact,
+}: {
+  icon: IconName;
+  text: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  /** Versão menor, para aparecer junto de outro conteúdo (ex: acima da linha do tempo) */
+  compact?: boolean;
+}) {
   return (
-    <View className="items-center py-10">
-      <Ionicons name={icon} size={32} color={colors.line} />
-      <Text className="mt-2 text-sm text-muted">{text}</Text>
+    <View className={`items-center px-6 ${compact ? 'py-5' : 'py-10'}`}>
+      <View
+        className={`mb-3 items-center justify-center rounded-full bg-primary-soft ${compact ? 'h-12 w-12' : 'h-16 w-16'}`}>
+        <Ionicons name={icon} size={compact ? 22 : 28} color={colors.primary} />
+      </View>
+      <Text className="text-center text-[15px] font-semibold text-ink">{text}</Text>
+      {subtitle ? <Text className="mt-1 text-center text-[13px] leading-5 text-muted">{subtitle}</Text> : null}
+      {actionLabel && onAction ? (
+        <Pressable
+          onPress={onAction}
+          className="mt-4 flex-row items-center rounded-full bg-primary px-4 py-2.5 active:opacity-80">
+          <Text className="text-[14px] font-semibold text-white">{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

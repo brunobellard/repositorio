@@ -50,6 +50,7 @@ export default function NovoAgendamento() {
     addClient,
     updateAppointments,
     packages,
+    online,
   } = useStore();
 
   // Modo edição: a mesma tela, já preenchida com o agendamento existente
@@ -193,6 +194,7 @@ export default function NovoAgendamento() {
     setSaving(false);
     if (!created) return;
     if (created > 1) notify('Série criada', `${created} agendamentos foram adicionados à agenda.`);
+    else if (online) notify('Agendamento salvo'); // offline, o próprio store já avisa que ficou no aparelho
     closeModal();
   }
 

@@ -30,6 +30,9 @@ if (Platform.OS !== 'web') {
 /** Mensagem amigável para erros comuns do Supabase/Postgres. */
 export function friendlyError(error: { code?: string; message?: string } | null | undefined): string {
   if (!error) return 'Erro desconhecido';
+  if (/network request failed|failed to fetch|fetch failed|networkerror|load failed/i.test(error.message ?? '')) {
+    return 'Sem conexão com a internet. Tente de novo quando a conexão voltar.';
+  }
   switch (error.code) {
     case '23P01':
       return 'Já existe um agendamento nesse horário.';

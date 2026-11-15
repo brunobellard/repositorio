@@ -17,6 +17,23 @@ import {
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
 import { addDays, atMinutes, startOfDay } from '@/lib/dates';
+import { feeFor } from '@/lib/packages';
+import {
+  describeOp,
+  isNetworkError,
+  isOnline,
+  loadOutbox,
+  loadSnapshot,
+  newId,
+  onReconnect,
+  outboxItem,
+  saveOutbox,
+  saveSnapshot,
+  useOnline,
+  type OutboxItem,
+  type OutboxOp,
+  type Snapshot,
+} from '@/services/offlineSync';
 import { generateOccurrences, type SeriesScope } from '@/lib/recurrence';
 import { friendlyError, supabase } from '@/lib/supabase';
 import type {
@@ -198,7 +215,18 @@ interface Store {
   transactions: Transaction[];
   templates: MessageTemplate[];
 
-  reload: () => Promise<void>;
+  /** Busca tudo no Supabase; false quando não conseguiu (ex: sem internet) */
+  reload: () => Promise<boolean>;
+
+  // Offline
+  /** Há conexão com a internet agora */
+  online: boolean;
+  /** Alterações feitas sem internet que ainda não foram enviadas */
+  pendingSync: number;
+  /** Enviando a fila de alterações para o Supabase */
+  syncing: boolean;
+  /** Puxar para atualizar: envia pendências e recarrega */
+  refresh: () => Promise<void>;
   /** Cria um agendamento ou uma série inteira (tudo ou nada). Retorna quantos foram criados. */
   addAppointment: (a: NewAppointment) => Promise<number>;
   /**
@@ -214,7 +242,8 @@ interface Store {
   cancelAppointments: (ids: string[]) => Promise<boolean>;
   setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<void>;
   /** `method` é ignorado em sessões de pacote (já foram pagas na venda) */
-  completeAppointment: (id: string, method?: PaymentMethod) => Promise<void>;
+  /** true se concluiu (ou ficou na fila offline) */
+  completeAppointment: (id: string, method?: PaymentMethod) => Promise<boolean>;
 
   // Pacotes pré-pagos e taxas
   packages: ClientPackage[];
@@ -306,6 +335,44 @@ function fail(error: { code?: string; message?: string } | null) {
   return false;
 }
 
+/** Envia ao Supabase uma alteração que ficou na fila offline. Devolve o erro, se houver. */
+async function runOp(op: OutboxOp): Promise<{ code?: string; message?: string } | null> {
+  switch (op.kind) {
+    case 'addClient': {
+      const { error } = await supabase.from('clients').upsert(op.row, { onConflict: 'id', ignoreDuplicates: true });
+      return error;
+    }
+    case 'addAppointment': {
+      // Já enviado antes (ex: a conexão caiu no meio)? Não duplica.
+      const { data: exists, error: e0 } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('id', op.appointment.id)
+        .maybeSingle();
+      if (e0) return e0;
+      if (exists) return null;
+      const { error } = await supabase.from('appointments').insert(op.appointment);
+      if (error) return error;
+      const { error: e2 } = await supabase
+        .from('appointment_services')
+        .insert(op.services.map((s) => ({ ...s, appointment_id: op.appointment.id })));
+      if (e2) {
+        // Sem os serviços o agendamento fica incompleto: desfaz
+        await supabase.from('appointments').delete().eq('id', op.appointment.id);
+        return e2;
+      }
+      return null;
+    }
+    case 'completeAppointment': {
+      const { error } = await supabase.rpc('complete_appointment', {
+        p_appointment_id: op.appointmentId,
+        p_payment_method: op.method,
+      });
+      return error;
+    }
+  }
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -324,6 +391,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>(defaultBusinessHours);
   const [hoursAvailable, setHoursAvailable] = useState(true);
   const seeded = useRef<string | null>(null);
+
+  // Offline: conexão, fila de alterações pendentes e sincronização
+  const online = useOnline();
+  const [outbox, setOutbox] = useState<OutboxItem[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const outboxRef = useRef<OutboxItem[]>([]);
+  const flushing = useRef(false);
+
+  /** Atualiza a fila na memória e no aparelho. */
+  const writeOutbox = useCallback(
+    (items: OutboxItem[]) => {
+      outboxRef.current = items;
+      setOutbox(items);
+      if (userId) saveOutbox(userId, items);
+    },
+    [userId],
+  );
+  const enqueue = (op: OutboxOp) => writeOutbox([...outboxRef.current, outboxItem(op)]);
 
   /** Conta nova: cria catálogo de serviços e modelos de mensagem padrão. */
   const ensureDefaults = useCallback(async (uid: string) => {
@@ -364,8 +449,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const reload = useCallback(async () => {
-    if (!userId) return;
+  /** Aplica uma cópia completa dos dados na tela (do cache ou do Supabase). */
+  const applySnapshot = useCallback((snap: Omit<Snapshot, 'savedAt'>) => {
+    setProfile(snap.profile);
+    setServices(snap.services);
+    setClients(snap.clients);
+    setAppointments(snap.appointments);
+    setBlocks(snap.blocks);
+    setTransactions(snap.transactions);
+    setTemplates(snap.templates);
+    setBusinessHours(snap.businessHours);
+    setPackages(snap.packages);
+  }, []);
+
+  /**
+   * Busca tudo no Supabase. Sem internet (erro de rede), mantém o que está na tela
+   * (vindo do cache) em vez de zerar as listas. Retorna true se carregou.
+   */
+  const reload = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
     const [p, s, c, a, b, t, m, h, pk] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('services').select('*').order('name'),
@@ -377,34 +479,113 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from('business_hours').select('*'),
       supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
     ]);
-    setPackages((pk.data ?? []).map(toPackage));
     const firstError = [p, s, c, a, b, t, m].find((r) => r.error)?.error;
+    // Sem internet: não mexe nos dados da tela (o cache continua valendo)
+    if (firstError && isNetworkError(firstError)) return false;
+    if (firstError) notify('Erro ao carregar dados', friendlyError(firstError));
+    if (!p.data) return false;
+
     // Sem a tabela business_hours (migração pendente), usa o expediente padrão
     setHoursAvailable(!h.error);
-    const saved = (h.data ?? []).map(toHours);
-    setBusinessHours(defaultBusinessHours.map((d) => saved.find((x) => x.dayOfWeek === d.dayOfWeek) ?? d));
-    if (firstError) notify('Erro ao carregar dados', friendlyError(firstError));
-    if (p.data) setProfile(toProfile(p.data));
-    setServices((s.data ?? []).map(toService));
-    setClients((c.data ?? []).map(toClient));
-    setAppointments((a.data ?? []).map(toAppointment));
-    setBlocks((b.data ?? []).map(toBlock));
-    setTransactions((t.data ?? []).map(toTransaction));
-    setTemplates((m.data ?? []).map(toTemplate));
-  }, [userId]);
+    const savedHours = (h.data ?? []).map(toHours);
+    const snap = {
+      profile: toProfile(p.data),
+      services: (s.data ?? []).map(toService),
+      clients: (c.data ?? []).map(toClient),
+      appointments: (a.data ?? []).map(toAppointment),
+      blocks: (b.data ?? []).map(toBlock),
+      transactions: (t.data ?? []).map(toTransaction),
+      templates: (m.data ?? []).map(toTemplate),
+      businessHours: defaultBusinessHours.map((d) => savedHours.find((x) => x.dayOfWeek === d.dayOfWeek) ?? d),
+      packages: (pk.data ?? []).map(toPackage),
+    };
+    applySnapshot(snap);
+    return true;
+  }, [userId, applySnapshot]);
 
+  // Guarda no aparelho a cópia atual (inclusive mudanças feitas offline)
+  useEffect(() => {
+    if (!userId || loadedFor !== userId || !profile.id) return;
+    const t = setTimeout(
+      () =>
+        saveSnapshot(userId, {
+          profile,
+          services,
+          clients,
+          appointments,
+          blocks,
+          transactions,
+          templates,
+          businessHours,
+          packages,
+        }),
+      400,
+    );
+    return () => clearTimeout(t);
+  }, [userId, loadedFor, profile, services, clients, appointments, blocks, transactions, templates, businessHours, packages]);
+
+  /**
+   * Envia a fila de alterações feitas offline, na ordem em que foram feitas.
+   * Para no primeiro erro de rede (tenta de novo depois); conflitos (ex: horário
+   * já ocupado) descartam aquela alteração e avisam.
+   */
+  const flushOutbox = useCallback(async (): Promise<boolean> => {
+    if (flushing.current || !outboxRef.current.length) return false;
+    flushing.current = true;
+    setSyncing(true);
+    let sent = 0;
+    const dropped: string[] = [];
+    try {
+      while (outboxRef.current.length) {
+        const [item, ...rest] = outboxRef.current;
+        const error = await runOp(item.op);
+        if (error && isNetworkError(error)) break; // continua offline: tenta depois
+        if (error) dropped.push(`${describeOp(item.op)} (${friendlyError(error)})`);
+        else sent++;
+        writeOutbox(rest);
+      }
+    } finally {
+      flushing.current = false;
+      setSyncing(false);
+    }
+    if (dropped.length) notify('Não foi possível sincronizar', dropped.join('; '));
+    else if (sent) notify('Sincronizado com a nuvem', `${sent} ${sent === 1 ? 'alteração enviada' : 'alterações enviadas'}.`);
+    return sent > 0 || dropped.length > 0;
+  }, [writeOutbox]);
+
+  // Abertura do app: mostra o cache na hora, depois sincroniza com o Supabase
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     (async () => {
-      await ensureDefaults(userId);
-      await reload();
+      const [cached, pending] = await Promise.all([loadSnapshot(userId), loadOutbox(userId)]);
+      if (cancelled) return;
+      outboxRef.current = pending;
+      setOutbox(pending);
+      if (cached) {
+        applySnapshot(cached);
+        setLoadedFor(userId); // tela pronta com os dados do aparelho
+      }
+      if (await isOnline()) {
+        await ensureDefaults(userId);
+        await flushOutbox();
+        await reload();
+      }
       if (!cancelled) setLoadedFor(userId);
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId, ensureDefaults, reload]);
+  }, [userId, ensureDefaults, reload, applySnapshot, flushOutbox]);
+
+  // Quando a internet volta: envia a fila e atualiza os dados
+  useEffect(() => {
+    if (!userId) return;
+    return onReconnect(async () => {
+      await flushOutbox();
+      await reload();
+    });
+  }, [userId, reload, flushOutbox]);
 
   async function refreshAppointment(id: string) {
     const { data } = await supabase.from('appointments').select(APPT_SELECT).eq('id', id).single();
@@ -557,6 +738,59 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     async addAppointment({ clientId, startsAt, serviceIds, notes, occurrences, recurrenceRule, clientPackageId }) {
       const starts = occurrences?.length ? occurrences : [startsAt];
+
+      if (!(await isOnline())) {
+        if (starts.length > 1) {
+          notify('Sem conexão', 'Séries recorrentes só podem ser criadas com internet. Agende uma sessão por vez.');
+          return 0;
+        }
+        // Offline: monta o agendamento com os preços do catálogo salvo no aparelho
+        const chosen = serviceIds.map((id) => services.find((s) => s.id === id)).filter((s): s is Service => !!s);
+        if (!chosen.length) return 0;
+        const id = newId();
+        const minutes = chosen.reduce((t, s) => t + s.durationMin, 0);
+        const total = chosen.reduce((t, s) => t + s.price, 0);
+        const endsAt = new Date(new Date(starts[0]).getTime() + minutes * 60_000).toISOString();
+        const optimistic: Appointment = {
+          id,
+          clientId,
+          startsAt: starts[0],
+          endsAt,
+          status: 'pendente',
+          totalPrice: total,
+          notes,
+          services: chosen.map((s) => ({ serviceId: s.id, name: s.name, price: s.price, durationMin: s.durationMin })),
+          isRecurrenceException: false,
+          clientPackageId,
+          source: 'manual',
+        };
+        setAppointments((list) => [...list, optimistic]);
+        enqueue({
+          kind: 'addAppointment',
+          appointment: {
+            id,
+            client_id: clientId,
+            starts_at: starts[0],
+            ends_at: endsAt,
+            status: 'pendente',
+            total_price: total,
+            notes: notes ?? null,
+            source: 'manual',
+            client_package_id: clientPackageId ?? null,
+          },
+          services: chosen.map((s, i) => ({
+            service_id: s.id,
+            name: s.name,
+            price: s.price,
+            duration_min: s.durationMin,
+            position: i + 1,
+          })),
+        });
+        notify('Agendamento salvo no aparelho', 'Será enviado quando a internet voltar.', 'info');
+        return 1;
+      }
+      await flushOutbox(); // mantém a ordem das alterações feitas offline
+
       let ids: string[];
       if (starts.length === 1) {
         const { data, error } = await supabase.rpc('create_appointment', {
@@ -650,14 +884,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     async completeAppointment(id, method) {
+      if (!(await isOnline())) {
+        // Offline: marca como concluído e mostra a receita prevista; o banco confirma depois
+        const appt = appointments.find((a) => a.id === id);
+        if (!appt) return false;
+        setAppointments((list) => list.map((a) => (a.id === id ? { ...a, status: 'concluido' } : a)));
+        if (appt.clientPackageId) {
+          setPackages((list) =>
+            list.map((p) => (p.id === appt.clientPackageId ? { ...p, usedSessions: p.usedSessions + 1 } : p)),
+          );
+        } else if (method) {
+          const gross = appt.totalPrice;
+          const fee = feeFor(gross, method, profile.paymentFees);
+          setTransactions((list) => [
+            {
+              id: `pendente-${id}`,
+              type: 'receita',
+              amount: gross,
+              category: 'Serviço',
+              description: appt.services.map((s) => s.name).join(' + '),
+              paymentMethod: method,
+              appointmentId: id,
+              occurredAt: new Date().toISOString(),
+              grossAmount: gross,
+              feeAmount: fee,
+              netAmount: gross - fee,
+            },
+            ...list.filter((t) => t.appointmentId !== id),
+          ]);
+        }
+        enqueue({ kind: 'completeAppointment', appointmentId: id, method: method ?? null });
+        notify('Atendimento concluído', 'Salvo no aparelho; será sincronizado quando a internet voltar.', 'info');
+        return true;
+      }
+      await flushOutbox(); // mantém a ordem das alterações feitas offline
+
       const { data, error } = await supabase.rpc('complete_appointment', {
         p_appointment_id: id,
         p_payment_method: method ?? null,
       });
-      if (error) {
-        fail(error);
-        return;
-      }
+      if (error) return fail(error);
       // Sessão de pacote não gera receita (data vem vazio): só dá baixa no crédito
       if (data?.id) {
         setTransactions((list) => [toTransaction(data), ...list.filter((t) => t.appointmentId !== id)]);
@@ -665,6 +931,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await refreshPackages();
       }
       await refreshAppointment(id);
+      return true;
+    },
+
+    online,
+    pendingSync: outbox.length,
+    syncing,
+    /** Puxar para atualizar: envia pendências e recarrega tudo. */
+    async refresh() {
+      if (!(await isOnline())) {
+        notify('Sem conexão', 'Mostrando os dados salvos no aparelho.', 'info');
+        return;
+      }
+      await flushOutbox();
+      await reload();
     },
 
     async addBlock(b) {
@@ -688,6 +968,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     async addClient(c) {
+      if (!(await isOnline())) {
+        // Offline: cria com um id gerado no aparelho e manda depois
+        const created: Client = { ...c, id: newId() };
+        setClients((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
+        enqueue({
+          kind: 'addClient',
+          row: {
+            id: created.id,
+            name: c.name,
+            whatsapp: c.whatsapp ?? null,
+            email: c.email ?? null,
+            birth_date: c.birthDate ?? null,
+            technical_notes: c.technicalNotes ?? null,
+          },
+        });
+        notify('Cliente salva no aparelho', 'Será enviada quando a internet voltar.', 'info');
+        return created;
+      }
+      await flushOutbox(); // mantém a ordem das alterações feitas offline
       const { data, error } = await supabase
         .from('clients')
         .insert({

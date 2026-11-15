@@ -7,6 +7,8 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { OfflineBanner } from '@/components/offline-banner';
+import { ToastHost } from '@/components/toast';
 import { AuthProvider, useAuth } from '@/data/auth';
 import { BiometricLockProvider } from '@/data/biometric-lock';
 import { StoreProvider, useStore } from '@/data/store';
@@ -83,14 +85,13 @@ function AppStack() {
   }, [loading, isPublic]);
 
   const loggedIn = !!session;
-  if (!isPublic) {
-    if (loading) return <Loading />;
-    if (loggedIn && loadingData) return <Loading text="Carregando sua agenda…" />;
-  }
+  // Só espera a sessão; os dados aparecem em cada tela (cache local + skeletons)
+  if (!isPublic && loading) return <Loading />;
 
   return (
     <>
     <PushSetup active={loggedIn && !loadingData && !isPublic} />
+    {loggedIn && !isPublic ? <OfflineBanner /> : null}
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
       {/* Sempre acessível, com ou sem login */}
       <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
@@ -103,6 +104,7 @@ function AppStack() {
         <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal', title: 'Agendamento' }} />
         <Stack.Screen name="bloqueio/novo" options={{ presentation: 'modal', title: 'Bloquear horário' }} />
         <Stack.Screen name="clientes/[id]" options={{ title: 'Ficha da cliente' }} />
+        <Stack.Screen name="clientes/nova" options={{ presentation: 'modal', title: 'Nova cliente' }} />
         <Stack.Screen name="financeiro/despesa" options={{ presentation: 'modal', title: 'Nova despesa' }} />
         <Stack.Screen name="ajustes/mensagens" options={{ title: 'Modelos de mensagem' }} />
         <Stack.Screen name="ajustes/estudio" options={{ title: 'Dados do estúdio' }} />
@@ -139,6 +141,7 @@ export default function RootLayout() {
         ) : (
           <MissingConfig />
         )}
+        <ToastHost />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

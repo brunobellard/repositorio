@@ -4,7 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
-import { closeModal } from '@/lib/confirm';
+import { closeModal, notify } from '@/lib/confirm';
 import { addDays, atMinutes, formatDayTitle, hmToMinutes, isSameDay, startOfDay, WEEKDAYS_SHORT } from '@/lib/dates';
 
 const REASONS = ['Almoço', 'Folga', 'Curso', 'Compromisso pessoal'];
@@ -24,7 +24,11 @@ export default function NovoBloqueio() {
   const startOptions: number[] = [];
   for (let m = hmToMinutes(profile.workStart); m < hmToMinutes(profile.workEnd); m += 30) startOptions.push(m);
 
+  const [saving, setSaving] = useState(false);
+
   async function save() {
+    if (saving) return;
+    setSaving(true); // trava no primeiro toque: evita bloqueio duplicado
     let ok: boolean;
     if (kind === 'dia') {
       ok = await addBlock({ startsAt: day.toISOString(), endsAt: addDays(day, 1).toISOString(), allDay: true, reason });
@@ -36,7 +40,10 @@ export default function NovoBloqueio() {
         reason,
       });
     }
-    if (ok) closeModal();
+    if (ok) {
+      notify('Horário bloqueado');
+      closeModal();
+    } else setSaving(false);
   }
 
   const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -97,7 +104,13 @@ export default function NovoBloqueio() {
       <Field label="Ou escreva" value={reason} onChangeText={setReason} placeholder="Motivo do bloqueio" />
 
       <View className="mt-4">
-        <Button title="Bloquear" icon="lock-closed-outline" onPress={save} disabled={!reason.trim()} />
+        <Button
+          title={saving ? 'Salvando…' : 'Bloquear'}
+          icon="lock-closed-outline"
+          loading={saving}
+          onPress={save}
+          disabled={!reason.trim()}
+        />
       </View>
     </ScrollView>
   );

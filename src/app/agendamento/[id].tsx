@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { SeriesScopeSheet } from '@/components/sheet';
 import { Avatar, Button, Card, SectionLabel, StatusPill } from '@/components/ui';
@@ -38,6 +39,8 @@ export default function AgendamentoDetalhe() {
   } = useStore();
   const [askPayment, setAskPayment] = useState(false);
   const [askCancelScope, setAskCancelScope] = useState(false);
+  // Forma de pagamento sendo processada ('pacote' para sessão de pacote): trava toques repetidos
+  const [completing, setCompleting] = useState<PaymentMethod | 'pacote' | null>(null);
 
   const appt = appointments.find((a) => a.id === id);
   const client = clients.find((c) => c.id === appt?.clientId);
@@ -54,11 +57,23 @@ export default function AgendamentoDetalhe() {
   const income = transactions.find((t) => t.appointmentId === appt.id);
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
 
+  /** Conclui uma vez só (trava toques repetidos) e vibra de leve ao terminar. */
+  async function finish(method?: PaymentMethod) {
+    if (completing) return;
+    setCompleting(method ?? 'pacote');
+    const ok = await completeAppointment(appt!.id, method);
+    setCompleting(null);
+    if (!ok) return;
+    setAskPayment(false);
+    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  }
+
   function onStatus(s: AppointmentStatus) {
+    if (completing) return;
     if (s === 'concluido') {
       // Sessão de pacote já foi paga: conclui direto e dá baixa no crédito
       if (pkg) {
-        if (appt!.status !== 'concluido') completeAppointment(appt!.id);
+        if (appt!.status !== 'concluido') finish();
         return;
       }
       setAskPayment(true);
@@ -229,11 +244,14 @@ export default function AgendamentoDetalhe() {
             {METHODS.map((m) => (
               <Pressable
                 key={m}
-                onPress={() => {
-                  completeAppointment(appt.id, m);
-                  setAskPayment(false);
-                }}
-                className="min-w-[46%] flex-1 items-center rounded-2xl bg-primary py-3 active:opacity-80">
+                disabled={!!completing}
+                onPress={() => finish(m)}
+                className={`min-w-[46%] flex-1 flex-row items-center justify-center rounded-2xl bg-primary py-3 active:opacity-80 ${
+                  completing && completing !== m ? 'opacity-40' : ''
+                }`}>
+                {completing === m ? (
+                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                ) : null}
                 <Text className="text-[14px] font-semibold text-white">{paymentLabels[m]}</Text>
               </Pressable>
             ))}

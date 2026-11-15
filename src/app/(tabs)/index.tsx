@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { CalendarHeader, type CalendarMode } from '@/components/agenda/calendar-header';
 import { DayTimeline } from '@/components/agenda/day-timeline';
-import { Fab, Screen, ScreenTitle } from '@/components/ui';
+import { AgendaSkeleton } from '@/components/skeleton';
+import { EmptyState, Fab, Screen, ScreenTitle } from '@/components/ui';
+import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { useStore } from '@/data/store';
 import { confirmAction } from '@/lib/confirm';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
@@ -21,7 +23,8 @@ function overlapsDay(b: ScheduleBlock, day: Date) {
 }
 
 export default function AgendaScreen() {
-  const { appointments, blocks, clients, profile, businessHours, removeBlock } = useStore();
+  const { appointments, blocks, clients, profile, businessHours, removeBlock, loading, refresh } = useStore();
+  const { refreshing, onRefresh } = usePullToRefresh(refresh);
   // ?date=YYYY-MM-DD (ex: ao tocar na notificação de agendamento online) abre a Agenda nesse dia
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const dayFromParam = (p?: string) => {
@@ -106,7 +109,13 @@ export default function AgendaScreen() {
         }
       />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      {loading ? (
+        <AgendaSkeleton />
+      ) : (
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
         <CalendarHeader
           mode={mode}
           onModeChange={setMode}
@@ -153,6 +162,15 @@ export default function AgendaScreen() {
               <Text className="text-xs text-muted">Dia fora do expediente semanal · toque para ajustar</Text>
             </View>
           </Pressable>
+        ) : active.length === 0 ? (
+          <EmptyState
+            compact
+            icon="calendar-clear-outline"
+            text={isSameDay(selected, new Date()) ? 'Nenhum horário marcado para hoje' : 'Nenhum horário marcado neste dia'}
+            subtitle="Toque num horário livre abaixo ou crie um agendamento."
+            actionLabel="+ Novo agendamento"
+            onAction={() => router.push({ pathname: '/agendamento/novo', params: { date: selected.toISOString() } })}
+          />
         ) : null}
 
         <DayTimeline
@@ -168,6 +186,7 @@ export default function AgendaScreen() {
           onPressSlot={onPressSlot}
         />
       </ScrollView>
+      )}
 
       <Fab
         onPress={() =>

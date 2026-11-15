@@ -1,14 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { ExportClientsSheet } from '@/components/export-sheets';
+import { ClientsSkeleton } from '@/components/skeleton';
 import { Avatar, EmptyState, Screen, ScreenTitle, SearchBar } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
 import { formatDateShort, MONTHS } from '@/lib/dates';
 import { formatPhone, normalize } from '@/lib/format';
+import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { birthdaysThisMonth, clientsToRecall, fillClientMessage, templateFor } from '@/lib/recall';
 import { whatsappProvider } from '@/services/messaging';
 import { colors } from '@/theme/colors';
@@ -49,7 +51,11 @@ function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?:
 }
 
 export default function ClientesScreen() {
-  const { clients, appointments, profile, templates } = useStore();
+  const { clients, appointments, profile, templates, loading, refresh } = useStore();
+  const { refreshing, onRefresh } = usePullToRefresh(refresh);
+  const refreshControl = (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+  );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('todas');
   const [exporting, setExporting] = useState(false);
@@ -123,6 +129,16 @@ export default function ClientesScreen() {
     </View>
   );
 
+  // Primeiro carregamento (sem cópia no aparelho): esqueleto da busca + lista
+  if (loading) {
+    return (
+      <Screen>
+        <ScreenTitle title="Clientes" subtitle="Carregando…" />
+        <ClientsSkeleton />
+      </Screen>
+    );
+  }
+
   if (filter === 'retorno') {
     const list = recall.filter((r) => matches(r.client));
     return (
@@ -134,8 +150,15 @@ export default function ClientesScreen() {
           data={list}
           keyExtractor={(r) => r.client.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+          refreshControl={refreshControl}
           ListHeaderComponent={header}
-          ListEmptyComponent={<EmptyState icon="checkmark-done-outline" text="Ninguém para chamar de volta agora" />}
+          ListEmptyComponent={
+            <EmptyState
+              icon="sparkles-outline"
+              text="Tudo em dia! Nenhuma cliente sumida no momento"
+              subtitle={`Quem passar de ${profile.recallDays} dias sem voltar aparece aqui.`}
+            />
+          }
           renderItem={({ item: r, index }) => (
             <Pressable onPress={() => open(r.client.id)} className={rowClass(index, list.length)}>
               <Avatar name={r.client.name} />
@@ -175,6 +198,7 @@ export default function ClientesScreen() {
           data={list}
           keyExtractor={(b) => b.client.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+          refreshControl={refreshControl}
           ListHeaderComponent={header}
           ListEmptyComponent={<EmptyState icon="gift-outline" text="Nenhuma aniversariante este mês" />}
           renderItem={({ item: b, index }) => (
@@ -218,8 +242,17 @@ export default function ClientesScreen() {
         data={list}
         keyExtractor={(c) => c.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+          refreshControl={refreshControl}
         ListHeaderComponent={header}
-        ListEmptyComponent={<EmptyState icon="people-outline" text="Nenhuma cliente encontrada" />}
+        ListEmptyComponent={
+          <EmptyState
+            icon="people-outline"
+            text={query.trim() ? 'Nenhuma cliente encontrada' : 'Nenhuma cliente cadastrada ainda'}
+            subtitle={query.trim() ? `Nada com "${query.trim()}".` : undefined}
+            actionLabel="Cadastrar nova cliente"
+            onAction={() => router.push({ pathname: '/clientes/nova', params: { name: /\d/.test(query) ? '' : query.trim() } })}
+          />
+        }
         renderItem={({ item: c, index }) => {
           const last = lastVisit(c.id);
           return (

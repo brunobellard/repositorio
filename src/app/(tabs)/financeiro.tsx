@@ -1,9 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { ExportFinanceSheet } from '@/components/export-sheets';
+import { FinanceSkeleton } from '@/components/skeleton';
+import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { Card, EmptyState, Fab, Screen, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { formatDateShort, formatTime, isSameDay, startOfDay, startOfWeek } from '@/lib/dates';
@@ -27,7 +29,8 @@ function Stat({ label, value, tone, hint }: { label: string; value: number; tone
 }
 
 export default function FinanceiroScreen() {
-  const { transactions } = useStore();
+  const { transactions, loading, refresh } = useStore();
+  const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const [period, setPeriod] = useState<Period>('semana');
   const [exporting, setExporting] = useState(false);
 
@@ -79,7 +82,14 @@ export default function FinanceiroScreen() {
         }
       />
       <ExportFinanceSheet visible={exporting} onClose={() => setExporting(false)} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}>
+      {loading ? (
+        <FinanceSkeleton />
+      ) : (
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }>
         <View className="flex-row flex-wrap justify-between">
           <Stat label="Faturamento do dia" value={dayIncome} />
           <Stat label="Faturamento do mês" value={monthIncome} />
@@ -143,10 +153,17 @@ export default function FinanceiroScreen() {
               })}
             </Card>
           ) : (
-            <EmptyState icon="receipt-outline" text="Nenhuma transação no período" />
+            <EmptyState
+              icon="receipt-outline"
+              text="Nenhuma movimentação registrada neste período"
+              subtitle="Receitas entram ao concluir atendimentos ou vender pacotes."
+              actionLabel="+ Lançar despesa"
+              onAction={() => router.push('/financeiro/despesa')}
+            />
           )}
         </View>
       </ScrollView>
+      )}
       <Fab icon="remove" onPress={() => router.push('/financeiro/despesa')} />
     </Screen>
   );

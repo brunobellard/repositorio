@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { ListSkeleton } from '@/components/skeleton';
 import { EmptyState, Fab, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { formatDuration } from '@/lib/dates';
@@ -9,9 +10,11 @@ import { formatBRL } from '@/lib/format';
 import { colors } from '@/theme/colors';
 
 export default function ServicosScreen() {
-  const { services, setServiceActive } = useStore();
+  const { services, setServiceActive, loading } = useStore();
   const categories = [...new Set(services.map((s) => s.category))].sort();
   const activeCount = services.filter((s) => s.active).length;
+
+  if (loading) return <ListSkeleton rows={7} />;
 
   return (
     <View className="flex-1 bg-bg">

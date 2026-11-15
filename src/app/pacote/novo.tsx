@@ -223,7 +223,7 @@ export default function VenderPacote() {
           </Text>
           <Text className="text-[15px] font-semibold text-ink">{formatBRL(total)}</Text>
         </View>
-        <Button title={saving ? 'Salvando…' : 'Vender pacote'} onPress={save} disabled={!canSave} />
+        <Button title={saving ? 'Salvando…' : 'Vender pacote'} loading={saving} onPress={save} disabled={!canSave} />
       </View>
     </KeyboardAvoidingView>
   );
