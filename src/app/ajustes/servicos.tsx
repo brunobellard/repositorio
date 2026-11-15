@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { EmptyState, Fab } from '@/components/ui';
+import { EmptyState, Fab, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { formatDuration } from '@/lib/dates';
 import { formatBRL } from '@/lib/format';
@@ -31,25 +31,22 @@ export default function ServicosScreen() {
               {services
                 .filter((s) => s.category === cat)
                 .map((s, i) => (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => router.push({ pathname: '/ajustes/servico', params: { id: s.id } })}
-                    className={`flex-row items-center px-4 py-3 active:bg-bg ${i ? 'border-t border-line' : ''}`}>
-                    <View className="mr-3 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                    <View className={`flex-1 ${s.active ? '' : 'opacity-40'}`}>
-                      <Text className="text-[15px] font-medium text-ink">{s.name}</Text>
-                      <Text className="text-xs text-muted">
-                        {formatDuration(s.durationMin)} · {formatBRL(s.price)}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={s.active}
-                      onValueChange={(on) => setServiceActive(s.id, on)}
-                      trackColor={{ true: colors.primary, false: colors.line }}
-                      thumbColor="#fff"
-                    />
-                    <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginLeft: 8 }} />
-                  </Pressable>
+                  <View key={s.id} className={`flex-row items-center pr-4 ${i ? 'border-t border-line' : ''}`}>
+                    {/* Tocar no nome edita; o interruptor fica fora, para não abrir a edição */}
+                    <Pressable
+                      onPress={() => router.push({ pathname: '/ajustes/servico', params: { id: s.id } })}
+                      className="flex-1 flex-row items-center py-3 pl-4 active:opacity-60">
+                      <View className="mr-3 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                      <View className={`flex-1 ${s.active ? '' : 'opacity-40'}`}>
+                        <Text className="text-[15px] font-medium text-ink">{s.name}</Text>
+                        <Text className="text-xs text-muted">
+                          {formatDuration(s.durationMin)} · {formatBRL(s.price)}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginHorizontal: 8 }} />
+                    </Pressable>
+                    <Toggle value={s.active} onChange={(on) => setServiceActive(s.id, on)} />
+                  </View>
                 ))}
             </View>
           </View>

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { initials } from '@/lib/format';
@@ -196,5 +196,21 @@ export function EmptyState({ icon, text }: { icon: IconName; text: string }) {
       <Ionicons name={icon} size={32} color={colors.line} />
       <Text className="mt-2 text-sm text-muted">{text}</Text>
     </View>
+  );
+}
+
+/** Interruptor liga/desliga nas cores do app (no navegador também). */
+export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  // activeThumbColor/activeTrackColor são do react-native-web; no celular são ignorados
+  const webColors = { activeThumbColor: '#fff', activeTrackColor: colors.primary } as object;
+  return (
+    <Switch
+      value={value}
+      onValueChange={onChange}
+      trackColor={{ true: colors.primary, false: colors.line }}
+      thumbColor="#fff"
+      ios_backgroundColor={colors.line}
+      {...webColors}
+    />
   );
 }

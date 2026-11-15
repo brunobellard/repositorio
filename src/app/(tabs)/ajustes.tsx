@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Avatar, Card, Screen, ScreenTitle, SectionLabel } from '@/components/ui';
+import { Avatar, Card, Screen, ScreenTitle, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { useState } from 'react';
 
@@ -114,14 +114,12 @@ export default function AjustesScreen() {
                 <Ionicons name={biometric.support.icon} size={16} color={colors.primaryDark} />
               </View>
               <Text className="ml-3 flex-1 text-[15px] text-ink">Entrar com {biometric.support.label}</Text>
-              <Switch
+              <Toggle
                 value={biometric.enabled}
-                onValueChange={(on) => {
+                onChange={(on) => {
                   if (on) biometric.enable();
                   else biometric.disable();
                 }}
-                trackColor={{ true: colors.primary, false: colors.line }}
-                thumbColor="#fff"
               />
             </View>
           ) : null}

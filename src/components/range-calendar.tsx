@@ -66,7 +66,7 @@ export function RangeCalendar({
               <View className={`h-9 w-9 items-center justify-center rounded-full ${edge ? 'bg-primary' : ''}`}>
                 <Text
                   className={`text-[14px] ${
-                    edge ? 'font-semibold text-white' : past || other ? 'text-line' : 'text-ink'
+                    edge ? 'font-semibold text-white' : past ? 'text-line' : other ? 'text-muted' : 'text-ink'
                   }`}>
                   {d.getDate()}
                 </Text>

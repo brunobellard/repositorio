@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { RangeCalendar } from '@/components/range-calendar';
-import { Button, Card, Chip, EmptyState, SectionLabel } from '@/components/ui';
+import { Button, Card, Chip, EmptyState, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { confirmAction, notify } from '@/lib/confirm';
 import { addDays, formatDateShort, hmToMinutes, startOfDay } from '@/lib/dates';
@@ -177,12 +177,7 @@ export default function HorariosScreen() {
                   <Text className={`mr-2 text-[13px] ${d.isOpen ? 'text-ink' : 'text-muted'}`}>
                     {d.isOpen ? 'Aberto' : 'Fechado'}
                   </Text>
-                  <Switch
-                    value={d.isOpen}
-                    onValueChange={(isOpen) => update(dow, { isOpen })}
-                    trackColor={{ true: colors.primary, false: colors.line }}
-                    thumbColor="#fff"
-                  />
+                  <Toggle value={d.isOpen} onChange={(isOpen) => update(dow, { isOpen })} />
                 </View>
                 {d.isOpen ? (
                   <View className="mt-2">
