@@ -1,0 +1,135 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+
+import { CalendarHeader, type CalendarMode } from '@/components/agenda/calendar-header';
+import { DayTimeline } from '@/components/agenda/day-timeline';
+import { Fab, Screen, ScreenTitle } from '@/components/ui';
+import { useStore } from '@/data/store';
+import { confirmAction } from '@/lib/confirm';
+import { atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
+import { formatBRL } from '@/lib/format';
+import { colors } from '@/theme/colors';
+import type { ScheduleBlock } from '@/types';
+
+function overlapsDay(b: ScheduleBlock, day: Date) {
+  const s = startOfDay(day).getTime();
+  const e = s + 86_400_000;
+  return new Date(b.startsAt).getTime() < e && new Date(b.endsAt).getTime() > s;
+}
+
+export default function AgendaScreen() {
+  const { appointments, blocks, clients, profile, removeBlock } = useStore();
+  const [selected, setSelected] = useState(() => startOfDay(new Date()));
+  const [mode, setMode] = useState<CalendarMode>('semana');
+
+  const clientsById = new Map(clients.map((c) => [c.id, c]));
+
+  const counts = new Map<string, number>();
+  for (const a of appointments) {
+    if (a.status === 'cancelado') continue;
+    const k = new Date(a.startsAt).toDateString();
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const blockedDays = new Set<string>();
+  for (const b of blocks) {
+    if (!b.allDay) continue;
+    for (let d = startOfDay(new Date(b.startsAt)); d < new Date(b.endsAt); d = new Date(d.getTime() + 86_400_000)) {
+      blockedDays.add(d.toDateString());
+    }
+  }
+
+  const dayAppts = appointments.filter((a) => isSameDay(new Date(a.startsAt), selected));
+  const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
+  const allDayBlock = dayBlocks.find((b) => b.allDay);
+  const active = dayAppts.filter((a) => a.status !== 'cancelado');
+  const expected = active.reduce((t, a) => t + a.totalPrice, 0);
+
+  function onPressBlock(b: ScheduleBlock) {
+    confirmAction('Remover bloqueio?', `${b.reason ?? 'Bloqueio'} será liberado na agenda.`, () =>
+      removeBlock(b.id), 'Remover',
+    );
+  }
+
+  return (
+    <Screen>
+      <ScreenTitle
+        subtitle={profile.businessName}
+        title="Agenda"
+        right={
+          <Pressable
+            onPress={() => {
+              setSelected(startOfDay(new Date()));
+            }}
+            className="rounded-full border border-line bg-surface px-3.5 py-1.5">
+            <Text className="text-[13px] font-semibold text-ink">Hoje</Text>
+          </Pressable>
+        }
+      />
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+        <CalendarHeader
+          mode={mode}
+          onModeChange={setMode}
+          selected={selected}
+          onSelect={(d) => setSelected(startOfDay(d))}
+          counts={counts}
+          blockedDays={blockedDays}
+        />
+
+        <View className="mx-5 mb-1 mt-5 flex-row items-center justify-between">
+          <View>
+            <Text className="text-lg font-semibold text-ink">{formatDayTitle(selected)}</Text>
+            <Text className="text-[13px] text-muted">
+              {active.length} {active.length === 1 ? 'atendimento' : 'atendimentos'} · {formatBRL(expected)} previsto
+            </Text>
+          </View>
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/bloqueio/novo', params: { date: selected.toISOString() } })
+            }
+            className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5">
+            <Ionicons name="lock-closed-outline" size={14} color={colors.ink} />
+            <Text className="ml-1 text-[13px] font-medium text-ink">Bloquear</Text>
+          </Pressable>
+        </View>
+
+        {allDayBlock ? (
+          <Pressable
+            onPress={() => onPressBlock(allDayBlock)}
+            className="mx-4 mt-3 flex-row items-center rounded-card border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-4 py-3">
+            <Ionicons name="moon-outline" size={18} color={colors.muted} />
+            <View className="ml-2 flex-1">
+              <Text className="text-[14px] font-semibold text-ink">{allDayBlock.reason ?? 'Dia bloqueado'}</Text>
+              <Text className="text-xs text-muted">Dia inteiro sem atendimentos · toque para liberar</Text>
+            </View>
+          </Pressable>
+        ) : null}
+
+        <DayTimeline
+          day={selected}
+          workStart={profile.workStart}
+          workEnd={profile.workEnd}
+          appointments={dayAppts}
+          blocks={dayBlocks}
+          clientsById={clientsById}
+          onPressAppointment={(a) => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}
+          onPressBlock={onPressBlock}
+          onPressSlot={(min) =>
+            router.push({
+              pathname: '/agendamento/novo',
+              params: { date: atMinutes(selected, min).toISOString() },
+            })
+          }
+        />
+      </ScrollView>
+
+      <Fab
+        onPress={() =>
+          router.push({ pathname: '/agendamento/novo', params: { date: selected.toISOString() } })
+        }
+      />
+    </Screen>
+  );
+}
