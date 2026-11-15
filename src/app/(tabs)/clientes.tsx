@@ -1,32 +1,200 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar, EmptyState, Screen, ScreenTitle, SearchBar } from '@/components/ui';
 import { useStore } from '@/data/store';
-import { formatDateShort } from '@/lib/dates';
+import { notify } from '@/lib/confirm';
+import { formatDateShort, MONTHS } from '@/lib/dates';
 import { formatPhone, normalize } from '@/lib/format';
+import { birthdaysThisMonth, clientsToRecall, fillClientMessage, templateFor } from '@/lib/recall';
+import { whatsappProvider } from '@/services/messaging';
 import { colors } from '@/theme/colors';
+import type { Client } from '@/types';
+
+type Filter = 'todas' | 'retorno' | 'aniversario';
+
+function FilterChip({ label, count, active, onPress }: { label: string; count?: number; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={`mr-2 flex-row items-center rounded-full border px-3.5 py-1.5 ${
+        active ? 'border-primary bg-primary' : 'border-line bg-surface'
+      }`}>
+      <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-ink'}`}>{label}</Text>
+      {count !== undefined ? (
+        <View className={`ml-1.5 min-w-[18px] items-center rounded-full px-1 ${active ? 'bg-white/25' : 'bg-primary-soft'}`}>
+          <Text className={`text-[11px] font-bold ${active ? 'text-white' : 'text-primary-dark'}`}>{count}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** Botão discreto de WhatsApp dentro do card */
+function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+      className={`h-9 w-9 items-center justify-center rounded-full bg-[#E7F5EC] active:opacity-60 ${
+        disabled ? 'opacity-30' : ''
+      }`}>
+      <Ionicons name="logo-whatsapp" size={18} color="#25A366" />
+    </Pressable>
+  );
+}
 
 export default function ClientesScreen() {
-  const { clients, appointments } = useStore();
+  const { clients, appointments, profile, templates } = useStore();
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('todas');
+
+  const now = new Date();
+  const recall = clientsToRecall(clients, appointments, profile.recallDays, now);
+  const birthdays = birthdaysThisMonth(clients, now);
 
   const q = normalize(query.trim());
   const digits = query.replace(/\D/g, '');
-  const list = clients
-    .filter((c) => !q || normalize(c.name).includes(q) || (!!digits && !!c.whatsapp?.includes(digits)))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const matches = (c: Client) =>
+    !q || normalize(c.name).includes(q) || (!!digits && !!c.whatsapp?.includes(digits));
 
-  const now = new Date().toISOString();
+  const nowIso = now.toISOString();
   function lastVisit(clientId: string) {
-    const past = appointments
-      .filter((a) => a.clientId === clientId && a.status === 'concluido' && a.startsAt < now)
-      .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-    return past[0]?.startsAt;
+    return appointments
+      .filter((a) => a.clientId === clientId && a.status === 'concluido' && a.startsAt < nowIso)
+      .sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0]?.startsAt;
   }
 
+  async function sendWhatsApp(client: Client, text: string) {
+    if (!client.whatsapp) return notify('Cliente sem WhatsApp', 'Cadastre o número na ficha da cliente.');
+    try {
+      await whatsappProvider.send(client.whatsapp, text);
+    } catch {
+      notify('Não foi possível abrir o WhatsApp');
+    }
+  }
+
+  const open = (id: string) => router.push({ pathname: '/clientes/[id]', params: { id } });
+  const rowClass = (index: number, length: number) =>
+    `flex-row items-center bg-surface px-4 py-3 active:bg-bg ${
+      index === 0 ? 'rounded-t-card' : 'border-t border-line'
+    } ${index === length - 1 ? 'rounded-b-card' : ''}`;
+
+  const header = (
+    <View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
+        <FilterChip label="Todas" active={filter === 'todas'} onPress={() => setFilter('todas')} />
+        <FilterChip
+          label="Para chamar de volta"
+          count={recall.length}
+          active={filter === 'retorno'}
+          onPress={() => setFilter('retorno')}
+        />
+        <FilterChip
+          label={`Aniversariantes de ${MONTHS[now.getMonth()].toLowerCase()}`}
+          count={birthdays.length}
+          active={filter === 'aniversario'}
+          onPress={() => setFilter('aniversario')}
+        />
+      </ScrollView>
+      {filter === 'retorno' ? (
+        <Text className="mb-3 text-[12px] leading-4 text-muted">
+          Sem atendimento há mais de {profile.recallDays} dias e sem horário marcado.{' '}
+          <Text className="font-semibold text-primary-dark" onPress={() => router.push('/ajustes/retorno')}>
+            Ajustar prazo
+          </Text>
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  if (filter === 'retorno') {
+    const list = recall.filter((r) => matches(r.client));
+    return (
+      <Screen>
+        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
+        <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nome ou telefone" />
+        <FlatList
+          data={list}
+          keyExtractor={(r) => r.client.id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+          ListHeaderComponent={header}
+          ListEmptyComponent={<EmptyState icon="checkmark-done-outline" text="Ninguém para chamar de volta agora" />}
+          renderItem={({ item: r, index }) => (
+            <Pressable onPress={() => open(r.client.id)} className={rowClass(index, list.length)}>
+              <Avatar name={r.client.name} />
+              <View className="ml-3 flex-1">
+                <Text className="text-[15px] font-semibold text-ink">{r.client.name}</Text>
+                <Text numberOfLines={2} className="text-xs text-muted">
+                  Última visita há <Text className="font-semibold text-ink">{r.days} dias</Text> · {r.lastService}
+                </Text>
+              </View>
+              <WhatsAppButton
+                disabled={!r.client.whatsapp}
+                onPress={() =>
+                  sendWhatsApp(
+                    r.client,
+                    fillClientMessage(templateFor('reativacao', templates).body, r.client, profile, {
+                      dias: r.days,
+                      ultimo_servico: r.lastService,
+                    }),
+                  )
+                }
+              />
+            </Pressable>
+          )}
+        />
+      </Screen>
+    );
+  }
+
+  if (filter === 'aniversario') {
+    const list = birthdays.filter((b) => matches(b.client));
+    return (
+      <Screen>
+        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
+        <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nome ou telefone" />
+        <FlatList
+          data={list}
+          keyExtractor={(b) => b.client.id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+          ListHeaderComponent={header}
+          ListEmptyComponent={<EmptyState icon="gift-outline" text="Nenhuma aniversariante este mês" />}
+          renderItem={({ item: b, index }) => (
+            <Pressable onPress={() => open(b.client.id)} className={rowClass(index, list.length)}>
+              <View
+                className={`h-10 w-10 items-center justify-center rounded-full ${
+                  b.isToday ? 'bg-primary' : 'bg-primary-soft'
+                }`}>
+                <Text className={`text-[15px] font-bold ${b.isToday ? 'text-white' : 'text-primary-dark'}`}>
+                  {b.day}
+                </Text>
+              </View>
+              <View className={`ml-3 flex-1 ${b.isPast ? 'opacity-50' : ''}`}>
+                <Text className="text-[15px] font-semibold text-ink">{b.client.name}</Text>
+                <Text className="text-xs text-muted">
+                  {b.isToday ? '🎂 Hoje! · ' : ''}
+                  {String(b.day).padStart(2, '0')}/{String(now.getMonth() + 1).padStart(2, '0')}
+                  {b.age ? ` · ${b.isPast || b.isToday ? 'fez' : 'faz'} ${b.age} anos` : ''}
+                </Text>
+              </View>
+              <WhatsAppButton
+                disabled={!b.client.whatsapp}
+                onPress={() =>
+                  sendWhatsApp(b.client, fillClientMessage(templateFor('aniversario', templates).body, b.client, profile))
+                }
+              />
+            </Pressable>
+          )}
+        />
+      </Screen>
+    );
+  }
+
+  const list = clients.filter(matches).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Screen>
       <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
@@ -35,15 +203,12 @@ export default function ClientesScreen() {
         data={list}
         keyExtractor={(c) => c.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        ListHeaderComponent={header}
         ListEmptyComponent={<EmptyState icon="people-outline" text="Nenhuma cliente encontrada" />}
         renderItem={({ item: c, index }) => {
           const last = lastVisit(c.id);
           return (
-            <Pressable
-              onPress={() => router.push({ pathname: '/clientes/[id]', params: { id: c.id } })}
-              className={`flex-row items-center bg-surface px-4 py-3 active:bg-bg ${
-                index === 0 ? 'rounded-t-card' : 'border-t border-line'
-              } ${index === list.length - 1 ? 'rounded-b-card' : ''}`}>
+            <Pressable onPress={() => open(c.id)} className={rowClass(index, list.length)}>
               <Avatar name={c.name} />
               <View className="ml-3 flex-1">
                 <Text className="text-[15px] font-semibold text-ink">{c.name}</Text>

@@ -242,11 +242,22 @@ export default function AgendamentoDetalhe() {
         </View>
       ) : null}
 
+      {/* Atendimento concluído: comprovante em destaque */}
+      {appt.status === 'concluido' ? (
+        <View className="mt-3">
+          <Button
+            title="Enviar comprovante"
+            icon="receipt-outline"
+            onPress={() => router.push({ pathname: '/agendamento/recibo', params: { id: appt.id } })}
+          />
+        </View>
+      ) : null}
+
       {/* Mensagens */}
       <SectionLabel>Mensagens</SectionLabel>
       <View className="gap-2">
         {appt.status === 'concluido' ? (
-          <Button title="Enviar recibo no WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={() => whatsapp('recibo')} />
+          <Button title="Agradecimento no WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={() => whatsapp('recibo')} />
         ) : (
           <Button title="Enviar lembrete no WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={() => whatsapp('lembrete')} />
         )}

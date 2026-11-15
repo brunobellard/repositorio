@@ -11,7 +11,17 @@ const KIND_LABEL: Record<MessageKind, string> = {
   lembrete: 'Lembrete',
   confirmacao: 'Confirmação',
   recibo: 'Recibo',
+  reativacao: 'Chamar de volta',
+  aniversario: 'Aniversário',
 };
+
+/** Variáveis aceitas por cada tipo de mensagem */
+const KIND_VARS: Partial<Record<MessageKind, string>> = {
+  reativacao: '{nome} {dias} {ultimo_servico} {estudio} {endereco} {instagram}',
+  aniversario: '{nome} {estudio} {endereco} {instagram}',
+};
+
+const KIND_ORDER: MessageKind[] = ['confirmacao', 'lembrete', 'recibo', 'reativacao', 'aniversario'];
 
 function TemplateEditor({ template }: { template: MessageTemplate }) {
   const { updateTemplate } = useStore();
@@ -21,7 +31,10 @@ function TemplateEditor({ template }: { template: MessageTemplate }) {
 
   return (
     <Card className="mb-3">
-      <Text className="mb-2 text-[15px] font-semibold text-ink">{KIND_LABEL[template.kind]}</Text>
+      <Text className="text-[15px] font-semibold text-ink">{KIND_LABEL[template.kind]}</Text>
+      <Text className="mb-2 text-[11px] text-muted">
+        {KIND_VARS[template.kind] ?? '{nome} {servico} {data} {hora} {valor} {estudio} {endereco}'}
+      </Text>
       {template.channel === 'email' ? (
         <TextInput
           value={subject}
@@ -72,11 +85,12 @@ export default function ModelosMensagem() {
         ]}
       />
       <Text className="mb-4 mt-3 text-[13px] leading-5 text-muted">
-        Use as variáveis {'{nome}'}, {'{servico}'}, {'{data}'}, {'{hora}'}, {'{valor}'}, {'{estudio}'} e {'{endereco}'}. Elas são
-        trocadas pelos dados do agendamento na hora do envio.
+        As palavras entre chaves (variáveis, listadas em cada modelo) são trocadas pelos dados da cliente e do
+        agendamento na hora do envio.
       </Text>
       {templates
         .filter((t) => t.channel === channel)
+        .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))
         .map((t) => (
           <TemplateEditor key={`${t.channel}-${t.kind}`} template={t} />
         ))}

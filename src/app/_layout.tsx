@@ -79,6 +79,8 @@ function AppStack() {
         <Stack.Screen name="ajustes/horarios" options={{ title: 'Horário de funcionamento' }} />
         <Stack.Screen name="ajustes/taxas" options={{ title: 'Taxas de pagamento' }} />
         <Stack.Screen name="pacote/novo" options={{ presentation: 'modal', title: 'Vender pacote' }} />
+        <Stack.Screen name="ajustes/retorno" options={{ title: 'Retorno de clientes' }} />
+        <Stack.Screen name="agendamento/recibo" options={{ presentation: 'modal', title: 'Comprovante' }} />
       </Stack.Protected>
     </Stack>
   );

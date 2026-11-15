@@ -24,6 +24,7 @@ export const mockProfile: Profile = {
   workEnd: '20:00',
   slotMinutes: 15,
   paymentFees: { debit: 0, credit: 0, pix: 0, cash: 0 },
+  recallDays: 20,
 };
 
 export const mockServices: Service[] = [
@@ -243,3 +244,17 @@ export function exampleTimeOffs(): Omit<ScheduleBlock, 'id'>[] {
 
 /** Taxas típicas de maquininha no Brasil (%), usadas nos dados de exemplo. */
 export const exampleFees = { debit: 1.99, credit: 4.99, pix: 0, cash: 0 };
+
+/** Modelos de mensagem para a cliente (retorno e aniversário), sem agendamento ligado. */
+export const clientTemplates: MessageTemplate[] = [
+  {
+    channel: 'whatsapp',
+    kind: 'reativacao',
+    body: 'Oi {nome}! Tudo bem? Já faz {dias} dias desde o seu último {ultimo_servico} aqui no {estudio}. Que tal agendar a manutenção? Tenho horários essa semana 💅',
+  },
+  {
+    channel: 'whatsapp',
+    kind: 'aniversario',
+    body: 'Feliz aniversário, {nome}! 🎉 Que seu dia seja lindo. Para comemorar, você ganha um mimo especial no próximo atendimento aqui no {estudio} 💕',
+  },
+];

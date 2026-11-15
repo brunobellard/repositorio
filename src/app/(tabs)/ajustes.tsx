@@ -117,6 +117,12 @@ export default function AjustesScreen() {
         <SectionLabel>Comunicação</SectionLabel>
         <Card className="py-1">
           <Row icon="chatbubbles-outline" label="Modelos de mensagem" href="/ajustes/mensagens" />
+          <Row
+            icon="refresh-circle-outline"
+            label="Retorno de clientes"
+            detail={`${profile.recallDays} dias`}
+            href="/ajustes/retorno"
+          />
           <Row icon="flash-outline" label="Envio automático (WhatsApp)" detail="Em breve" />
         </Card>
 

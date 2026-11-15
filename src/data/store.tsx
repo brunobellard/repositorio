@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useAuth } from '@/data/auth';
 import {
   defaultBusinessHours,
+  clientTemplates,
   defaultTemplates,
   exampleFees,
   exampleStudio,
@@ -58,6 +59,7 @@ const toProfile = (r: any): Profile => ({
   addressCity: r.address_city ?? undefined,
   addressState: r.address_state ?? undefined,
   paymentFees: { ...ZERO_FEES, ...(r.payment_fees ?? {}) },
+  recallDays: r.recall_days ?? 20,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -240,6 +242,7 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   phone: 'phone',
   email: 'email',
   slotMinutes: 'slot_minutes',
+  recallDays: 'recall_days',
   tradeName: 'trade_name',
   document: 'document',
   instagram: 'instagram',
@@ -280,6 +283,7 @@ const emptyProfile: Profile = {
   workEnd: '20:00',
   slotMinutes: 15,
   paymentFees: ZERO_FEES,
+  recallDays: 20,
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -326,6 +330,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     await supabase.from('message_templates').upsert(
       defaultTemplates.map((t) => ({ channel: t.channel, kind: t.kind, subject: t.subject ?? null, body: t.body })),
+      { onConflict: 'owner_id,channel,kind', ignoreDuplicates: true },
+    );
+    // Retorno e aniversário (separado: depende da migração de retorno de clientes)
+    await supabase.from('message_templates').upsert(
+      clientTemplates.map((t) => ({ channel: t.channel, kind: t.kind, subject: null, body: t.body })),
       { onConflict: 'owner_id,channel,kind', ignoreDuplicates: true },
     );
     // Expediente padrão (ignora erro se a migração de Ajustes ainda não rodou)

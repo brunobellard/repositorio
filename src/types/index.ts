@@ -4,7 +4,7 @@ export type AppointmentStatus = 'pendente' | 'confirmado' | 'concluido' | 'cance
 export type PaymentMethod = 'pix' | 'credito' | 'debito' | 'dinheiro';
 export type TransactionType = 'receita' | 'despesa';
 export type MessageChannel = 'whatsapp' | 'email';
-export type MessageKind = 'confirmacao' | 'lembrete' | 'recibo';
+export type MessageKind = 'confirmacao' | 'lembrete' | 'recibo' | 'reativacao' | 'aniversario';
 
 export interface Profile {
   id: string;
@@ -27,6 +27,8 @@ export interface Profile {
   addressCity?: string;
   addressState?: string; // UF
   paymentFees: PaymentFees;
+  /** Dias sem voltar para a cliente aparecer em "Para chamar de volta" */
+  recallDays: number;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
