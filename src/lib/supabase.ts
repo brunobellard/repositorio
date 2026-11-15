@@ -33,6 +33,8 @@ export function friendlyError(error: { code?: string; message?: string } | null 
   switch (error.code) {
     case '23P01':
       return 'Já existe um agendamento nesse horário.';
+    case '23505':
+      return 'Esse valor já está em uso (por exemplo, o link escolhido já pertence a outro estúdio).';
     case '23503':
       return 'Este registro está ligado a outros dados e não pode ser alterado.';
     case 'invalid_credentials':

@@ -2,11 +2,23 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Field, SectionLabel } from '@/components/ui';
+import { Button, Field, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
 import { notify } from '@/lib/confirm';
 import { initials, maskDocument, maskPhone, maskZip, onlyDigits } from '@/lib/format';
 import { colors } from '@/theme/colors';
@@ -29,6 +41,8 @@ export default function DadosEstudio() {
     addressDistrict: profile.addressDistrict ?? '',
     addressCity: profile.addressCity ?? '',
     addressState: profile.addressState ?? '',
+    slug: profile.slug ?? '',
+    bookingAutoApprove: profile.bookingAutoApprove,
   }));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -80,7 +94,23 @@ export default function DadosEstudio() {
   const docDigits = onlyDigits(form.document);
   const docValid = !docDigits || docDigits.length === 11 || docDigits.length === 14;
   const emailValid = !form.email || /^\S+@\S+\.\S+$/.test(form.email.trim());
-  const canSave = !!form.businessName.trim() && docValid && emailValid && !saving;
+  const slugOk = !form.slug || isValidSlug(form.slug);
+  const canSave = !!form.businessName.trim() && docValid && emailValid && slugOk && !saving;
+
+  // Só mostra o link depois de salvo (é o que a cliente vai acessar)
+  const savedLink = profile.slug ? bookingUrl(profile.slug) : null;
+
+  async function copyLink() {
+    if (!savedLink) return;
+    await Clipboard.setStringAsync(savedLink);
+    notify('Link copiado', 'Cole na bio do Instagram ou no WhatsApp.');
+  }
+
+  function shareLink() {
+    if (!savedLink) return;
+    const text = `Agende seu horário no ${profile.businessName} pelo link: ${savedLink}`;
+    Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  }
 
   async function save() {
     if (!canSave) return;
@@ -99,6 +129,8 @@ export default function DadosEstudio() {
       addressDistrict: form.addressDistrict.trim(),
       addressCity: form.addressCity.trim(),
       addressState: form.addressState.trim().toUpperCase(),
+      slug: form.slug.trim(),
+      bookingAutoApprove: form.bookingAutoApprove,
     });
     setSaving(false);
     if (ok) notify('Dados salvos', 'Recibos e mensagens já usam as novas informações.');
@@ -238,6 +270,59 @@ export default function DadosEstudio() {
           Esses dados aparecem no cabeçalho dos recibos por e-mail e nas variáveis {'{estudio}'} e {'{endereco}'}{' '}
           das mensagens.
         </Text>
+
+        {/* Agendamento online */}
+        <SectionLabel>Agendamento online</SectionLabel>
+        <Text className="mb-1.5 text-[13px] font-medium text-muted">Link personalizado</Text>
+        <View className="mb-1 flex-row items-center rounded-2xl border border-line bg-surface pl-4">
+          <Text className="text-[15px] text-muted">/agendar/</Text>
+          <TextInput
+            value={form.slug}
+            onChangeText={(t) => set({ slug: sanitizeSlugInput(t) })}
+            placeholder={slugify(form.businessName) || 'seu-estudio'}
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            className="flex-1 py-3 pr-4 text-[15px] text-ink"
+          />
+        </View>
+        <Text className={`mb-3 text-[12px] ${slugOk ? 'text-muted' : 'text-[#B2474F]'}`}>
+          {slugOk
+            ? 'Use letras minúsculas, números e hífen. Ex: studio-ana-lima'
+            : 'De 3 a 40 caracteres: letras minúsculas, números e hífen (sem começar ou terminar com hífen).'}
+        </Text>
+
+        {savedLink ? (
+          <View className="mb-3 rounded-2xl bg-primary-soft p-3">
+            <Text selectable className="text-[13px] font-medium text-primary-dark">
+              {savedLink}
+            </Text>
+            <View className="mt-2 flex-row gap-2">
+              <View className="flex-1">
+                <Button title="Copiar link" icon="copy-outline" variant="secondary" onPress={copyLink} />
+              </View>
+              <View className="flex-1">
+                <Button title="WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={shareLink} />
+              </View>
+            </View>
+          </View>
+        ) : profile.slug ? (
+          <Text className="mb-3 text-[12px] leading-4 text-muted">
+            Publique a versão web do app e informe o endereço em EXPO_PUBLIC_BOOKING_URL para gerar o link completo.
+          </Text>
+        ) : null}
+
+        <View className="flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3">
+          <View className="flex-1 pr-3">
+            <Text className="text-[15px] text-ink">Aprovação automática</Text>
+            <Text className="text-[12px] leading-4 text-muted">
+              {form.bookingAutoApprove
+                ? 'Agendamentos online entram na agenda já confirmados.'
+                : 'Agendamentos online entram como pendentes até você confirmar.'}
+            </Text>
+          </View>
+          <Toggle value={form.bookingAutoApprove} onChange={(v) => set({ bookingAutoApprove: v })} />
+        </View>
       </ScrollView>
 
       <View

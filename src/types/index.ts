@@ -29,6 +29,10 @@ export interface Profile {
   paymentFees: PaymentFees;
   /** Dias sem voltar para a cliente aparecer em "Para chamar de volta" */
   recallDays: number;
+  /** Link público de agendamento: /agendar/<slug> */
+  slug?: string;
+  /** Agendamentos online entram como confirmados (true) ou pendentes (false) */
+  bookingAutoApprove: boolean;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
@@ -84,6 +88,8 @@ export interface Appointment {
   isRecurrenceException: boolean;
   /** Sessão paga com crédito de pacote (não gera nova receita ao concluir) */
   clientPackageId?: string;
+  /** 'online' = marcado pela própria cliente no link público */
+  source: 'app' | 'online';
 }
 
 export interface ScheduleBlock {

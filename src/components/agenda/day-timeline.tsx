@@ -179,6 +179,9 @@ export function DayTimeline({
                     ) : null}
                   </View>
                   <View className="flex-row items-center">
+                    {a.source === 'online' ? (
+                      <Ionicons name="globe-outline" size={12} color={colors.primaryDark} style={{ marginRight: 3 }} />
+                    ) : null}
                     {a.recurrenceGroupId ? (
                       <Ionicons name="repeat" size={12} color={colors.muted} style={{ marginRight: 3 }} />
                     ) : null}

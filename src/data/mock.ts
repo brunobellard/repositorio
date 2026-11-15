@@ -25,6 +25,7 @@ export const mockProfile: Profile = {
   slotMinutes: 15,
   paymentFees: { debit: 0, credit: 0, pix: 0, cash: 0 },
   recallDays: 20,
+  bookingAutoApprove: false,
 };
 
 export const mockServices: Service[] = [
@@ -110,6 +111,7 @@ function buildAppointments(): Appointment[] {
       totalPrice: services.reduce((t, s) => t + s.price, 0),
       notes: i === 14 ? 'Primeira extensão — reservar tempo extra para explicar os cuidados.' : undefined,
       isRecurrenceException: false,
+      source: 'app',
     };
   });
 }

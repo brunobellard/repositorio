@@ -134,6 +134,15 @@ export default function AgendamentoDetalhe() {
           </View>
           <StatusPill status={appt.status} size="md" />
         </View>
+        {appt.source === 'online' ? (
+          <View className="mt-3 flex-row items-center rounded-xl bg-bg px-3 py-2">
+            <Ionicons name="globe-outline" size={15} color={colors.primaryDark} />
+            <Text className="ml-2 flex-1 text-[13px] text-ink">
+              Agendado pela cliente no link online
+              {appt.status === 'pendente' ? ' · confirme abaixo' : ''}
+            </Text>
+          </View>
+        ) : null}
         {pkg ? (
           <View className="mt-3 flex-row items-center rounded-xl bg-status-confirmado-bg px-3 py-2">
             <Ionicons name="ticket-outline" size={15} color={statusInfo.confirmado.color} />

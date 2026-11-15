@@ -60,6 +60,8 @@ const toProfile = (r: any): Profile => ({
   addressState: r.address_state ?? undefined,
   paymentFees: { ...ZERO_FEES, ...(r.payment_fees ?? {}) },
   recallDays: r.recall_days ?? 20,
+  slug: r.slug ?? undefined,
+  bookingAutoApprove: !!r.booking_auto_approve,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -99,6 +101,7 @@ const toAppointment = (r: any): Appointment => ({
   recurrenceRule: r.recurrence_rule ?? undefined,
   isRecurrenceException: !!r.is_recurrence_exception,
   clientPackageId: r.client_package_id ?? undefined,
+  source: r.source === 'online' ? 'online' : 'app',
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -243,6 +246,8 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   email: 'email',
   slotMinutes: 'slot_minutes',
   recallDays: 'recall_days',
+  slug: 'slug',
+  bookingAutoApprove: 'booking_auto_approve',
   tradeName: 'trade_name',
   document: 'document',
   instagram: 'instagram',
@@ -284,6 +289,7 @@ const emptyProfile: Profile = {
   slotMinutes: 15,
   paymentFees: ZERO_FEES,
   recallDays: 20,
+  bookingAutoApprove: false,
 };
 
 const StoreContext = createContext<Store | null>(null);

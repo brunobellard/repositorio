@@ -1,6 +1,6 @@
 import '@/global.css';
 
-import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -51,17 +51,23 @@ function MissingConfig() {
 function AppStack() {
   const { session, loading } = useAuth();
   const { loading: loadingData } = useStore();
+  // Página pública de agendamento: abre sem login e sem esperar os dados da profissional
+  const isPublic = useSegments()[0] === 'agendar';
 
   useEffect(() => {
-    if (!loading) SplashScreen.hideAsync();
-  }, [loading]);
+    if (!loading || isPublic) SplashScreen.hideAsync();
+  }, [loading, isPublic]);
 
-  if (loading) return <Loading />;
   const loggedIn = !!session;
-  if (loggedIn && loadingData) return <Loading text="Carregando sua agenda…" />;
+  if (!isPublic) {
+    if (loading) return <Loading />;
+    if (loggedIn && loadingData) return <Loading text="Carregando sua agenda…" />;
+  }
 
   return (
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
+      {/* Sempre acessível, com ou sem login */}
+      <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
       <Stack.Protected guard={!loggedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>

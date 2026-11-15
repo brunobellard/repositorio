@@ -1,0 +1,662 @@
+// Página pública de agendamento online (sem login).
+// Acesso ao banco só pelas funções public_studio, public_busy e public_book,
+// que expõem apenas dados públicos do estúdio e intervalos ocupados.
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { type ReactNode, useEffect, useState } from 'react';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Button } from '@/components/ui';
+import {
+  addDays,
+  atMinutes,
+  formatDuration,
+  formatTime,
+  hmToMinutes,
+  isSameDay,
+  monthGrid,
+  MONTHS,
+  startOfDay,
+  WEEKDAYS_SHORT,
+} from '@/lib/dates';
+import { formatBRL, formatPhone, initials, maskPhone, onlyDigits } from '@/lib/format';
+import { formatAddress, hoursForDay, isWithinHours, WEEKDAYS_LONG } from '@/lib/hours';
+import { supabase } from '@/lib/supabase';
+import { colors, statusInfo } from '@/theme/colors';
+import type { BusinessHours, Profile } from '@/types';
+
+/** Janela de agendamento (o banco aceita até 90 dias) */
+const DAYS_AHEAD = 60;
+/** Antecedência mínima (o banco exige 30 min) */
+const MIN_NOTICE_MIN = 60;
+
+interface PublicService {
+  id: string;
+  name: string;
+  category: string | null;
+  price: number;
+  duration_min: number;
+}
+
+interface PublicStudio {
+  business_name: string;
+  logo_url: string | null;
+  phone: string | null;
+  instagram: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_district: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip: string | null;
+  slot_minutes: number;
+  services: PublicService[];
+  hours: {
+    day_of_week: number;
+    is_open: boolean;
+    open_time: string;
+    close_time: string;
+    break_start: string | null;
+    break_end: string | null;
+  }[];
+}
+
+interface Busy {
+  start: number;
+  end: number;
+  allDay: boolean;
+}
+
+interface Booked {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  status: 'pendente' | 'confirmado';
+  total_price: number;
+}
+
+type Step = 1 | 2 | 3 | 4;
+
+// ---------------------------------------------------------------------
+// Calendário (.ics) para "Adicionar ao meu calendário"
+// ---------------------------------------------------------------------
+const icsDate = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+function buildIcs(b: Booked, title: string, location: string) {
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Agenda Beleza//PT-BR',
+    'BEGIN:VEVENT',
+    `UID:${b.id}@agenda-beleza`,
+    `DTSTAMP:${icsDate(new Date().toISOString())}`,
+    `DTSTART:${icsDate(b.starts_at)}`,
+    `DTEND:${icsDate(b.ends_at)}`,
+    `SUMMARY:${title.replace(/[,;]/g, ' ')}`,
+    location ? `LOCATION:${location.replace(/[,;]/g, ' ')}` : '',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT3H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Lembrete do seu horário',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ]
+    .filter(Boolean)
+    .join('\r\n');
+}
+
+// ---------------------------------------------------------------------
+// Peças visuais
+// ---------------------------------------------------------------------
+function StepHeader({ step, onBack }: { step: Step; onBack?: () => void }) {
+  const labels = ['Serviços', 'Data e horário', 'Seus dados'];
+  return (
+    <View className="mb-4 flex-row items-center">
+      {onBack ? (
+        <Pressable onPress={onBack} hitSlop={10} className="mr-2 p-1 active:opacity-60">
+          <Ionicons name="chevron-back" size={20} color={colors.ink} />
+        </Pressable>
+      ) : null}
+      <View className="flex-1 flex-row gap-1.5">
+        {labels.map((l, i) => (
+          <View key={l} className="flex-1">
+            <View className={`h-1 rounded-full ${i < step ? 'bg-primary' : 'bg-line'}`} />
+            <Text className={`mt-1 text-[11px] ${i + 1 === step ? 'font-semibold text-ink' : 'text-muted'}`}>{l}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+export default function AgendarOnline() {
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const insets = useSafeAreaInsets();
+
+  const [studio, setStudio] = useState<PublicStudio | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [busy, setBusy] = useState<Busy[]>([]);
+  const [step, setStep] = useState<Step>(1);
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [day, setDay] = useState<Date | null>(null);
+  const [time, setTime] = useState<number | null>(null);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [booked, setBooked] = useState<Booked | null>(null);
+
+  // Carrega estúdio e horários ocupados dos próximos dias
+  async function loadBusy() {
+    const from = startOfDay(new Date());
+    const { data } = await supabase.rpc('public_busy', {
+      p_slug: slug,
+      p_from: from.toISOString(),
+      p_to: addDays(from, DAYS_AHEAD + 1).toISOString(),
+    });
+    setBusy(
+      ((data as { starts_at: string; ends_at: string; all_day: boolean }[]) ?? []).map((b) => ({
+        start: new Date(b.starts_at).getTime(),
+        end: new Date(b.ends_at).getTime(),
+        allDay: b.all_day,
+      })),
+    );
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error: e } = await supabase.rpc('public_studio', { p_slug: slug });
+      if (cancelled) return;
+      if (e || !data) {
+        setNotFound(true);
+        return;
+      }
+      setStudio(data as PublicStudio);
+      const from = startOfDay(new Date());
+      const { data: b } = await supabase.rpc('public_busy', {
+        p_slug: slug,
+        p_from: from.toISOString(),
+        p_to: addDays(from, DAYS_AHEAD + 1).toISOString(),
+      });
+      if (cancelled) return;
+      setBusy(
+        ((b as { starts_at: string; ends_at: string; all_day: boolean }[]) ?? []).map((x) => ({
+          start: new Date(x.starts_at).getTime(),
+          end: new Date(x.ends_at).getTime(),
+          allDay: x.all_day,
+        })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
+  // Título da aba do navegador
+  const pageTitle = studio ? `Agendar · ${studio.business_name}` : 'Agendar horário';
+
+  if (notFound) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg px-8">
+        <Stack.Screen options={{ title: 'Link não encontrado' }} />
+        <Ionicons name="link-outline" size={36} color={colors.muted} />
+        <Text className="mt-3 text-lg font-semibold text-ink">Link não encontrado</Text>
+        <Text className="mt-1 text-center text-[14px] text-muted">
+          Confira o endereço com o estúdio. O link pode ter sido alterado.
+        </Text>
+      </View>
+    );
+  }
+  if (!studio) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  // -------------------------------------------------------------------
+  // Regras de disponibilidade (as mesmas validadas pelo banco)
+  // -------------------------------------------------------------------
+  const hours: BusinessHours[] = studio.hours.map((h) => ({
+    dayOfWeek: h.day_of_week,
+    isOpen: h.is_open,
+    openTime: h.open_time,
+    closeTime: h.close_time,
+    breakStart: h.break_start ?? undefined,
+    breakEnd: h.break_end ?? undefined,
+  }));
+  const address = formatAddress({
+    addressStreet: studio.address_street ?? undefined,
+    addressNumber: studio.address_number ?? undefined,
+    addressDistrict: studio.address_district ?? undefined,
+    addressCity: studio.address_city ?? undefined,
+    addressState: studio.address_state ?? undefined,
+    addressZip: studio.address_zip ?? undefined,
+  } as Profile);
+
+  const selected = serviceIds.map((id) => studio.services.find((s) => s.id === id)!).filter(Boolean);
+  const duration = selected.reduce((t, s) => t + s.duration_min, 0);
+  const total = selected.reduce((t, s) => t + Number(s.price), 0);
+  const slotStep = Math.max(15, studio.slot_minutes);
+  const today = startOfDay(new Date());
+  const lastDay = addDays(today, DAYS_AHEAD);
+  const earliest = new Date().getTime() + MIN_NOTICE_MIN * 60_000;
+
+  function freeSlots(d: Date): number[] {
+    const h = hoursForDay(d, hours);
+    if (!h.isOpen || !duration) return [];
+    const dayStart = startOfDay(d).getTime();
+    if (busy.some((b) => b.allDay && b.start < dayStart + 86_400_000 && b.end > dayStart)) return [];
+    const result: number[] = [];
+    for (let m = hmToMinutes(h.openTime); m + duration <= hmToMinutes(h.closeTime); m += slotStep) {
+      if (!isWithinHours(h, m, m + duration)) continue; // não atravessa a pausa
+      const s = atMinutes(d, m).getTime();
+      const e = s + duration * 60_000;
+      if (s < earliest) continue;
+      if (busy.some((b) => b.start < e && b.end > s)) continue;
+      result.push(m);
+    }
+    return result;
+  }
+
+  function dayState(d: Date): 'past' | 'closed' | 'full' | 'open' {
+    if (d < today || d > lastDay) return 'past';
+    if (!hoursForDay(d, hours).isOpen) return 'closed';
+    return freeSlots(d).length ? 'open' : 'full';
+  }
+
+  const toggleService = (id: string) => {
+    setServiceIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+    setTime(null);
+  };
+
+  async function confirm() {
+    if (!day || time === null || sending) return;
+    setSending(true);
+    setError(null);
+    const { data, error: e } = await supabase.rpc('public_book', {
+      p_slug: slug,
+      p_service_ids: serviceIds,
+      p_starts_at: atMinutes(day, time).toISOString(),
+      p_name: name.trim(),
+      p_whatsapp: onlyDigits(phone),
+      p_notes: notes.trim() || null,
+    });
+    setSending(false);
+    if (e) {
+      setError(e.message || 'Não foi possível agendar. Tente outro horário.');
+      // O horário pode ter sido ocupado: atualiza a disponibilidade
+      if (/ocupad|indispon/i.test(e.message ?? '')) loadBusy();
+      return;
+    }
+    setBooked(data as Booked);
+    setStep(4);
+  }
+
+  const services = studio.services;
+  const categories = [...new Set(services.map((s) => s.category ?? 'Serviços'))];
+  const nameOk = name.trim().length >= 3;
+  const phoneOk = onlyDigits(phone).length >= 10;
+
+  // -------------------------------------------------------------------
+  // Tela
+  // -------------------------------------------------------------------
+  const header = (
+    <View className="mb-5 items-center">
+      {studio.logo_url ? (
+        <Image source={{ uri: studio.logo_url }} style={{ width: 72, height: 72, borderRadius: 20 }} contentFit="cover" />
+      ) : (
+        <View className="h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-primary-soft">
+          <Text className="text-2xl font-bold text-primary-dark">{initials(studio.business_name)}</Text>
+        </View>
+      )}
+      <Text className="mt-3 text-center text-[22px] font-bold text-ink">{studio.business_name}</Text>
+      {address ? <Text className="mt-0.5 text-center text-[13px] text-muted">{address}</Text> : null}
+      {studio.instagram ? (
+        <Text
+          className="mt-0.5 text-[13px] font-medium text-primary-dark"
+          onPress={() => Linking.openURL(`https://instagram.com/${studio.instagram}`)}>
+          @{studio.instagram}
+        </Text>
+      ) : null}
+    </View>
+  );
+
+  let body: ReactNode;
+  let footer: ReactNode = null;
+
+  if (step === 1) {
+    body = (
+      <>
+        <StepHeader step={1} />
+        <Text className="mb-3 text-[17px] font-semibold text-ink">Escolha o(s) serviço(s)</Text>
+        {categories.map((cat) => (
+          <View key={cat} className="mb-4">
+            <Text className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">{cat}</Text>
+            <View className="overflow-hidden rounded-card border border-line bg-surface">
+              {services
+                .filter((s) => (s.category ?? 'Serviços') === cat)
+                .map((s, i) => {
+                  const on = serviceIds.includes(s.id);
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => toggleService(s.id)}
+                      className={`flex-row items-center px-4 py-3.5 active:bg-bg ${i ? 'border-t border-line' : ''} ${
+                        on ? 'bg-primary-soft' : ''
+                      }`}>
+                      <View className="flex-1">
+                        <Text className="text-[15px] font-medium text-ink">{s.name}</Text>
+                        <Text className="text-xs text-muted">{formatDuration(s.duration_min)}</Text>
+                      </View>
+                      <Text className="mr-3 text-[14px] font-semibold text-ink">{formatBRL(Number(s.price))}</Text>
+                      <Ionicons
+                        name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={22}
+                        color={on ? colors.primary : colors.line}
+                      />
+                    </Pressable>
+                  );
+                })}
+            </View>
+          </View>
+        ))}
+        {!services.length ? (
+          <Text className="text-center text-[14px] text-muted">Nenhum serviço disponível para agendamento online.</Text>
+        ) : null}
+      </>
+    );
+    footer = (
+      <>
+        <View className="mb-2 flex-row justify-between">
+          <Text className="text-[13px] text-muted">
+            {selected.length ? `${selected.length} serviço(s) · ${formatDuration(duration)}` : 'Nenhum serviço escolhido'}
+          </Text>
+          <Text className="text-[15px] font-semibold text-ink">{formatBRL(total)}</Text>
+        </View>
+        <Button title="Escolher data e horário" onPress={() => setStep(2)} disabled={!selected.length} />
+      </>
+    );
+  } else if (step === 2) {
+    const grid = monthGrid(month);
+    const slots = day ? freeSlots(day) : [];
+    const canPrev = month > new Date(today.getFullYear(), today.getMonth(), 1);
+    const canNext = new Date(month.getFullYear(), month.getMonth() + 1, 1) <= lastDay;
+    body = (
+      <>
+        <StepHeader step={2} onBack={() => setStep(1)} />
+        <View className="rounded-card border border-line bg-surface p-4">
+          <View className="mb-2 flex-row items-center justify-between">
+            <Pressable
+              disabled={!canPrev}
+              onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
+              hitSlop={10}
+              className={`p-1 ${canPrev ? '' : 'opacity-20'}`}>
+              <Ionicons name="chevron-back" size={18} color={colors.ink} />
+            </Pressable>
+            <Text className="text-[15px] font-semibold text-ink">
+              {MONTHS[month.getMonth()]} {month.getFullYear()}
+            </Text>
+            <Pressable
+              disabled={!canNext}
+              onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
+              hitSlop={10}
+              className={`p-1 ${canNext ? '' : 'opacity-20'}`}>
+              <Ionicons name="chevron-forward" size={18} color={colors.ink} />
+            </Pressable>
+          </View>
+          <View className="flex-row">
+            {WEEKDAYS_SHORT.map((w) => (
+              <Text key={w} className="flex-1 text-center text-[11px] text-muted">
+                {w}
+              </Text>
+            ))}
+          </View>
+          <View className="mt-1 flex-row flex-wrap">
+            {grid.map((d) => {
+              const other = d.getMonth() !== month.getMonth();
+              const state = other ? 'past' : dayState(d);
+              const sel = day && isSameDay(d, day);
+              return (
+                <Pressable
+                  key={d.toDateString()}
+                  disabled={state !== 'open'}
+                  onPress={() => {
+                    setDay(d);
+                    setTime(null);
+                  }}
+                  style={{ width: `${100 / 7}%` }}
+                  className="h-11 items-center justify-center">
+                  <View
+                    className={`h-9 w-9 items-center justify-center rounded-full ${
+                      sel ? 'bg-primary' : state === 'open' ? 'bg-primary-soft' : ''
+                    }`}>
+                    <Text
+                      className={`text-[14px] ${
+                        sel
+                          ? 'font-semibold text-white'
+                          : state === 'open'
+                            ? 'font-medium text-primary-dark'
+                            : 'text-line'
+                      } ${state === 'closed' && !other ? 'line-through' : ''}`}>
+                      {other ? '' : d.getDate()}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text className="mt-2 text-center text-[11px] text-muted">
+            Dias em destaque têm horários livres para {formatDuration(duration)}.
+          </Text>
+        </View>
+
+        {day ? (
+          <>
+            <Text className="mb-2 mt-5 text-[15px] font-semibold text-ink">
+              {WEEKDAYS_LONG[day.getDay()]}, {day.getDate()} de {MONTHS[day.getMonth()].toLowerCase()}
+            </Text>
+            {slots.length ? (
+              <View className="flex-row flex-wrap">
+                {slots.map((m) => {
+                  const sel = time === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setTime(m)}
+                      className={`mb-2 mr-2 w-[74px] items-center rounded-xl border py-2.5 ${
+                        sel ? 'border-primary bg-primary' : 'border-line bg-surface'
+                      }`}>
+                      <Text className={`text-[14px] font-medium ${sel ? 'text-white' : 'text-ink'}`}>
+                        {formatTime(atMinutes(day, m))}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text className="text-[14px] text-muted">Sem horários livres neste dia.</Text>
+            )}
+          </>
+        ) : null}
+      </>
+    );
+    footer = (
+      <>
+        {day && time !== null ? (
+          <Text className="mb-2 text-[13px] text-muted">
+            {day.getDate()}/{String(day.getMonth() + 1).padStart(2, '0')} das {formatTime(atMinutes(day, time))} às{' '}
+            {formatTime(atMinutes(day, time + duration))}
+          </Text>
+        ) : null}
+        <Button title="Continuar" onPress={() => setStep(3)} disabled={!day || time === null} />
+      </>
+    );
+  } else if (step === 3) {
+    body = (
+      <>
+        <StepHeader step={3} onBack={() => setStep(2)} />
+        <View className="mb-4 rounded-card border border-line bg-surface p-4">
+          <Text className="text-[15px] font-semibold text-ink">{selected.map((s) => s.name).join(' + ')}</Text>
+          <Text className="mt-0.5 text-[13px] text-muted">
+            {day && time !== null
+              ? `${WEEKDAYS_LONG[day.getDay()]}, ${day.getDate()}/${String(day.getMonth() + 1).padStart(2, '0')} às ${formatTime(atMinutes(day, time))}`
+              : ''}{' '}
+            · {formatDuration(duration)} · {formatBRL(total)}
+          </Text>
+        </View>
+        <Text className="mb-1.5 text-[13px] font-medium text-muted">Nome completo</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Seu nome"
+          placeholderTextColor={colors.muted}
+          autoComplete="name"
+          className="mb-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
+        />
+        <Text className="mb-1.5 text-[13px] font-medium text-muted">WhatsApp</Text>
+        <TextInput
+          value={phone}
+          onChangeText={(t) => setPhone(maskPhone(t))}
+          placeholder="(11) 90000-0000"
+          placeholderTextColor={colors.muted}
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          className="mb-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
+        />
+        <Text className="mb-1.5 text-[13px] font-medium text-muted">Observação (opcional)</Text>
+        <TextInput
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Ex: quero fazer francesinha"
+          placeholderTextColor={colors.muted}
+          multiline
+          maxLength={500}
+          className="min-h-[80px] rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
+          style={{ textAlignVertical: 'top' }}
+        />
+        {error ? (
+          <View className="mt-3 rounded-2xl bg-[#F8E9EA] px-4 py-3">
+            <Text className="text-[13px] text-[#B2474F]">{error}</Text>
+          </View>
+        ) : null}
+        <Text className="mt-3 text-[11px] leading-4 text-muted">
+          Seu nome e WhatsApp são usados só pelo estúdio para confirmar o atendimento.
+        </Text>
+      </>
+    );
+    footer = (
+      <Button
+        title={sending ? 'Agendando…' : 'Confirmar agendamento'}
+        onPress={confirm}
+        disabled={!nameOk || !phoneOk || sending}
+      />
+    );
+  } else if (booked) {
+    const start = new Date(booked.starts_at);
+    const when = `${WEEKDAYS_LONG[start.getDay()]}, ${start.getDate()}/${String(start.getMonth() + 1).padStart(2, '0')} às ${formatTime(start)}`;
+    const serviceNames = selected.map((s) => s.name).join(' + ');
+    const confirmed = booked.status === 'confirmado';
+
+    const addToCalendar = () => {
+      const ics = buildIcs(booked, `${serviceNames} · ${studio.business_name}`, address);
+      if (Platform.OS === 'web') {
+        const a = document.createElement('a');
+        a.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+        a.download = 'agendamento.ics';
+        a.click();
+      }
+    };
+    const googleCalendar = () => {
+      const url =
+        'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+        `&text=${encodeURIComponent(`${serviceNames} · ${studio.business_name}`)}` +
+        `&dates=${icsDate(booked.starts_at)}/${icsDate(booked.ends_at)}` +
+        `&location=${encodeURIComponent(address)}`;
+      Linking.openURL(url);
+    };
+    const whatsappStudio = () => {
+      const text = `Olá! Acabei de agendar ${serviceNames} para ${when.toLowerCase()} pelo link online. Meu nome é ${name.trim()}.`;
+      const digits = onlyDigits(studio.phone ?? '');
+      Linking.openURL(`https://wa.me/${digits.length <= 11 ? `55${digits}` : digits}?text=${encodeURIComponent(text)}`);
+    };
+
+    body = (
+      <View className="items-center pt-2">
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-status-confirmado-bg">
+          <Ionicons name="checkmark" size={34} color={statusInfo.confirmado.color} />
+        </View>
+        <Text className="mt-4 text-center text-[22px] font-bold text-ink">
+          {confirmed ? 'Horário confirmado!' : 'Pedido de horário enviado!'}
+        </Text>
+        <Text className="mt-1 text-center text-[14px] leading-5 text-muted">
+          {confirmed
+            ? 'Te esperamos no dia e horário abaixo.'
+            : 'O estúdio vai confirmar seu horário em breve pelo WhatsApp.'}
+        </Text>
+        <View className="mt-5 w-full rounded-card border border-line bg-surface p-4">
+          <Text className="text-[15px] font-semibold text-ink">{serviceNames}</Text>
+          <Text className="mt-1 text-[14px] text-ink">{when}</Text>
+          <Text className="text-[13px] text-muted">
+            {formatDuration(duration)} · {formatBRL(Number(booked.total_price))}
+          </Text>
+          {address ? <Text className="mt-2 text-[12px] text-muted">📍 {address}</Text> : null}
+        </View>
+      </View>
+    );
+    footer = (
+      <View className="gap-2">
+        <Button title="Adicionar ao meu calendário" icon="calendar-outline" variant="secondary" onPress={addToCalendar} />
+        <Text className="-mt-1 text-center text-[12px] text-primary-dark" onPress={googleCalendar}>
+          ou adicionar no Google Agenda
+        </Text>
+        {studio.phone ? (
+          <Button
+            title="Confirmar via WhatsApp com o estúdio"
+            icon="logo-whatsapp"
+            variant="whatsapp"
+            onPress={whatsappStudio}
+          />
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View className="flex-1 bg-bg">
+      <Stack.Screen options={{ title: pageTitle }} />
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 28, paddingBottom: 200, paddingHorizontal: 20 }}>
+        {/* Coluna central no computador; ocupa a tela toda no celular */}
+        <View className="w-full self-center" style={{ maxWidth: 520 }}>
+          {header}
+          {body}
+          {step === 4 && studio.phone ? (
+            <Text className="mt-6 text-center text-[12px] text-muted">
+              Dúvidas? WhatsApp do estúdio: {formatPhone(studio.phone)}
+            </Text>
+          ) : null}
+        </View>
+      </ScrollView>
+      {footer ? (
+        <View
+          className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 14) }}>
+          <View className="w-full self-center" style={{ maxWidth: 520 }}>
+            {footer}
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
