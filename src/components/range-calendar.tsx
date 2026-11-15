@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { isSameDay, monthGrid, MONTHS, startOfDay, WEEKDAYS_SHORT } from '@/lib/dates';
+import { chunkWeeks, isSameDay, monthGrid, MONTHS, startOfDay, WEEKDAYS_SHORT } from '@/lib/dates';
 import { colors } from '@/theme/colors';
 
 /**
@@ -54,8 +54,10 @@ export function RangeCalendar({
           </Text>
         ))}
       </View>
-      <View className="mt-1 flex-row flex-wrap">
-        {days.map((d) => {
+      <View className="mt-1">
+        {chunkWeeks(days).map((week) => (
+        <View key={week[0].toDateString()} className="flex-row">
+        {week.map((d) => {
           const other = d.getMonth() !== month.getMonth();
           const past = !allowPast && d < today;
           const edge = (start && isSameDay(d, start)) || (end && isSameDay(d, end));
@@ -64,8 +66,7 @@ export function RangeCalendar({
               key={d.toDateString()}
               disabled={past}
               onPress={() => press(d)}
-              style={{ width: `${100 / 7}%` }}
-              className={`h-10 items-center justify-center ${inRange(d) ? 'bg-primary-soft' : ''}`}>
+              className={`h-10 flex-1 items-center justify-center ${inRange(d) ? 'bg-primary-soft' : ''}`}>
               <View className={`h-9 w-9 items-center justify-center rounded-full ${edge ? 'bg-primary' : ''}`}>
                 <Text
                   className={`text-[14px] ${
@@ -77,6 +78,8 @@ export function RangeCalendar({
             </Pressable>
           );
         })}
+        </View>
+        ))}
       </View>
     </View>
   );

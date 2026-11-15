@@ -6,6 +6,7 @@ import {
   addDays,
   isSameDay,
   MONTHS,
+  chunkWeeks,
   monthGrid,
   startOfDay,
   weekDays,
@@ -70,8 +71,10 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
         ))}
       </View>
 
-      <View className="mt-1 flex-row flex-wrap">
-        {days.map((d) => {
+      <View className="mt-1">
+        {chunkWeeks(days).map((week) => (
+        <View key={week[0].toDateString()} className="flex-row">
+        {week.map((d) => {
           const key = d.toDateString();
           const isSel = isSameDay(d, selected);
           const isToday = isSameDay(d, today);
@@ -82,8 +85,7 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
             <Pressable
               key={key}
               onPress={() => onSelect(d)}
-              className="items-center py-1"
-              style={{ width: `${100 / 7}%` }}>
+              className="flex-1 items-center py-1">
               <View
                 className={`h-9 w-9 items-center justify-center rounded-full ${
                   isSel ? 'bg-primary' : isToday ? 'bg-primary-soft' : ''
@@ -115,6 +117,8 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
             </Pressable>
           );
         })}
+        </View>
+        ))}
       </View>
     </View>
   );

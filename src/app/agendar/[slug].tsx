@@ -16,6 +16,7 @@ import {
   formatTime,
   hmToMinutes,
   isSameDay,
+  chunkWeeks,
   monthGrid,
   MONTHS,
   startOfDay,
@@ -452,8 +453,10 @@ export default function AgendarOnline() {
               </Text>
             ))}
           </View>
-          <View className="mt-1 flex-row flex-wrap">
-            {grid.map((d) => {
+          <View className="mt-1">
+            {chunkWeeks(grid).map((week) => (
+            <View key={week[0].toDateString()} className="flex-row">
+            {week.map((d) => {
               const other = d.getMonth() !== month.getMonth();
               const state = other ? 'past' : dayState(d);
               const sel = day && isSameDay(d, day);
@@ -465,8 +468,7 @@ export default function AgendarOnline() {
                     setDay(d);
                     setTime(null);
                   }}
-                  style={{ width: `${100 / 7}%` }}
-                  className="h-11 items-center justify-center">
+                  className="h-11 flex-1 items-center justify-center">
                   <View
                     className={`h-9 w-9 items-center justify-center rounded-full ${
                       sel ? 'bg-primary' : state === 'open' ? 'bg-primary-soft' : ''
@@ -485,6 +487,8 @@ export default function AgendarOnline() {
                 </Pressable>
               );
             })}
+            </View>
+            ))}
           </View>
           <Text className="mt-2 text-center text-[11px] text-muted">
             Dias em destaque têm horários livres para {formatDuration(duration)}.

@@ -47,6 +47,17 @@ export function monthGrid(d: Date): Date[] {
   return Array.from({ length: 42 }, (_, i) => addDays(s, i));
 }
 
+/**
+ * Divide os dias em semanas de 7, para desenhar uma linha por semana.
+ * (Uma linha única com flex-wrap e largura 100/7% quebra errado no Android
+ * por arredondamento: cabem só 6 dias por linha e os dias ficam fora da coluna certa.)
+ */
+export function chunkWeeks(days: Date[]): Date[][] {
+  const weeks: Date[][] = [];
+  for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+  return weeks;
+}
+
 export function formatTime(d: Date | string): string {
   const x = typeof d === 'string' ? new Date(d) : d;
   return `${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`;
