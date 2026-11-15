@@ -6,6 +6,7 @@ import { Avatar, Button, Card, EmptyState, SectionLabel, StatusPill } from '@/co
 import { useStore } from '@/data/store';
 import { formatDateShort, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
+import { availableCredits, isExpired, scheduledSessions } from '@/lib/packages';
 import { colors } from '@/theme/colors';
 
 function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string }) {
@@ -20,7 +21,7 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { clients, appointments } = useStore();
+  const { clients, appointments, packages, services } = useStore();
   const client = clients.find((c) => c.id === id);
   if (!client) {
     return (
@@ -34,7 +35,11 @@ export default function FichaCliente() {
     .filter((a) => a.clientId === client.id)
     .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const done = history.filter((a) => a.status === 'concluido');
-  const spent = done.reduce((t, a) => t + a.totalPrice, 0);
+  const clientPackages = packages.filter((p) => p.clientId === client.id);
+  // Sessões de pacote já foram pagas na venda: conta o valor do pacote, não o de cada sessão
+  const spent =
+    done.filter((a) => !a.clientPackageId).reduce((t, a) => t + a.totalPrice, 0) +
+    clientPackages.reduce((t, p) => t + p.totalPaid, 0);
 
   const birth = client.birthDate
     ? client.birthDate.split('-').reverse().join('/')
@@ -78,6 +83,57 @@ export default function FichaCliente() {
         </View>
       </View>
 
+      <View className="mb-2 mt-5 flex-row items-center justify-between">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted">Pacotes</Text>
+        <Pressable
+          onPress={() => router.push({ pathname: '/pacote/novo', params: { clientId: client.id } })}
+          className="py-1 active:opacity-60">
+          <Text className="text-[13px] font-semibold text-primary-dark">+ Vender pacote</Text>
+        </Pressable>
+      </View>
+      {clientPackages.length ? (
+        <Card className="py-1">
+          {clientPackages.map((p, i) => {
+            const credits = availableCredits(p, appointments);
+            const scheduled = scheduledSessions(p, appointments);
+            const expired = isExpired(p);
+            return (
+              <View key={p.id} className={`py-3 ${i ? 'border-t border-line' : ''}`}>
+                <View className="flex-row items-center justify-between">
+                  <Text className="flex-1 text-[14px] font-medium text-ink" numberOfLines={1}>
+                    {p.name}
+                  </Text>
+                  <Text
+                    className={`ml-2 text-[12px] font-semibold ${
+                      p.status === 'completed' || expired ? 'text-muted' : 'text-status-confirmado'
+                    }`}>
+                    {p.status === 'completed' ? 'Concluído' : expired ? 'Vencido' : 'Ativo'}
+                  </Text>
+                </View>
+                {/* Barra de progresso das sessões usadas */}
+                <View className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+                  <View
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${(p.usedSessions / p.totalSessions) * 100}%` }}
+                  />
+                </View>
+                <Text className="mt-1.5 text-xs text-muted">
+                  {p.usedSessions} de {p.totalSessions} sessões usadas
+                  {scheduled ? ` · ${scheduled} agendada${scheduled > 1 ? 's' : ''}` : ''}
+                  {p.status === 'active' && !expired ? ` · ${credits} para agendar` : ''}
+                </Text>
+                <Text className="text-xs text-muted">
+                  {services.find((s) => s.id === p.serviceId)?.name ?? 'Serviço'} · {formatBRL(p.totalPaid)}
+                  {p.expiresAt ? ` · vence ${p.expiresAt.split('-').reverse().join('/')}` : ''}
+                </Text>
+              </View>
+            );
+          })}
+        </Card>
+      ) : (
+        <Text className="text-[13px] text-muted">Nenhum pacote. Venda sessões antecipadas com desconto.</Text>
+      )}
+
       <SectionLabel>Dados</SectionLabel>
       <Card>
         <Info icon="logo-whatsapp" label="WhatsApp" value={formatPhone(client.whatsapp)} />
@@ -112,7 +168,9 @@ export default function FichaCliente() {
                   <StatusPill status={a.status} />
                 </View>
               </View>
-              <Text className="text-[14px] font-medium text-ink">{formatBRL(a.totalPrice)}</Text>
+              <Text className="text-[14px] font-medium text-ink">
+                {a.clientPackageId ? 'Pacote' : formatBRL(a.totalPrice)}
+              </Text>
             </Pressable>
           ))}
         </Card>

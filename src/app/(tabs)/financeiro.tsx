@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Card, EmptyState, Fab, Screen, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
@@ -11,7 +11,7 @@ import { colors, paymentLabels } from '@/theme/colors';
 
 type Period = 'hoje' | 'semana' | 'mes';
 
-function Stat({ label, value, tone }: { label: string; value: number; tone?: 'pos' | 'neg' }) {
+function Stat({ label, value, tone, hint }: { label: string; value: number; tone?: 'pos' | 'neg'; hint?: string }) {
   return (
     <Card className="mb-3 w-[48%]">
       <Text className="text-xs text-muted">{label}</Text>
@@ -20,6 +20,7 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: 'po
         style={{ color: tone === 'neg' ? '#B2474F' : tone === 'pos' ? '#5E8B6A' : colors.ink }}>
         {formatBRL(value)}
       </Text>
+      {hint ? <Text className="mt-0.5 text-[11px] text-muted">{hint}</Text> : null}
     </Card>
   );
 }
@@ -33,12 +34,18 @@ export default function FinanceiroScreen() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const inMonth = transactions.filter((t) => new Date(t.occurredAt) >= monthStart);
-  const sum = (list: typeof transactions, type: 'receita' | 'despesa') =>
-    list.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
+  const sum = (
+    list: typeof transactions,
+    type: 'receita' | 'despesa',
+    field: 'amount' | 'netAmount' | 'feeAmount' = 'amount',
+  ) => list.filter((t) => t.type === type).reduce((s, t) => s + t[field], 0);
 
   const dayIncome = sum(transactions.filter((t) => isSameDay(new Date(t.occurredAt), today)), 'receita');
   const monthIncome = sum(inMonth, 'receita');
   const monthExpense = sum(inMonth, 'despesa');
+  // Lucro líquido real: receitas já descontadas as taxas de maquininha, menos despesas
+  const monthFees = sum(inMonth, 'receita', 'feeAmount');
+  const monthNet = sum(inMonth, 'receita', 'netAmount') - monthExpense;
 
   const from = period === 'hoje' ? today : period === 'semana' ? startOfWeek(now) : monthStart;
   const filtered = transactions
@@ -47,16 +54,28 @@ export default function FinanceiroScreen() {
 
   return (
     <Screen>
-      <ScreenTitle title="Financeiro" subtitle="Resumo do mês" />
+      <ScreenTitle
+        title="Financeiro"
+        subtitle="Resumo do mês"
+        right={
+          <Pressable
+            onPress={() => router.push('/pacote/novo')}
+            className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+            <Ionicons name="ticket-outline" size={14} color={colors.ink} />
+            <Text className="ml-1 text-[13px] font-semibold text-ink">+ Vender pacote</Text>
+          </Pressable>
+        }
+      />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}>
         <View className="flex-row flex-wrap justify-between">
           <Stat label="Faturamento do dia" value={dayIncome} />
           <Stat label="Faturamento do mês" value={monthIncome} />
           <Stat label="Despesas do mês" value={monthExpense} tone="neg" />
           <Stat
-            label="Lucro líquido"
-            value={monthIncome - monthExpense}
-            tone={monthIncome - monthExpense >= 0 ? 'pos' : 'neg'}
+            label="Lucro líquido real"
+            value={monthNet}
+            tone={monthNet >= 0 ? 'pos' : 'neg'}
+            hint={monthFees ? `já sem ${formatBRL(monthFees)} de taxas` : undefined}
           />
         </View>
 
@@ -95,6 +114,11 @@ export default function FinanceiroScreen() {
                         {formatDateShort(t.occurredAt)} {formatTime(t.occurredAt)} · {t.category}
                         {t.paymentMethod ? ` · ${paymentLabels[t.paymentMethod]}` : ''}
                       </Text>
+                      {income && t.feeAmount > 0 ? (
+                        <Text className="text-[11px] text-muted">
+                          Taxa {formatBRL(t.feeAmount)} · líquido {formatBRL(t.netAmount)}
+                        </Text>
+                      ) : null}
                     </View>
                     <Text
                       className="text-[14px] font-semibold"

@@ -19,6 +19,7 @@ import {
   summarize,
   toRRule,
 } from '@/lib/recurrence';
+import { availableCredits, usablePackages } from '@/lib/packages';
 import {
   addDays,
   atMinutes,
@@ -48,6 +49,7 @@ export default function NovoAgendamento() {
     addAppointment,
     addClient,
     updateAppointments,
+    packages,
   } = useStore();
 
   // Modo edição: a mesma tela, já preenchida com o agendamento existente
@@ -80,6 +82,7 @@ export default function NovoAgendamento() {
   const [rule, setRule] = useState<RecurrenceRule>(NO_REPEAT);
   const [conflicts, setConflicts] = useState<{ date: Date; reason: string }[] | null>(null);
   const [askScope, setAskScope] = useState(false);
+  const [packageId, setPackageId] = useState<string | null>(null);
   const dayStrip = useRef<ComponentRef<typeof ScrollView>>(null);
   const dayStripPositioned = useRef(false);
 
@@ -166,7 +169,13 @@ export default function NovoAgendamento() {
     setQuery('');
   }
 
-  const canSave = !!client && selectedServices.length > 0 && timeValid && !saving;
+  // Pacotes pré-pagos da cliente que cobrem um dos serviços escolhidos (só ao criar)
+  const usable = editing ? [] : usablePackages(clientId, serviceIds, packages, appointments);
+  const chosenPackage = usable.find((p) => p.id === packageId);
+  const sessionsNeeded = Math.max(1, occurrences.length);
+  const packageShort = chosenPackage ? availableCredits(chosenPackage, appointments) < sessionsNeeded : false;
+
+  const canSave = !!client && selectedServices.length > 0 && timeValid && !packageShort && !saving;
 
   /** Cria as sessões informadas (todas ou só as livres, depois do aviso de conflito). */
   async function create(dates: Date[]) {
@@ -178,6 +187,7 @@ export default function NovoAgendamento() {
       serviceIds,
       notes: notes.trim() || undefined,
       occurrences: dates.map((d) => d.toISOString()),
+      clientPackageId: chosenPackage?.id,
       recurrenceRule: dates.length > 1 && firstStart ? toRRule(firstStart, rule) : null,
     });
     setSaving(false);
@@ -408,6 +418,40 @@ export default function NovoAgendamento() {
           </Text>
         ) : null}
 
+        {/* Crédito de pacote pré-pago */}
+        {usable.map((p) => {
+          const on = packageId === p.id;
+          const left = p.totalSessions - p.usedSessions;
+          const credits = availableCredits(p, appointments);
+          return (
+            <Pressable
+              key={p.id}
+              onPress={() => setPackageId(on ? null : p.id)}
+              className={`mt-4 flex-row items-center rounded-card border px-4 py-3 ${
+                on ? 'border-primary bg-primary-soft' : 'border-dashed border-primary/50 bg-surface'
+              }`}>
+              <Ionicons
+                name={on ? 'checkmark-circle' : 'ticket-outline'}
+                size={20}
+                color={colors.primaryDark}
+              />
+              <View className="ml-3 flex-1">
+                <Text className="text-[14px] font-semibold text-primary-dark">Usar crédito do pacote</Text>
+                <Text className="text-xs text-muted">
+                  {p.name} · Restam {left} de {p.totalSessions} sessões
+                  {credits < left ? ` (${left - credits} já agendada${left - credits > 1 ? 's' : ''})` : ''}
+                </Text>
+                {on && packageShort ? (
+                  <Text className="mt-1 text-xs text-[#B2474F]">
+                    O pacote cobre só {credits} {credits === 1 ? 'sessão' : 'sessões'}; reduza a repetição para{' '}
+                    {credits}.
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+
         {/* 5. Repetir (só ao criar) */}
         {!editing ? (
           <>
@@ -450,7 +494,9 @@ export default function NovoAgendamento() {
             {selectedServices.length} {selectedServices.length === 1 ? 'serviço' : 'serviços'}
             {duration ? ` · ${formatDuration(duration)}` : ''}
           </Text>
-          <Text className="text-[15px] font-semibold text-ink">{formatBRL(total)}</Text>
+          <Text className="text-[15px] font-semibold text-ink">
+            {chosenPackage ? 'Pago com pacote' : formatBRL(total)}
+          </Text>
         </View>
         <Button
           title={

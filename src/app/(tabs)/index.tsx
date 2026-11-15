@@ -50,7 +50,8 @@ export default function AgendaScreen() {
   const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
   const allDayBlock = dayBlocks.find((b) => b.allDay);
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
-  const expected = active.reduce((t, a) => t + a.totalPrice, 0);
+  // Sessões de pacote já foram pagas na venda: não entram no "previsto" do dia
+  const expected = active.filter((a) => !a.clientPackageId).reduce((t, a) => t + a.totalPrice, 0);
   const dayHours = hoursForDay(selected, businessHours);
   const dayOff = timeOffOn(selected, blocks);
   const closedDay = !dayHours.isOpen || !!dayOff;

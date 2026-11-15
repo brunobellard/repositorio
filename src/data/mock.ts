@@ -23,6 +23,7 @@ export const mockProfile: Profile = {
   workStart: '08:00',
   workEnd: '20:00',
   slotMinutes: 15,
+  paymentFees: { debit: 0, credit: 0, pix: 0, cash: 0 },
 };
 
 export const mockServices: Service[] = [
@@ -136,9 +137,12 @@ function buildBlocks(): ScheduleBlock[] {
 
 export const mockBlocks = buildBlocks();
 
-function buildTransactions(): Transaction[] {
+// Valores bruto/taxa/líquido são calculados pelo banco ao gravar
+type MockTransaction = Omit<Transaction, 'grossAmount' | 'feeAmount' | 'netAmount'>;
+
+function buildTransactions(): MockTransaction[] {
   const today = startOfDay(new Date());
-  const incomes: Transaction[] = mockAppointments
+  const incomes: MockTransaction[] = mockAppointments
     .filter((a) => a.status === 'concluido')
     .map((a, i) => ({
       id: `t-${a.id}`,
@@ -150,7 +154,7 @@ function buildTransactions(): Transaction[] {
       appointmentId: a.id,
       occurredAt: a.endsAt,
     }));
-  const expenses: Transaction[] = [
+  const expenses: MockTransaction[] = [
     { id: 'e1', type: 'despesa', amount: 189.9, category: 'Materiais', description: 'Kit esmaltes em gel (12 cores)', occurredAt: atMinutes(addDays(today, -5), 11 * 60).toISOString() },
     { id: 'e2', type: 'despesa', amount: 64.5, category: 'Descartáveis', description: 'Lixas, palitos e toucas', occurredAt: atMinutes(addDays(today, -3), 18 * 60).toISOString() },
     { id: 'e3', type: 'despesa', amount: 900, category: 'Aluguel', description: 'Aluguel da sala', occurredAt: atMinutes(addDays(today, -10), 9 * 60).toISOString() },
@@ -236,3 +240,6 @@ export function exampleTimeOffs(): Omit<ScheduleBlock, 'id'>[] {
     { startsAt: addDays(today, 38).toISOString(), endsAt: addDays(today, 44).toISOString(), allDay: true, reason: 'Férias' },
   ];
 }
+
+/** Taxas típicas de maquininha no Brasil (%), usadas nos dados de exemplo. */
+export const exampleFees = { debit: 1.99, credit: 4.99, pix: 0, cash: 0 };

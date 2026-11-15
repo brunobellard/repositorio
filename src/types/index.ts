@@ -26,6 +26,7 @@ export interface Profile {
   addressDistrict?: string;
   addressCity?: string;
   addressState?: string; // UF
+  paymentFees: PaymentFees;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
@@ -79,6 +80,8 @@ export interface Appointment {
   recurrenceRule?: string;
   /** Esta sessão foi alterada fora do padrão da série */
   isRecurrenceException: boolean;
+  /** Sessão paga com crédito de pacote (não gera nova receita ao concluir) */
+  clientPackageId?: string;
 }
 
 export interface ScheduleBlock {
@@ -97,7 +100,37 @@ export interface Transaction {
   description?: string;
   paymentMethod?: PaymentMethod;
   appointmentId?: string;
+  /** Venda de pacote que gerou esta receita */
+  clientPackageId?: string;
   occurredAt: string;
+  /** Valor bruto (= amount), taxa da maquininha e valor líquido */
+  grossAmount: number;
+  feeAmount: number;
+  netAmount: number;
+}
+
+/** Percentual cobrado por forma de pagamento (ex: 4.99 = 4,99%) */
+export interface PaymentFees {
+  debit: number;
+  credit: number;
+  pix: number;
+  cash: number;
+}
+
+export type PackageStatus = 'active' | 'completed';
+
+export interface ClientPackage {
+  id: string;
+  clientId: string;
+  serviceId: string;
+  name: string;
+  totalSessions: number;
+  usedSessions: number;
+  totalPaid: number;
+  paymentMethod: PaymentMethod;
+  status: PackageStatus;
+  expiresAt?: string; // 'YYYY-MM-DD'
+  createdAt: string;
 }
 
 export interface MessageTemplate {

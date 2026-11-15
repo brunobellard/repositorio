@@ -6,6 +6,7 @@ import { useAuth } from '@/data/auth';
 import {
   defaultBusinessHours,
   defaultTemplates,
+  exampleFees,
   exampleStudio,
   exampleTimeOffs,
   mockAppointments,
@@ -20,6 +21,8 @@ import { friendlyError, supabase } from '@/lib/supabase';
 import type {
   Appointment,
   BusinessHours,
+  ClientPackage,
+  PaymentFees,
   AppointmentStatus,
   Client,
   MessageTemplate,
@@ -33,6 +36,8 @@ import type {
 // ---------------------------------------------------------------------
 // Conversão banco (snake_case) -> app (camelCase)
 // ---------------------------------------------------------------------
+export const ZERO_FEES: PaymentFees = { debit: 0, credit: 0, pix: 0, cash: 0 };
+
 const toProfile = (r: any): Profile => ({
   id: r.id,
   businessName: r.business_name || 'Meu estúdio',
@@ -52,6 +57,7 @@ const toProfile = (r: any): Profile => ({
   addressDistrict: r.address_district ?? undefined,
   addressCity: r.address_city ?? undefined,
   addressState: r.address_state ?? undefined,
+  paymentFees: { ...ZERO_FEES, ...(r.payment_fees ?? {}) },
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -90,6 +96,7 @@ const toAppointment = (r: any): Appointment => ({
   recurrenceGroupId: r.recurrence_group_id ?? undefined,
   recurrenceRule: r.recurrence_rule ?? undefined,
   isRecurrenceException: !!r.is_recurrence_exception,
+  clientPackageId: r.client_package_id ?? undefined,
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -109,7 +116,24 @@ const toTransaction = (r: any): Transaction => ({
   description: r.description ?? undefined,
   paymentMethod: r.payment_method ?? undefined,
   appointmentId: r.appointment_id ?? undefined,
+  clientPackageId: r.client_package_id ?? undefined,
   occurredAt: new Date(r.occurred_at).toISOString(),
+  grossAmount: Number(r.gross_amount ?? r.amount),
+  feeAmount: Number(r.fee_amount ?? 0),
+  netAmount: Number(r.net_amount ?? r.amount),
+});
+const toPackage = (r: any): ClientPackage => ({
+  id: r.id,
+  clientId: r.client_id,
+  serviceId: r.service_id,
+  name: r.name,
+  totalSessions: r.total_sessions,
+  usedSessions: r.used_sessions,
+  totalPaid: Number(r.total_paid),
+  paymentMethod: r.payment_method,
+  status: r.status,
+  expiresAt: r.expires_at ?? undefined,
+  createdAt: r.created_at,
 });
 const toTemplate = (r: any): MessageTemplate => ({
   channel: r.channel,
@@ -132,6 +156,18 @@ export interface NewAppointment {
   occurrences?: string[];
   /** Regra iCalendar salva junto da série */
   recurrenceRule?: string | null;
+  /** Usar crédito deste pacote (as sessões não geram nova cobrança) */
+  clientPackageId?: string;
+}
+
+export interface NewPackage {
+  clientId: string;
+  serviceId: string;
+  name: string;
+  totalSessions: number;
+  totalPaid: number;
+  paymentMethod: PaymentMethod;
+  expiresAt?: string; // 'YYYY-MM-DD'
 }
 
 export interface AppointmentChanges {
@@ -168,11 +204,18 @@ interface Store {
   ) => Promise<boolean>;
   cancelAppointments: (ids: string[]) => Promise<boolean>;
   setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<void>;
-  completeAppointment: (id: string, method: PaymentMethod) => Promise<void>;
+  /** `method` é ignorado em sessões de pacote (já foram pagas na venda) */
+  completeAppointment: (id: string, method?: PaymentMethod) => Promise<void>;
+
+  // Pacotes pré-pagos e taxas
+  packages: ClientPackage[];
+  /** Cria o pacote e lança o valor recebido no Financeiro */
+  sellPackage: (p: NewPackage) => Promise<boolean>;
+  updatePaymentFees: (fees: PaymentFees) => Promise<boolean>;
   addBlock: (b: Omit<ScheduleBlock, 'id'>) => Promise<boolean>;
   removeBlock: (id: string) => Promise<void>;
   addClient: (c: Omit<Client, 'id'>) => Promise<Client | null>;
-  addTransaction: (t: Omit<Transaction, 'id'>) => Promise<boolean>;
+  addTransaction: (t: Omit<Transaction, 'id' | 'grossAmount' | 'feeAmount' | 'netAmount'>) => Promise<boolean>;
   updateTemplate: (t: MessageTemplate) => Promise<boolean>;
   loadExampleData: () => Promise<void>;
 
@@ -236,6 +279,7 @@ const emptyProfile: Profile = {
   workStart: '08:00',
   workEnd: '20:00',
   slotMinutes: 15,
+  paymentFees: ZERO_FEES,
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -259,6 +303,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [packages, setPackages] = useState<ClientPackage[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>(defaultBusinessHours);
   const [hoursAvailable, setHoursAvailable] = useState(true);
   const seeded = useRef<string | null>(null);
@@ -299,7 +344,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     if (!userId) return;
-    const [p, s, c, a, b, t, m, h] = await Promise.all([
+    const [p, s, c, a, b, t, m, h, pk] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('services').select('*').order('name'),
       supabase.from('clients').select('*').order('name'),
@@ -308,7 +353,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from('transactions').select('*').order('occurred_at', { ascending: false }),
       supabase.from('message_templates').select('*'),
       supabase.from('business_hours').select('*'),
+      supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
     ]);
+    setPackages((pk.data ?? []).map(toPackage));
     const firstError = [p, s, c, a, b, t, m].find((r) => r.error)?.error;
     // Sem a tabela business_hours (migração pendente), usa o expediente padrão
     setHoursAvailable(!h.error);
@@ -342,6 +389,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (data) setAppointments((list) => list.map((x) => (x.id === id ? toAppointment(data) : x)));
   }
 
+  async function refreshPackages() {
+    const { data } = await supabase.from('client_packages').select('*').order('created_at', { ascending: false });
+    if (data) setPackages(data.map(toPackage));
+  }
+
   const store: Store = {
     loading,
     profile,
@@ -351,7 +403,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks,
     transactions,
     templates,
+    packages,
     businessHours,
+
+    async sellPackage(p) {
+      const { error } = await supabase.rpc('sell_package', {
+        p_client_id: p.clientId,
+        p_service_id: p.serviceId,
+        p_name: p.name,
+        p_total_sessions: p.totalSessions,
+        p_total_paid: p.totalPaid,
+        p_payment_method: p.paymentMethod,
+        p_expires_at: p.expiresAt ?? null,
+      });
+      if (error) return fail(error);
+      // Pacote novo + receita lançada (com taxa calculada no banco)
+      const [pk, tx] = await Promise.all([
+        supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
+        supabase.from('transactions').select('*').order('occurred_at', { ascending: false }),
+      ]);
+      if (pk.data) setPackages(pk.data.map(toPackage));
+      if (tx.data) setTransactions(tx.data.map(toTransaction));
+      return true;
+    },
+
+    async updatePaymentFees(fees) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ payment_fees: fees })
+        .eq('id', userId!)
+        .select()
+        .single();
+      if (error) return fail(error);
+      setProfile(toProfile(data));
+      return true;
+    },
     hoursAvailable,
     reload,
 
@@ -447,7 +533,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return true;
     },
 
-    async addAppointment({ clientId, startsAt, serviceIds, notes, occurrences, recurrenceRule }) {
+    async addAppointment({ clientId, startsAt, serviceIds, notes, occurrences, recurrenceRule, clientPackageId }) {
       const starts = occurrences?.length ? occurrences : [startsAt];
       let ids: string[];
       if (starts.length === 1) {
@@ -475,6 +561,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return 0;
         }
         ids = (data as any[]).map((r) => r.id);
+      }
+      // Sessões pagas com crédito de pacote
+      if (clientPackageId) {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ client_package_id: clientPackageId })
+          .in('id', ids);
+        if (error) fail(error);
       }
       const { data: full } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
       if (full) setAppointments((list) => [...list, ...full.map(toAppointment)]);
@@ -529,18 +623,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await supabase.from('transactions').delete().eq('appointment_id', id);
         setTransactions((list) => list.filter((t) => t.appointmentId !== id));
       }
+      // Sessão de pacote: o banco devolve/consome o crédito; atualiza o saldo na tela
+      if (prev.find((a) => a.id === id)?.clientPackageId) await refreshPackages();
     },
 
     async completeAppointment(id, method) {
       const { data, error } = await supabase.rpc('complete_appointment', {
         p_appointment_id: id,
-        p_payment_method: method,
+        p_payment_method: method ?? null,
       });
       if (error) {
         fail(error);
         return;
       }
-      setTransactions((list) => [toTransaction(data), ...list.filter((t) => t.appointmentId !== id)]);
+      // Sessão de pacote não gera receita (data vem vazio): só dá baixa no crédito
+      if (data?.id) {
+        setTransactions((list) => [toTransaction(data), ...list.filter((t) => t.appointmentId !== id)]);
+      } else {
+        await refreshPackages();
+      }
       await refreshAppointment(id);
     },
 
@@ -615,6 +716,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     /** Preenche a conta com clientes, agendamentos e despesas de exemplo. */
     async loadExampleData() {
+      // Taxas típicas de maquininha (só se ainda estiverem zeradas), antes de lançar as receitas
+      const f = profile.paymentFees;
+      if (!f.debit && !f.credit && !f.pix) {
+        await supabase.from('profiles').update({ payment_fees: exampleFees }).eq('id', userId!);
+      }
+
       const { data: newClients, error } = await supabase
         .from('clients')
         .insert(
@@ -683,13 +790,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           unit: 'weeks',
           end: { type: 'count', count: 4 },
         });
-        await supabase.rpc('create_appointment_series', {
+        const { data: sessions } = await supabase.rpc('create_appointment_series', {
           p_client_id: firstClient,
           p_starts_at: series.map((d) => d.toISOString()),
           p_service_ids: [lashes],
           p_notes: 'Manutenção de rotina',
           p_recurrence_rule: 'FREQ=WEEKLY;INTERVAL=3;COUNT=4',
         }); // ignora erro: algum horário pode já estar ocupado
+
+        // Pacote pré-pago de exemplo cobrindo essa série
+        const { data: pkg } = await supabase.rpc('sell_package', {
+          p_client_id: firstClient,
+          p_service_id: lashes,
+          p_name: 'Combo 4 manutenções de cílios',
+          p_total_sessions: 4,
+          p_total_paid: 400,
+          p_payment_method: 'credito',
+          p_expires_at: null,
+        });
+        if (pkg?.id && sessions?.length) {
+          await supabase
+            .from('appointments')
+            .update({ client_package_id: pkg.id })
+            .in('id', (sessions as any[]).map((s) => s.id));
+        }
       }
 
       // Folgas/feriados de exemplo

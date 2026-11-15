@@ -100,6 +100,20 @@ export default function AjustesScreen() {
           />
         </Card>
 
+        <SectionLabel>Financeiro</SectionLabel>
+        <Card className="py-1">
+          <Row
+            icon="card-outline"
+            label="Taxas de pagamento"
+            detail={
+              profile.paymentFees.credit || profile.paymentFees.debit
+                ? `Créd. ${String(profile.paymentFees.credit).replace('.', ',')}%`
+                : 'Não definidas'
+            }
+            href="/ajustes/taxas"
+          />
+        </Card>
+
         <SectionLabel>Comunicação</SectionLabel>
         <Card className="py-1">
           <Row icon="chatbubbles-outline" label="Modelos de mensagem" href="/ajustes/mensagens" />

@@ -34,6 +34,7 @@ export default function AgendamentoDetalhe() {
     setAppointmentStatus,
     completeAppointment,
     cancelAppointments,
+    packages,
   } = useStore();
   const [askPayment, setAskPayment] = useState(false);
   const [askCancelScope, setAskCancelScope] = useState(false);
@@ -51,9 +52,15 @@ export default function AgendamentoDetalhe() {
   const start = new Date(appt.startsAt);
   const duration = appt.services.reduce((t, s) => t + s.durationMin, 0);
   const income = transactions.find((t) => t.appointmentId === appt.id);
+  const pkg = packages.find((p) => p.id === appt.clientPackageId);
 
   function onStatus(s: AppointmentStatus) {
     if (s === 'concluido') {
+      // Sessão de pacote já foi paga: conclui direto e dá baixa no crédito
+      if (pkg) {
+        if (appt!.status !== 'concluido') completeAppointment(appt!.id);
+        return;
+      }
       setAskPayment(true);
       return;
     }
@@ -127,6 +134,14 @@ export default function AgendamentoDetalhe() {
           </View>
           <StatusPill status={appt.status} size="md" />
         </View>
+        {pkg ? (
+          <View className="mt-3 flex-row items-center rounded-xl bg-status-confirmado-bg px-3 py-2">
+            <Ionicons name="ticket-outline" size={15} color={statusInfo.confirmado.color} />
+            <Text className="ml-2 flex-1 text-[13px] text-status-confirmado">
+              Pago com pacote · {pkg.name} · {pkg.usedSessions} de {pkg.totalSessions} usadas
+            </Text>
+          </View>
+        ) : null}
         {appt.recurrenceGroupId ? (
           <View className="mt-3 flex-row items-center rounded-xl bg-primary-soft px-3 py-2">
             <Ionicons name="repeat" size={15} color={colors.primaryDark} />
