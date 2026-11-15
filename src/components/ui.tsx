@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OfflineBanner } from '@/components/offline-banner';
 import { initials } from '@/lib/format';
 import { colors, statusInfo } from '@/theme/colors';
 import type { AppointmentStatus } from '@/types';
@@ -14,6 +15,8 @@ export function Screen({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
+      {/* Aviso de modo offline / sincronização, logo abaixo da barra de status */}
+      <OfflineBanner />
       {children}
     </View>
   );

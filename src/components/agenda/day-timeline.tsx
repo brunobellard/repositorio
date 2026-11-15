@@ -115,8 +115,8 @@ export function DayTimeline({
         <View
           key={u.from}
           pointerEvents="none"
-          style={{ position: 'absolute', top: y(u.from), height: y(u.to) - y(u.from), left: LABEL_WIDTH, right: 0 }}
-          className="justify-start bg-[#F1ECEA]/70 px-3 pt-1.5">
+          style={{ position: 'absolute', top: y(u.from), height: y(u.to) - y(u.from), left: LABEL_WIDTH, right: 0, backgroundColor: 'rgba(241, 236, 234, 0.7)' }}
+          className="justify-start px-3 pt-1.5">
           {y(u.to) - y(u.from) >= 24 ? (
             <Text className="text-[11px] font-medium uppercase tracking-wider text-muted/70">{u.label}</Text>
           ) : null}

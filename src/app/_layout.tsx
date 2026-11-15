@@ -7,7 +7,6 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { OfflineBanner } from '@/components/offline-banner';
 import { ToastHost } from '@/components/toast';
 import { AuthProvider, useAuth } from '@/data/auth';
 import { BiometricLockProvider } from '@/data/biometric-lock';
@@ -91,7 +90,6 @@ function AppStack() {
   return (
     <>
     <PushSetup active={loggedIn && !loadingData && !isPublic} />
-    {loggedIn && !isPublic ? <OfflineBanner /> : null}
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
       {/* Sempre acessível, com ou sem login */}
       <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
