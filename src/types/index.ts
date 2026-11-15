@@ -73,6 +73,12 @@ export interface Appointment {
   services: AppointmentService[];
   totalPrice: number;
   notes?: string;
+  /** Sessões da mesma série recorrente compartilham este id */
+  recurrenceGroupId?: string;
+  /** Regra iCalendar, ex: FREQ=WEEKLY;INTERVAL=2;COUNT=6 */
+  recurrenceRule?: string;
+  /** Esta sessão foi alterada fora do padrão da série */
+  isRecurrenceException: boolean;
 }
 
 export interface ScheduleBlock {

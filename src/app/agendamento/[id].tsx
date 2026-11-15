@@ -3,7 +3,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { SeriesScopeSheet } from '@/components/sheet';
 import { Avatar, Button, Card, SectionLabel, StatusPill } from '@/components/ui';
+import {
+  describeRRule,
+  hasOpenSiblings,
+  type SeriesScope,
+  seriesTargets,
+  sessionPosition,
+} from '@/lib/recurrence';
 import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
 import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
@@ -17,9 +25,18 @@ const METHODS: PaymentMethod[] = ['pix', 'credito', 'debito', 'dinheiro'];
 
 export default function AgendamentoDetalhe() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { appointments, clients, templates, profile, transactions, setAppointmentStatus, completeAppointment } =
-    useStore();
+  const {
+    appointments,
+    clients,
+    templates,
+    profile,
+    transactions,
+    setAppointmentStatus,
+    completeAppointment,
+    cancelAppointments,
+  } = useStore();
   const [askPayment, setAskPayment] = useState(false);
+  const [askCancelScope, setAskCancelScope] = useState(false);
 
   const appt = appointments.find((a) => a.id === id);
   const client = clients.find((c) => c.id === appt?.clientId);
@@ -41,8 +58,25 @@ export default function AgendamentoDetalhe() {
       return;
     }
     setAskPayment(false);
+    // Cancelar uma sessão de série: pergunta se cancela também as próximas
+    if (s === 'cancelado' && appt!.status !== 'cancelado' && hasOpenSiblings(appt!, appointments)) {
+      setAskCancelScope(true);
+      return;
+    }
     setAppointmentStatus(appt!.id, s);
   }
+
+  async function cancelSeries(scope: SeriesScope) {
+    setAskCancelScope(false);
+    if (scope === 'one') return setAppointmentStatus(appt!.id, 'cancelado');
+    const ids = seriesTargets(appt!, appointments, scope);
+    const ok = await cancelAppointments(ids);
+    if (ok) notify('Sessões canceladas', `${ids.length} ${ids.length === 1 ? 'sessão cancelada' : 'sessões canceladas'}.`);
+  }
+
+  const editable = appt.status !== 'concluido' && appt.status !== 'cancelado';
+  const repeatLabel = describeRRule(appt.recurrenceRule, start);
+  const position = sessionPosition(appt, appointments);
 
   async function whatsapp(kind: 'lembrete' | 'confirmacao' | 'recibo') {
     const tpl = templates.find((t) => t.channel === 'whatsapp' && t.kind === kind)!;
@@ -93,6 +127,15 @@ export default function AgendamentoDetalhe() {
           </View>
           <StatusPill status={appt.status} size="md" />
         </View>
+        {appt.recurrenceGroupId ? (
+          <View className="mt-3 flex-row items-center rounded-xl bg-primary-soft px-3 py-2">
+            <Ionicons name="repeat" size={15} color={colors.primaryDark} />
+            <Text className="ml-2 flex-1 text-[13px] text-primary-dark">
+              {[repeatLabel ?? 'Agendamento recorrente', position].filter(Boolean).join(' · ')}
+              {appt.isRecurrenceException ? ' · alterada nesta sessão' : ''}
+            </Text>
+          </View>
+        ) : null}
         <View className="my-3 h-px bg-line" />
         {appt.services.map((s) => (
           <View key={s.serviceId} className="mb-1.5 flex-row justify-between">
@@ -116,6 +159,17 @@ export default function AgendamentoDetalhe() {
           </View>
         ) : null}
       </Card>
+
+      {editable ? (
+        <View className="mt-3">
+          <Button
+            title="Editar horário ou serviços"
+            icon="create-outline"
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/agendamento/novo', params: { editId: appt.id } })}
+          />
+        </View>
+      ) : null}
 
       {/* Status */}
       <SectionLabel>Status</SectionLabel>
@@ -186,6 +240,18 @@ export default function AgendamentoDetalhe() {
         ) : null}
         <Button title="Enviar por e-mail" icon="mail-outline" variant="secondary" onPress={email} />
       </View>
+
+      <SeriesScopeSheet
+        visible={askCancelScope}
+        action="cancelar"
+        counts={{
+          one: 1,
+          following: seriesTargets(appt, appointments, 'following').length,
+          all: seriesTargets(appt, appointments, 'all').length,
+        }}
+        onChoose={cancelSeries}
+        onClose={() => setAskCancelScope(false)}
+      />
     </ScrollView>
   );
 }

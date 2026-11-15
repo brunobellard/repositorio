@@ -14,6 +14,8 @@ import {
   mockTransactions,
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
+import { addDays, atMinutes, startOfDay } from '@/lib/dates';
+import { generateOccurrences, type SeriesScope } from '@/lib/recurrence';
 import { friendlyError, supabase } from '@/lib/supabase';
 import type {
   Appointment,
@@ -85,6 +87,9 @@ const toAppointment = (r: any): Appointment => ({
   status: r.status,
   totalPrice: Number(r.total_price),
   notes: r.notes ?? undefined,
+  recurrenceGroupId: r.recurrence_group_id ?? undefined,
+  recurrenceRule: r.recurrence_rule ?? undefined,
+  isRecurrenceException: !!r.is_recurrence_exception,
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -123,6 +128,19 @@ export interface NewAppointment {
   startsAt: string;
   serviceIds: string[];
   notes?: string;
+  /** Série recorrente: início de cada sessão (inclui a primeira). Sem isso, cria só uma. */
+  occurrences?: string[];
+  /** Regra iCalendar salva junto da série */
+  recurrenceRule?: string | null;
+}
+
+export interface AppointmentChanges {
+  /** Quanto mover cada sessão, em milissegundos */
+  shiftMs: number;
+  /** Novos serviços (undefined = manter) */
+  serviceIds?: string[];
+  /** Observações da sessão editada */
+  notes?: string;
 }
 
 interface Store {
@@ -136,7 +154,19 @@ interface Store {
   templates: MessageTemplate[];
 
   reload: () => Promise<void>;
-  addAppointment: (a: NewAppointment) => Promise<boolean>;
+  /** Cria um agendamento ou uma série inteira (tudo ou nada). Retorna quantos foram criados. */
+  addAppointment: (a: NewAppointment) => Promise<number>;
+  /**
+   * Edita uma sessão ou várias da série. `editedId` é a sessão aberta na tela;
+   * `ids` são todas as afetadas (ver seriesTargets).
+   */
+  updateAppointments: (
+    editedId: string,
+    ids: string[],
+    changes: AppointmentChanges,
+    scope: SeriesScope,
+  ) => Promise<boolean>;
+  cancelAppointments: (ids: string[]) => Promise<boolean>;
   setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<void>;
   completeAppointment: (id: string, method: PaymentMethod) => Promise<void>;
   addBlock: (b: Omit<ScheduleBlock, 'id'>) => Promise<boolean>;
@@ -417,16 +447,71 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return true;
     },
 
-    async addAppointment({ clientId, startsAt, serviceIds, notes }) {
-      const { data, error } = await supabase.rpc('create_appointment', {
-        p_client_id: clientId,
-        p_starts_at: startsAt,
-        p_service_ids: serviceIds,
-        p_notes: notes ?? null,
+    async addAppointment({ clientId, startsAt, serviceIds, notes, occurrences, recurrenceRule }) {
+      const starts = occurrences?.length ? occurrences : [startsAt];
+      let ids: string[];
+      if (starts.length === 1) {
+        const { data, error } = await supabase.rpc('create_appointment', {
+          p_client_id: clientId,
+          p_starts_at: starts[0],
+          p_service_ids: serviceIds,
+          p_notes: notes ?? null,
+        });
+        if (error) {
+          fail(error);
+          return 0;
+        }
+        ids = [data.id];
+      } else {
+        const { data, error } = await supabase.rpc('create_appointment_series', {
+          p_client_id: clientId,
+          p_starts_at: starts,
+          p_service_ids: serviceIds,
+          p_notes: notes ?? null,
+          p_recurrence_rule: recurrenceRule ?? null,
+        });
+        if (error) {
+          fail(error);
+          return 0;
+        }
+        ids = (data as any[]).map((r) => r.id);
+      }
+      const { data: full } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
+      if (full) setAppointments((list) => [...list, ...full.map(toAppointment)]);
+      return ids.length;
+    },
+
+    async updateAppointments(editedId, ids, { shiftMs, serviceIds, notes }, scope) {
+      const { error } = await supabase.rpc('update_appointments', {
+        p_ids: ids,
+        p_shift: `${Math.round(shiftMs / 1000)} seconds`,
+        p_service_ids: serviceIds ?? null,
+        // Só esta sessão mudou: ela passa a ser uma exceção da série
+        p_mark_exception: scope === 'one' && !!appointments.find((a) => a.id === editedId)?.recurrenceGroupId,
+        // "Este e os próximos" vira uma série própria, separada das sessões anteriores
+        p_new_group: scope === 'following',
       });
       if (error) return fail(error);
-      const { data: full } = await supabase.from('appointments').select(APPT_SELECT).eq('id', data.id).single();
-      if (full) setAppointments((list) => [...list, toAppointment(full)]);
+      if (notes !== undefined) {
+        const { error: e } = await supabase.from('appointments').update({ notes: notes || null }).eq('id', editedId);
+        if (e) return fail(e);
+      }
+      const { data } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
+      const fresh = new Map((data ?? []).map((r) => [r.id as string, toAppointment(r)]));
+      setAppointments((list) => list.map((a) => fresh.get(a.id) ?? a));
+      return true;
+    },
+
+    async cancelAppointments(ids) {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelado' })
+        .in('id', ids)
+        .not('status', 'in', '(concluido,cancelado)');
+      if (error) return fail(error);
+      setAppointments((list) =>
+        list.map((a) => (ids.includes(a.id) && a.status !== 'concluido' ? { ...a, status: 'cancelado' } : a)),
+      );
       return true;
     },
 
@@ -586,6 +671,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             occurred_at: t.occurredAt,
           })),
       );
+
+      // Uma série recorrente de exemplo: manutenção de cílios a cada 3 semanas
+      const lashes = serviceIdByName.get('Manutenção de cílios');
+      const firstClient = newClients[1]?.id;
+      if (lashes && firstClient) {
+        const first = atMinutes(addDays(startOfDay(new Date()), 3), 14 * 60);
+        const series = generateOccurrences(first, {
+          freq: 'triweekly',
+          interval: 3,
+          unit: 'weeks',
+          end: { type: 'count', count: 4 },
+        });
+        await supabase.rpc('create_appointment_series', {
+          p_client_id: firstClient,
+          p_starts_at: series.map((d) => d.toISOString()),
+          p_service_ids: [lashes],
+          p_notes: 'Manutenção de rotina',
+          p_recurrence_rule: 'FREQ=WEEKLY;INTERVAL=3;COUNT=4',
+        }); // ignora erro: algum horário pode já estar ocupado
+      }
 
       // Folgas/feriados de exemplo
       await supabase.from('schedule_blocks').insert(

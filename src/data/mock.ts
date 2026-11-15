@@ -107,6 +107,7 @@ function buildAppointments(): Appointment[] {
       services,
       totalPrice: services.reduce((t, s) => t + s.price, 0),
       notes: i === 14 ? 'Primeira extensão — reservar tempo extra para explicar os cuidados.' : undefined,
+      isRecurrenceException: false,
     };
   });
 }

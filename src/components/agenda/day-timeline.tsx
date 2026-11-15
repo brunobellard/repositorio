@@ -178,9 +178,14 @@ export function DayTimeline({
                       <Text className="ml-2 text-xs font-medium text-muted">{formatBRL(a.totalPrice)}</Text>
                     ) : null}
                   </View>
-                  <Text numberOfLines={1} className="text-xs text-muted">
-                    {formatTime(a.startsAt)} · {a.services.map((s) => s.name).join(' + ')}
-                  </Text>
+                  <View className="flex-row items-center">
+                    {a.recurrenceGroupId ? (
+                      <Ionicons name="repeat" size={12} color={colors.muted} style={{ marginRight: 3 }} />
+                    ) : null}
+                    <Text numberOfLines={1} className="flex-1 text-xs text-muted">
+                      {formatTime(a.startsAt)} · {a.services.map((s) => s.name).join(' + ')}
+                    </Text>
+                  </View>
                   {!compact ? (
                     <View className="mt-1.5">
                       <StatusPill status={a.status} />
