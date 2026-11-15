@@ -3,7 +3,7 @@ import '@/global.css';
 import { DefaultTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/data/auth';
 import { BiometricLockProvider } from '@/data/biometric-lock';
 import { StoreProvider, useStore } from '@/data/store';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { registerForPushAsync, useNotificationNavigation } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,6 +49,27 @@ function MissingConfig() {
   );
 }
 
+/**
+ * Depois do login: registra o aparelho para receber push de agendamentos online
+ * (se a profissional não desligou em Ajustes) e trata o toque na notificação.
+ */
+function PushSetup({ active }: { active: boolean }) {
+  const { profile, updateProfile } = useStore();
+  const registeredFor = useRef<string | null>(null);
+  useNotificationNavigation(active);
+
+  useEffect(() => {
+    if (!active || !profile.id || !profile.pushNotificationsEnabled) return;
+    if (registeredFor.current === profile.id) return;
+    registeredFor.current = profile.id;
+    registerForPushAsync().then((r) => {
+      if (r.ok && r.token !== profile.expoPushToken) updateProfile({ expoPushToken: r.token });
+    });
+  }, [active, profile.id, profile.pushNotificationsEnabled, profile.expoPushToken, updateProfile]);
+
+  return null;
+}
+
 function AppStack() {
   const { session, loading } = useAuth();
   const { loading: loadingData } = useStore();
@@ -65,6 +87,8 @@ function AppStack() {
   }
 
   return (
+    <>
+    <PushSetup active={loggedIn && !loadingData && !isPublic} />
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
       {/* Sempre acessível, com ou sem login */}
       <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
@@ -89,6 +113,7 @@ function AppStack() {
         <Stack.Screen name="agendamento/recibo" options={{ presentation: 'modal', title: 'Comprovante' }} />
       </Stack.Protected>
     </Stack>
+    </>
   );
 }
 

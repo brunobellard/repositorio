@@ -11,6 +11,7 @@ import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
+import { registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 import type { IconName } from '@/components/ui';
 
@@ -48,11 +49,49 @@ function Row({
 }
 
 export default function AjustesScreen() {
-  const { profile, services, clients, businessHours, loadExampleData } = useStore();
+  const { profile, services, clients, businessHours, loadExampleData, updateProfile } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
   const [loadingExample, setLoadingExample] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  /** Liga: registra o aparelho e salva o token. Desliga: apaga o token (para de receber). */
+  async function togglePush(on: boolean) {
+    if (!on) {
+      setPushStatus(null);
+      await updateProfile({ pushNotificationsEnabled: false, expoPushToken: undefined });
+      return;
+    }
+    const r = await registerForPushAsync();
+    await updateProfile({ pushNotificationsEnabled: true, ...(r.ok ? { expoPushToken: r.token } : {}) });
+    setPushStatus(r.ok ? null : r.message);
+  }
+
+  async function testPush() {
+    setTesting(true);
+    try {
+      // Garante um token atualizado antes do teste
+      const r = await registerForPushAsync();
+      if (r.ok && r.token !== profile.expoPushToken) await updateProfile({ expoPushToken: r.token });
+      if (!r.ok && r.reason !== 'expo-go-android') {
+        notify('Não foi possível testar', r.message);
+        return;
+      }
+      const via = await sendTestNotificationAsync(r.ok ? r.token : undefined);
+      notify(
+        'Notificação enviada',
+        via === 'push'
+          ? 'Enviada pelo serviço de push da Expo. Ela deve aparecer em alguns segundos.'
+          : 'Notificação local exibida. No Expo Go (Android) o push remoto não funciona; use a versão de desenvolvimento do app.',
+      );
+    } catch (e) {
+      notify('Falha no envio', e instanceof Error ? e.message : undefined);
+    } finally {
+      setTesting(false);
+    }
+  }
 
   function askExampleData() {
     confirmAction(
@@ -112,6 +151,34 @@ export default function AjustesScreen() {
             }
             href="/ajustes/taxas"
           />
+        </Card>
+
+        <SectionLabel>Notificações</SectionLabel>
+        <Card className="py-1">
+          <View className="flex-row items-center py-3">
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary-soft">
+              <Ionicons name="notifications-outline" size={16} color={colors.primaryDark} />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="text-[15px] text-ink">Avisar agendamentos online</Text>
+              <Text className="text-[12px] text-muted">
+                {pushStatus ??
+                  (profile.pushNotificationsEnabled
+                    ? profile.expoPushToken
+                      ? 'Ativo neste aparelho'
+                      : 'Ativo, aguardando registro do aparelho'
+                    : 'Desligado')}
+              </Text>
+            </View>
+            <Toggle value={profile.pushNotificationsEnabled} onChange={togglePush} />
+          </View>
+          {profile.pushNotificationsEnabled ? (
+            <Pressable onPress={testPush} disabled={testing} className="border-t border-line py-3 active:opacity-60">
+              <Text className="text-[14px] font-medium text-primary-dark">
+                {testing ? 'Enviando…' : 'Enviar notificação de teste'}
+              </Text>
+            </Pressable>
+          ) : null}
         </Card>
 
         <SectionLabel>Comunicação</SectionLabel>

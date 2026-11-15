@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -22,7 +22,17 @@ function overlapsDay(b: ScheduleBlock, day: Date) {
 
 export default function AgendaScreen() {
   const { appointments, blocks, clients, profile, businessHours, removeBlock } = useStore();
-  const [selected, setSelected] = useState(() => startOfDay(new Date()));
+  // ?date=YYYY-MM-DD (ex: ao tocar na notificação de agendamento online) abre a Agenda nesse dia
+  const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
+  const dayFromParam = (p?: string) => {
+    const [y, m, d] = (p ?? '').split('-').map(Number);
+    return y && m && d ? new Date(y, m - 1, d) : startOfDay(new Date());
+  };
+  const [pick, setPick] = useState(() => ({ param: dateParam, day: dayFromParam(dateParam) }));
+  // Chegou uma data nova pela URL: ajusta o dia (atualização durante a renderização, sem efeito extra)
+  if (pick.param !== dateParam) setPick({ param: dateParam, day: dayFromParam(dateParam) });
+  const selected = pick.param !== dateParam ? dayFromParam(dateParam) : pick.day;
+  const setSelected = (day: Date) => setPick({ param: dateParam, day });
   const [mode, setMode] = useState<CalendarMode>('semana');
 
   const clientsById = new Map(clients.map((c) => [c.id, c]));

@@ -58,7 +58,14 @@
           "faceIDPermission": "Permita que o Agenda Beleza use o Face ID para desbloquear o app."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "color": "#B76E79",
+          "defaultChannel": "agendamentos"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

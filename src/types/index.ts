@@ -33,6 +33,9 @@ export interface Profile {
   slug?: string;
   /** Agendamentos online entram como confirmados (true) ou pendentes (false) */
   bookingAutoApprove: boolean;
+  /** Token do Expo Push deste aparelho (para avisar de agendamentos online) */
+  expoPushToken?: string;
+  pushNotificationsEnabled: boolean;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
@@ -88,8 +91,8 @@ export interface Appointment {
   isRecurrenceException: boolean;
   /** Sessão paga com crédito de pacote (não gera nova receita ao concluir) */
   clientPackageId?: string;
-  /** 'online' = marcado pela própria cliente no link público */
-  source: 'app' | 'online';
+  /** 'manual' = feito pela profissional; 'online' = pela cliente no link público */
+  source: 'manual' | 'online';
 }
 
 export interface ScheduleBlock {

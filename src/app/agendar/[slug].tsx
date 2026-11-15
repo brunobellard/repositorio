@@ -1,5 +1,5 @@
 // Página pública de agendamento online (sem login).
-// Acesso ao banco só pelas funções public_studio, public_busy e public_book,
+// Acesso ao banco só pelas funções public_studio, get_public_busy_slots e create_public_booking,
 // que expõem apenas dados públicos do estúdio e intervalos ocupados.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -66,7 +66,26 @@ interface PublicStudio {
 interface Busy {
   start: number;
   end: number;
-  allDay: boolean;
+}
+
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Horários ocupados (agendamentos, folgas e bloqueios) dos próximos dias.
+ * A função do banco devolve só início e fim — nenhum dado de outras clientes.
+ */
+async function fetchBusySlots(slug: string): Promise<Busy[]> {
+  const from = startOfDay(new Date());
+  const { data } = await supabase.rpc('get_public_busy_slots', {
+    p_slug: slug,
+    p_start_date: isoDate(from),
+    p_end_date: isoDate(addDays(from, DAYS_AHEAD)),
+  });
+  return ((data as { start_time: string; end_time: string }[]) ?? []).map((b) => ({
+    start: new Date(b.start_time).getTime(),
+    end: new Date(b.end_time).getTime(),
+  }));
 }
 
 interface Booked {
@@ -154,21 +173,9 @@ export default function AgendarOnline() {
   const [error, setError] = useState<string | null>(null);
   const [booked, setBooked] = useState<Booked | null>(null);
 
-  // Carrega estúdio e horários ocupados dos próximos dias
+  // Recarrega os horários ocupados (ex: depois de alguém ocupar o horário escolhido)
   async function loadBusy() {
-    const from = startOfDay(new Date());
-    const { data } = await supabase.rpc('public_busy', {
-      p_slug: slug,
-      p_from: from.toISOString(),
-      p_to: addDays(from, DAYS_AHEAD + 1).toISOString(),
-    });
-    setBusy(
-      ((data as { starts_at: string; ends_at: string; all_day: boolean }[]) ?? []).map((b) => ({
-        start: new Date(b.starts_at).getTime(),
-        end: new Date(b.ends_at).getTime(),
-        allDay: b.all_day,
-      })),
-    );
+    setBusy(await fetchBusySlots(slug));
   }
 
   useEffect(() => {
@@ -181,20 +188,8 @@ export default function AgendarOnline() {
         return;
       }
       setStudio(data as PublicStudio);
-      const from = startOfDay(new Date());
-      const { data: b } = await supabase.rpc('public_busy', {
-        p_slug: slug,
-        p_from: from.toISOString(),
-        p_to: addDays(from, DAYS_AHEAD + 1).toISOString(),
-      });
-      if (cancelled) return;
-      setBusy(
-        ((b as { starts_at: string; ends_at: string; all_day: boolean }[]) ?? []).map((x) => ({
-          start: new Date(x.starts_at).getTime(),
-          end: new Date(x.ends_at).getTime(),
-          allDay: x.all_day,
-        })),
-      );
+      const slots = await fetchBusySlots(slug);
+      if (!cancelled) setBusy(slots);
     })();
     return () => {
       cancelled = true;
@@ -255,8 +250,7 @@ export default function AgendarOnline() {
   function freeSlots(d: Date): number[] {
     const h = hoursForDay(d, hours);
     if (!h.isOpen || !duration) return [];
-    const dayStart = startOfDay(d).getTime();
-    if (busy.some((b) => b.allDay && b.start < dayStart + 86_400_000 && b.end > dayStart)) return [];
+    // Folgas e bloqueios vêm como horários ocupados: um dia de folga fica sem horários livres
     const result: number[] = [];
     for (let m = hmToMinutes(h.openTime); m + duration <= hmToMinutes(h.closeTime); m += slotStep) {
       if (!isWithinHours(h, m, m + duration)) continue; // não atravessa a pausa
@@ -284,7 +278,7 @@ export default function AgendarOnline() {
     if (!day || time === null || sending) return;
     setSending(true);
     setError(null);
-    const { data, error: e } = await supabase.rpc('public_book', {
+    const { data, error: e } = await supabase.rpc('create_public_booking', {
       p_slug: slug,
       p_service_ids: serviceIds,
       p_starts_at: atMinutes(day, time).toISOString(),

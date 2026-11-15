@@ -62,6 +62,8 @@ const toProfile = (r: any): Profile => ({
   recallDays: r.recall_days ?? 20,
   slug: r.slug ?? undefined,
   bookingAutoApprove: !!r.booking_auto_approve,
+  expoPushToken: r.expo_push_token ?? undefined,
+  pushNotificationsEnabled: r.push_notifications_enabled ?? true,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -101,7 +103,7 @@ const toAppointment = (r: any): Appointment => ({
   recurrenceRule: r.recurrence_rule ?? undefined,
   isRecurrenceException: !!r.is_recurrence_exception,
   clientPackageId: r.client_package_id ?? undefined,
-  source: r.source === 'online' ? 'online' : 'app',
+  source: r.source === 'online' ? 'online' : 'manual',
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -248,6 +250,8 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   recallDays: 'recall_days',
   slug: 'slug',
   bookingAutoApprove: 'booking_auto_approve',
+  expoPushToken: 'expo_push_token',
+  pushNotificationsEnabled: 'push_notifications_enabled',
   tradeName: 'trade_name',
   document: 'document',
   instagram: 'instagram',
@@ -290,6 +294,7 @@ const emptyProfile: Profile = {
   paymentFees: ZERO_FEES,
   recallDays: 20,
   bookingAutoApprove: false,
+  pushNotificationsEnabled: true,
 };
 
 const StoreContext = createContext<Store | null>(null);
