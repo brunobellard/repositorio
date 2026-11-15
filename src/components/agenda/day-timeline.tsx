@@ -110,6 +110,14 @@ export function DayTimeline({
         </View>
       ))}
 
+      {/* Linha final: hora em que o dia termina (ex: 16:00 no sábado) */}
+      <View pointerEvents="none" style={{ position: 'absolute', top: y(endMin), left: 0, right: 0 }} className="flex-row">
+        <Text style={{ width: LABEL_WIDTH }} className="-mt-2 text-xs text-muted">
+          {String(endMin / 60).padStart(2, '0')}:00
+        </Text>
+        <View className="h-px flex-1 bg-line" />
+      </View>
+
       {/* Fora do expediente (só visual; o toque continua indo para o horário) */}
       {unavailable.map((u) => (
         <View
