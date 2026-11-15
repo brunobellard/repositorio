@@ -5,15 +5,19 @@ import { StatusPill } from '@/components/ui';
 import { formatTime, hmToMinutes, isSameDay, minutesOfDay } from '@/lib/dates';
 import { formatBRL } from '@/lib/format';
 import { colors, statusInfo } from '@/theme/colors';
-import type { Appointment, Client, ScheduleBlock } from '@/types';
+import { workRanges } from '@/lib/hours';
+import type { Appointment, BusinessHours, Client, ScheduleBlock } from '@/types';
 
 const HOUR_HEIGHT = 76;
 const LABEL_WIDTH = 52;
 
 interface Props {
   day: Date;
-  workStart: string;
-  workEnd: string;
+  /** Expediente do dia; com closed=true o dia todo aparece indisponível */
+  hours: BusinessHours;
+  closed: boolean;
+  /** Faixa de horas mostrada quando o dia está fechado */
+  fallbackRange: [number, number];
   appointments: Appointment[];
   blocks: ScheduleBlock[];
   clientsById: Map<string, Client>;
@@ -49,8 +53,9 @@ function layoutColumns<T extends { startsAt: string; endsAt: string }>(items: T[
 
 export function DayTimeline({
   day,
-  workStart,
-  workEnd,
+  hours,
+  closed,
+  fallbackRange,
   appointments,
   blocks,
   clientsById,
@@ -59,14 +64,15 @@ export function DayTimeline({
   onPressSlot,
 }: Props) {
   // Expande o expediente se houver agendamento fora dele
-  let startMin = hmToMinutes(workStart);
-  let endMin = hmToMinutes(workEnd);
+  const open = !closed && hours.isOpen;
+  let startMin = open ? Math.floor(hmToMinutes(hours.openTime) / 60) * 60 : fallbackRange[0];
+  let endMin = open ? Math.ceil(hmToMinutes(hours.closeTime) / 60) * 60 : fallbackRange[1];
   for (const a of appointments) {
     startMin = Math.min(startMin, Math.floor(minutesOfDay(new Date(a.startsAt)) / 60) * 60);
     endMin = Math.max(endMin, Math.ceil(minutesOfDay(new Date(a.endsAt)) / 60) * 60);
   }
-  const hours: number[] = [];
-  for (let m = startMin; m < endMin; m += 60) hours.push(m);
+  const hourMarks: number[] = [];
+  for (let m = startMin; m < endMin; m += 60) hourMarks.push(m);
   const height = ((endMin - startMin) / 60) * HOUR_HEIGHT;
   const y = (min: number) => ((min - startMin) / 60) * HOUR_HEIGHT;
 
@@ -74,12 +80,22 @@ export function DayTimeline({
   const showNow = isSameDay(now, day) && minutesOfDay(now) >= startMin && minutesOfDay(now) <= endMin;
 
   const timedBlocks = blocks.filter((b) => !b.allDay);
+
+  // Faixas fora do expediente (antes de abrir, pausa, depois de fechar)
+  const work = open ? workRanges(hours) : [];
+  const unavailable: { from: number; to: number; label: string }[] = [];
+  let cursor = startMin;
+  for (const [s, e] of work) {
+    if (s > cursor) unavailable.push({ from: cursor, to: s, label: cursor === startMin ? 'Fechado' : 'Pausa' });
+    cursor = Math.max(cursor, e);
+  }
+  if (cursor < endMin) unavailable.push({ from: cursor, to: endMin, label: 'Fechado' });
   const laidOut = layoutColumns(appointments);
 
   return (
     <View style={{ height: height + 16 }} className="mx-4 mt-2">
       {/* Linhas das horas (tocar cria agendamento naquele horário) */}
-      {hours.map((m) => (
+      {hourMarks.map((m) => (
         <View key={m} style={{ position: 'absolute', top: y(m), left: 0, right: 0, height: HOUR_HEIGHT }}>
           <View className="flex-row">
             <Text style={{ width: LABEL_WIDTH }} className="-mt-2 text-xs text-muted">
@@ -91,6 +107,19 @@ export function DayTimeline({
             <Pressable className="flex-1" onPress={() => onPressSlot(m)} />
             <Pressable className="flex-1" onPress={() => onPressSlot(m + 30)} />
           </View>
+        </View>
+      ))}
+
+      {/* Fora do expediente (só visual; o toque continua indo para o horário) */}
+      {unavailable.map((u) => (
+        <View
+          key={u.from}
+          pointerEvents="none"
+          style={{ position: 'absolute', top: y(u.from), height: y(u.to) - y(u.from), left: LABEL_WIDTH, right: 0 }}
+          className="justify-start bg-[#F1ECEA]/70 px-3 pt-1.5">
+          {y(u.to) - y(u.from) >= 24 ? (
+            <Text className="text-[11px] font-medium uppercase tracking-wider text-muted/70">{u.label}</Text>
+          ) : null}
         </View>
       ))}
 

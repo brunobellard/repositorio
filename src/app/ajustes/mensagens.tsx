@@ -72,7 +72,7 @@ export default function ModelosMensagem() {
         ]}
       />
       <Text className="mb-4 mt-3 text-[13px] leading-5 text-muted">
-        Use as variáveis {'{nome}'}, {'{servico}'}, {'{data}'}, {'{hora}'}, {'{valor}'} e {'{estudio}'}. Elas são
+        Use as variáveis {'{nome}'}, {'{servico}'}, {'{data}'}, {'{hora}'}, {'{valor}'}, {'{estudio}'} e {'{endereco}'}. Elas são
         trocadas pelos dados do agendamento na hora do envio.
       </Text>
       {templates

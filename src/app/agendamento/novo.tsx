@@ -10,6 +10,7 @@ import { closeModal } from '@/lib/confirm';
 import {
   addDays,
   atMinutes,
+  formatDateShort,
   formatDuration,
   formatTime,
   hmToMinutes,
@@ -19,12 +20,17 @@ import {
   WEEKDAYS_SHORT,
 } from '@/lib/dates';
 import { formatBRL, formatPhone, normalize } from '@/lib/format';
+import { hoursForDay, isWithinHours, timeOffOn, WEEKDAYS_LONG } from '@/lib/hours';
 import { colors } from '@/theme/colors';
 
 export default function NovoAgendamento() {
-  const params = useLocalSearchParams<{ date?: string; clientId?: string }>();
+  const params = useLocalSearchParams<{ date?: string; clientId?: string; fora?: string }>();
   const insets = useSafeAreaInsets();
-  const { clients, services, appointments, blocks, profile, addAppointment, addClient } = useStore();
+  const { clients, services: allServices, appointments, blocks, profile, businessHours, addAppointment, addClient } =
+    useStore();
+  const services = allServices.filter((s) => s.active);
+  // Veio de um toque fora do expediente já confirmado na agenda
+  const [override, setOverride] = useState(params.fora === '1');
 
   const initial = params.date ? new Date(params.date) : new Date();
   const initialHasTime = !!params.date && minutesOfDay(initial) !== 0;
@@ -52,10 +58,22 @@ export default function NovoAgendamento() {
 
   const categories = [...new Set(services.map((s) => s.category))];
 
-  // Horários livres no dia escolhido
+  // Horários livres no dia escolhido, seguindo o expediente (Ajustes > Horário de funcionamento)
   const slot = profile.slotMinutes;
-  const workStart = hmToMinutes(profile.workStart);
-  const workEnd = hmToMinutes(profile.workEnd);
+  const dayHours = hoursForDay(day, businessHours);
+  const dayOff = timeOffOn(day, blocks);
+  const closedReason = dayOff
+    ? `${formatDateShort(day)} está marcado como "${dayOff.reason ?? 'Folga'}".`
+    : !dayHours.isOpen
+      ? `O estúdio não abre ${WEEKDAYS_LONG[day.getDay()].toLowerCase()}.`
+      : null;
+  // "Fora do expediente": mostra o dia todo, só respeitando outros agendamentos
+  const ignoreHours = override;
+  const [workStart, workEnd] = ignoreHours
+    ? [7 * 60, 22 * 60]
+    : dayHours.isOpen
+      ? [hmToMinutes(dayHours.openTime), hmToMinutes(dayHours.closeTime)]
+      : [0, 0];
   const busy = [
     ...appointments
       .filter((a) => a.status !== 'cancelado' && isSameDay(new Date(a.startsAt), day))
@@ -65,6 +83,7 @@ export default function NovoAgendamento() {
         const s = day.getTime();
         return new Date(b.startsAt).getTime() < s + 86_400_000 && new Date(b.endsAt).getTime() > s;
       })
+      .filter((b) => !(ignoreHours && b.allDay))
       .map((b) => (b.allDay ? [0, 24 * 60] : [minutesOfDay(new Date(b.startsAt)), minutesOfDay(new Date(b.endsAt))])),
   ];
   const need = Math.max(duration, slot);
@@ -73,8 +92,11 @@ export default function NovoAgendamento() {
   for (let m = workStart; m + slot <= workEnd; m += slot) {
     const past = isSameDay(day, now) && m < minutesOfDay(now);
     const conflict = busy.some(([s, e]) => m < e && m + need > s);
-    slots.push({ min: m, free: !past && !conflict && m + need <= workEnd });
+    // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
+    const fits = ignoreHours ? m + need <= workEnd : isWithinHours(dayHours, m, m + need);
+    slots.push({ min: m, free: !past && !conflict && fits });
   }
+  const endTime = time !== null && duration ? formatTime(atMinutes(day, time + duration)) : null;
   // Horário vindo do toque na agenda ainda é válido?
   const timeValid = time !== null && slots.some((s) => s.min === time && s.free);
 
@@ -235,6 +257,23 @@ export default function NovoAgendamento() {
         <SectionLabel>
           Horário {duration ? `· duração ${formatDuration(duration)}` : ''}
         </SectionLabel>
+        {closedReason || override ? (
+          <View className="mb-3 flex-row items-start rounded-2xl bg-[#FBF3E4] p-3">
+            <Ionicons name="alert-circle-outline" size={18} color="#8A6420" />
+            <View className="ml-2 flex-1">
+              <Text className="text-[13px] leading-5 text-[#8A6420]">
+                {override
+                  ? 'Mostrando horários fora do expediente.'
+                  : `${closedReason} Para atender mesmo assim, libere os horários.`}
+              </Text>
+              <Pressable onPress={() => { setOverride(!override); setTime(null); }} className="mt-1 self-start py-1">
+                <Text className="text-[13px] font-semibold text-[#8A6420] underline">
+                  {override ? 'Voltar ao expediente normal' : 'Agendar fora do expediente'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
         {slots.some((s) => s.free) ? (
           <View className="flex-row flex-wrap">
             {slots.map((s) => {
@@ -257,9 +296,14 @@ export default function NovoAgendamento() {
               );
             })}
           </View>
-        ) : (
+        ) : closedReason && !override ? null : (
           <Text className="text-sm text-muted">Nenhum horário livre neste dia.</Text>
         )}
+        {timeValid && endTime ? (
+          <Text className="mt-1 text-[13px] text-muted">
+            Das {formatTime(atMinutes(day, time!))} às {endTime} (término calculado pela duração dos serviços)
+          </Text>
+        ) : null}
 
         {/* 5. Observações */}
         <SectionLabel>Observações</SectionLabel>

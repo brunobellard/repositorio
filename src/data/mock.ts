@@ -2,6 +2,7 @@
 // As datas são geradas em relação a hoje, para a agenda sempre ter conteúdo.
 import { addDays, addMinutes, atMinutes, startOfDay } from '@/lib/dates';
 import type {
+  BusinessHours,
   Appointment,
   AppointmentStatus,
   Client,
@@ -25,18 +26,18 @@ export const mockProfile: Profile = {
 };
 
 export const mockServices: Service[] = [
-  { id: 's1', name: 'Manicure', category: 'Unhas', price: 35, durationMin: 45, color: '#E8B4BC' },
-  { id: 's2', name: 'Pedicure', category: 'Unhas', price: 40, durationMin: 50, color: '#E8B4BC' },
-  { id: 's3', name: 'Esmaltação em gel', category: 'Unhas', price: 70, durationMin: 60, color: '#D99AA5' },
-  { id: 's4', name: 'Alongamento em fibra de vidro', category: 'Unhas', price: 160, durationMin: 150, color: '#C77F8C' },
-  { id: 's5', name: 'Manutenção de alongamento', category: 'Unhas', price: 110, durationMin: 105, color: '#C77F8C' },
-  { id: 's6', name: 'Nail art (por unha)', category: 'Unhas', price: 8, durationMin: 10, color: '#D99AA5' },
-  { id: 's7', name: 'Design de sobrancelhas', category: 'Sobrancelhas', price: 45, durationMin: 30, color: '#C9A98A' },
-  { id: 's8', name: 'Design com henna', category: 'Sobrancelhas', price: 60, durationMin: 45, color: '#B48D6A' },
-  { id: 's9', name: 'Brow lamination', category: 'Sobrancelhas', price: 130, durationMin: 60, color: '#B48D6A' },
-  { id: 's10', name: 'Extensão de cílios fio a fio', category: 'Cílios', price: 180, durationMin: 120, color: '#9FB3A1' },
-  { id: 's11', name: 'Manutenção de cílios', category: 'Cílios', price: 110, durationMin: 75, color: '#9FB3A1' },
-  { id: 's12', name: 'Limpeza de pele', category: 'Estética', price: 150, durationMin: 90, color: '#A9B8C9' },
+  { id: 's1', name: 'Manicure', category: 'Unhas', price: 35, durationMin: 45, color: '#E8B4BC', active: true },
+  { id: 's2', name: 'Pedicure', category: 'Unhas', price: 40, durationMin: 50, color: '#E8B4BC', active: true },
+  { id: 's3', name: 'Esmaltação em gel', category: 'Unhas', price: 70, durationMin: 60, color: '#D99AA5', active: true },
+  { id: 's4', name: 'Alongamento em fibra de vidro', category: 'Unhas', price: 160, durationMin: 150, color: '#C77F8C', active: true },
+  { id: 's5', name: 'Manutenção de alongamento', category: 'Unhas', price: 110, durationMin: 105, color: '#C77F8C', active: true },
+  { id: 's6', name: 'Nail art (por unha)', category: 'Unhas', price: 8, durationMin: 10, color: '#D99AA5', active: true },
+  { id: 's7', name: 'Design de sobrancelhas', category: 'Sobrancelhas', price: 45, durationMin: 30, color: '#C9A98A', active: true },
+  { id: 's8', name: 'Design com henna', category: 'Sobrancelhas', price: 60, durationMin: 45, color: '#B48D6A', active: true },
+  { id: 's9', name: 'Brow lamination', category: 'Sobrancelhas', price: 130, durationMin: 60, color: '#B48D6A', active: true },
+  { id: 's10', name: 'Extensão de cílios fio a fio', category: 'Cílios', price: 180, durationMin: 120, color: '#9FB3A1', active: true },
+  { id: 's11', name: 'Manutenção de cílios', category: 'Cílios', price: 110, durationMin: 75, color: '#9FB3A1', active: true },
+  { id: 's12', name: 'Limpeza de pele', category: 'Estética', price: 150, durationMin: 90, color: '#A9B8C9', active: true },
 ];
 
 export const mockClients: Client[] = [
@@ -168,7 +169,7 @@ export const defaultTemplates: MessageTemplate[] = [
   {
     channel: 'whatsapp',
     kind: 'confirmacao',
-    body: 'Olá {nome}! Seu horário de {servico} está agendado para {data} às {hora}. Até lá! ✨',
+    body: 'Olá {nome}! Seu horário de {servico} está agendado para {data} às {hora}.\n📍 {estudio} – {endereco}\nAté lá! ✨',
   },
   {
     channel: 'whatsapp',
@@ -179,7 +180,7 @@ export const defaultTemplates: MessageTemplate[] = [
     channel: 'email',
     kind: 'confirmacao',
     subject: 'Agendamento confirmado — {estudio}',
-    body: 'Olá {nome},\n\nSeu horário de {servico} está confirmado para {data} às {hora}.\n\nAté breve!\n{estudio}',
+    body: 'Olá {nome},\n\nSeu horário de {servico} está confirmado para {data} às {hora}.\nEndereço: {endereco}\n\nAté breve!\n{estudio}',
   },
   {
     channel: 'email',
@@ -196,3 +197,41 @@ export const defaultTemplates: MessageTemplate[] = [
 ];
 
 export const expenseCategories = ['Materiais', 'Descartáveis', 'Aluguel', 'Contas', 'Marketing', 'Outros'];
+
+// ---------------------------------------------------------------------
+// Ajustes: categorias, expediente padrão e dados de exemplo do estúdio
+// ---------------------------------------------------------------------
+export const serviceCategories = ['Unhas', 'Sobrancelhas', 'Cílios', 'Estética', 'Depilação', 'Cabelo', 'Outros'];
+
+/** Expediente para contas novas: seg–sex 9h–19h com almoço, sábado até 15h, domingo fechado. */
+export const defaultBusinessHours: BusinessHours[] = [0, 1, 2, 3, 4, 5, 6].map((d) =>
+  d === 0
+    ? { dayOfWeek: 0, isOpen: false, openTime: '09:00', closeTime: '18:00' }
+    : d === 6
+      ? { dayOfWeek: 6, isOpen: true, openTime: '09:00', closeTime: '15:00' }
+      : { dayOfWeek: d, isOpen: true, openTime: '09:00', closeTime: '19:00', breakStart: '12:00', breakEnd: '13:00' },
+);
+
+/** Preenche só o que estiver vazio no cadastro do estúdio. */
+export const exampleStudio: Partial<Profile> = {
+  tradeName: 'Ana Lima Beleza e Estética LTDA',
+  document: '12345678000190',
+  phone: '11987650000',
+  instagram: 'studioanalima',
+  addressZip: '01414001',
+  addressStreet: 'Rua Haddock Lobo',
+  addressNumber: '595',
+  addressDistrict: 'Cerqueira César',
+  addressCity: 'São Paulo',
+  addressState: 'SP',
+};
+
+/** Folgas e feriados de exemplo (dias inteiros, podendo ser período). */
+export function exampleTimeOffs(): Omit<ScheduleBlock, 'id'>[] {
+  const today = startOfDay(new Date());
+  return [
+    { startsAt: addDays(today, 5).toISOString(), endsAt: addDays(today, 6).toISOString(), allDay: true, reason: 'Folga' },
+    { startsAt: addDays(today, 18).toISOString(), endsAt: addDays(today, 19).toISOString(), allDay: true, reason: 'Curso de atualização' },
+    { startsAt: addDays(today, 38).toISOString(), endsAt: addDays(today, 44).toISOString(), allDay: true, reason: 'Férias' },
+  ];
+}

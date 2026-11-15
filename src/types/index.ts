@@ -15,6 +15,27 @@ export interface Profile {
   workStart: string; // 'HH:mm'
   workEnd: string; // 'HH:mm'
   slotMinutes: number;
+  // Dados do estúdio (Ajustes > Dados do estúdio)
+  tradeName?: string; // nome fantasia / razão social
+  document?: string; // CPF ou CNPJ, só dígitos
+  instagram?: string; // sem @
+  logoUrl?: string;
+  addressZip?: string; // CEP, só dígitos
+  addressStreet?: string;
+  addressNumber?: string;
+  addressDistrict?: string;
+  addressCity?: string;
+  addressState?: string; // UF
+}
+
+/** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
+export interface BusinessHours {
+  dayOfWeek: number;
+  isOpen: boolean;
+  openTime: string; // 'HH:mm'
+  closeTime: string; // 'HH:mm'
+  breakStart?: string; // 'HH:mm'
+  breakEnd?: string; // 'HH:mm'
 }
 
 export interface Service {
@@ -24,6 +45,7 @@ export interface Service {
   price: number;
   durationMin: number;
   color: string;
+  active: boolean;
 }
 
 export interface Client {

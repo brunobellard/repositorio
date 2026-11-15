@@ -8,7 +8,8 @@ import { DayTimeline } from '@/components/agenda/day-timeline';
 import { Fab, Screen, ScreenTitle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { confirmAction } from '@/lib/confirm';
-import { atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
+import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
+import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
 import { colors } from '@/theme/colors';
 import type { ScheduleBlock } from '@/types';
@@ -20,7 +21,7 @@ function overlapsDay(b: ScheduleBlock, day: Date) {
 }
 
 export default function AgendaScreen() {
-  const { appointments, blocks, clients, profile, removeBlock } = useStore();
+  const { appointments, blocks, clients, profile, businessHours, removeBlock } = useStore();
   const [selected, setSelected] = useState(() => startOfDay(new Date()));
   const [mode, setMode] = useState<CalendarMode>('semana');
 
@@ -39,12 +40,38 @@ export default function AgendaScreen() {
       blockedDays.add(d.toDateString());
     }
   }
+  // Dias da semana fechados (ex: domingo) também aparecem riscados no calendário
+  for (let i = -45; i <= 90; i++) {
+    const d = addDays(startOfDay(new Date()), i);
+    if (!hoursForDay(d, businessHours).isOpen) blockedDays.add(d.toDateString());
+  }
 
   const dayAppts = appointments.filter((a) => isSameDay(new Date(a.startsAt), selected));
   const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
   const allDayBlock = dayBlocks.find((b) => b.allDay);
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
   const expected = active.reduce((t, a) => t + a.totalPrice, 0);
+  const dayHours = hoursForDay(selected, businessHours);
+  const dayOff = timeOffOn(selected, blocks);
+  const closedDay = !dayHours.isOpen || !!dayOff;
+
+  /** Toque num horário vazio: avisa se for fora do expediente, folga ou pausa. */
+  function onPressSlot(min: number) {
+    const go = (outside: boolean) =>
+      router.push({
+        pathname: '/agendamento/novo',
+        params: { date: atMinutes(selected, min).toISOString(), ...(outside ? { fora: '1' } : {}) },
+      });
+    const why = dayOff
+      ? `Este dia está marcado como "${dayOff.reason ?? 'Folga'}".`
+      : !dayHours.isOpen
+        ? `${WEEKDAYS_LONG[selected.getDay()]} está como dia fechado no seu expediente.`
+        : !isWithinHours(dayHours, min, min + 30)
+          ? `Esse horário está fora do expediente (${describeHours(dayHours)}).`
+          : null;
+    if (!why) return go(false);
+    confirmAction('Fora do expediente', `${why} Quer agendar mesmo assim?`, () => go(true), 'Agendar assim mesmo');
+  }
 
   function onPressBlock(b: ScheduleBlock) {
     confirmAction('Remover bloqueio?', `${b.reason ?? 'Bloqueio'} será liberado na agenda.`, () =>
@@ -105,23 +132,29 @@ export default function AgendaScreen() {
               <Text className="text-xs text-muted">Dia inteiro sem atendimentos · toque para liberar</Text>
             </View>
           </Pressable>
+        ) : !dayHours.isOpen ? (
+          <Pressable
+            onPress={() => router.push('/ajustes/horarios')}
+            className="mx-4 mt-3 flex-row items-center rounded-card border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-4 py-3">
+            <Ionicons name="storefront-outline" size={18} color={colors.muted} />
+            <View className="ml-2 flex-1">
+              <Text className="text-[14px] font-semibold text-ink">Estúdio fechado</Text>
+              <Text className="text-xs text-muted">Dia fora do expediente semanal · toque para ajustar</Text>
+            </View>
+          </Pressable>
         ) : null}
 
         <DayTimeline
           day={selected}
-          workStart={profile.workStart}
-          workEnd={profile.workEnd}
+          hours={dayHours}
+          closed={closedDay}
+          fallbackRange={weekRange(businessHours)}
           appointments={dayAppts}
           blocks={dayBlocks}
           clientsById={clientsById}
           onPressAppointment={(a) => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}
           onPressBlock={onPressBlock}
-          onPressSlot={(min) =>
-            router.push({
-              pathname: '/agendamento/novo',
-              params: { date: atMinutes(selected, min).toISOString() },
-            })
-          }
+          onPressSlot={onPressSlot}
         />
       </ScrollView>
 

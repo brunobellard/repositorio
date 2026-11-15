@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 
@@ -47,7 +48,8 @@ function Row({
 }
 
 export default function AjustesScreen() {
-  const { profile, services, clients, loadExampleData } = useStore();
+  const { profile, services, clients, businessHours, loadExampleData } = useStore();
+  const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
   const [loadingExample, setLoadingExample] = useState(false);
@@ -70,17 +72,32 @@ export default function AjustesScreen() {
       <ScreenTitle title="Ajustes" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
         <Card className="flex-row items-center">
-          <Avatar name={profile.ownerName} size={52} />
+          {profile.logoUrl ? (
+            <Image source={{ uri: profile.logoUrl }} style={{ width: 52, height: 52, borderRadius: 16 }} contentFit="cover" />
+          ) : (
+            <Avatar name={profile.businessName} size={52} />
+          )}
           <View className="ml-3 flex-1">
             <Text className="text-[16px] font-semibold text-ink">{profile.businessName}</Text>
-            <Text className="text-[13px] text-muted">{profile.ownerName} · {formatPhone(profile.phone)}</Text>
+            <Text className="text-[13px] text-muted">{[profile.ownerName, formatPhone(profile.phone), profile.instagram ? `@${profile.instagram}` : ''].filter(Boolean).join(' · ')}</Text>
           </View>
         </Card>
 
-        <SectionLabel>Atendimento</SectionLabel>
+        <SectionLabel>Estúdio</SectionLabel>
         <Card className="py-1">
-          <Row icon="sparkles-outline" label="Serviços e preços" detail={`${services.length}`} />
-          <Row icon="time-outline" label="Horário de funcionamento" detail={`${profile.workStart}–${profile.workEnd}`} />
+          <Row icon="storefront-outline" label="Dados do estúdio" href="/ajustes/estudio" />
+          <Row
+            icon="sparkles-outline"
+            label="Serviços e preços"
+            detail={`${services.filter((s) => s.active).length} ativos`}
+            href="/ajustes/servicos"
+          />
+          <Row
+            icon="time-outline"
+            label="Horário de funcionamento"
+            detail={`${openDays} dias/semana`}
+            href="/ajustes/horarios"
+          />
         </Card>
 
         <SectionLabel>Comunicação</SectionLabel>
@@ -91,7 +108,6 @@ export default function AjustesScreen() {
 
         <SectionLabel>Conta</SectionLabel>
         <Card className="py-1">
-          <Row icon="person-outline" label="Dados do estúdio" />
           {biometric.support.available ? (
             <View className="flex-row items-center py-3">
               <View className="h-8 w-8 items-center justify-center rounded-full bg-primary-soft">

@@ -73,6 +73,10 @@ function AppStack() {
         <Stack.Screen name="clientes/[id]" options={{ title: 'Ficha da cliente' }} />
         <Stack.Screen name="financeiro/despesa" options={{ presentation: 'modal', title: 'Nova despesa' }} />
         <Stack.Screen name="ajustes/mensagens" options={{ title: 'Modelos de mensagem' }} />
+        <Stack.Screen name="ajustes/estudio" options={{ title: 'Dados do estúdio' }} />
+        <Stack.Screen name="ajustes/servicos" options={{ title: 'Serviços e preços' }} />
+        <Stack.Screen name="ajustes/servico" options={{ presentation: 'modal', title: 'Serviço' }} />
+        <Stack.Screen name="ajustes/horarios" options={{ title: 'Horário de funcionamento' }} />
       </Stack.Protected>
     </Stack>
   );

@@ -8,7 +8,8 @@
 import { Linking } from 'react-native';
 
 import { formatTime, relativeDayPhrase } from '@/lib/dates';
-import { formatBRL } from '@/lib/format';
+import { formatBRL, formatPhone, maskDocument } from '@/lib/format';
+import { formatAddress } from '@/lib/hours';
 import type { Appointment, Client, MessageTemplate, Profile } from '@/types';
 
 export interface TemplateVars {
@@ -18,6 +19,7 @@ export interface TemplateVars {
   hora: string;
   valor: string;
   estudio: string;
+  endereco: string;
 }
 
 export function buildVars(appt: Appointment, client: Client, profile: Profile): TemplateVars {
@@ -29,6 +31,7 @@ export function buildVars(appt: Appointment, client: Client, profile: Profile): 
     hora: formatTime(start),
     valor: formatBRL(appt.totalPrice),
     estudio: profile.businessName,
+    endereco: formatAddress(profile),
   };
 }
 
@@ -86,3 +89,35 @@ export const emailProvider: EmailProvider = {
     console.log('[email simulado]', { to, subject, body });
   },
 };
+
+/**
+ * Cabeçalho do estúdio para e-mails e recibos: logo, nome, razão social,
+ * CPF/CNPJ, endereço e contatos — tudo vindo de Ajustes > Dados do estúdio.
+ */
+export function studioHeaderLines(profile: Profile): string[] {
+  return [
+    profile.businessName,
+    profile.tradeName,
+    profile.document ? `${profile.document.length > 11 ? 'CNPJ' : 'CPF'} ${maskDocument(profile.document)}` : '',
+    formatAddress(profile),
+    [profile.phone ? formatPhone(profile.phone) : '', profile.instagram ? `@${profile.instagram}` : '', profile.email]
+      .filter(Boolean)
+      .join(' · '),
+  ].filter((l): l is string => !!l);
+}
+
+/** Corpo do e-mail em HTML com o cabeçalho do estúdio (usado pela Edge Function de envio). */
+export function composeEmailHtml(profile: Profile, body: string): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const [name, ...rest] = studioHeaderLines(profile);
+  const logo = profile.logoUrl
+    ? `<img src="${profile.logoUrl}" alt="" width="64" height="64" style="border-radius:16px;object-fit:cover" />`
+    : '';
+  return `<div style="font-family:-apple-system,Segoe UI,Inter,sans-serif;color:#2A2326;max-width:560px">
+  <div style="border-bottom:1px solid #EFE9E7;padding-bottom:16px;margin-bottom:16px">${logo}
+    <div style="font-size:18px;font-weight:600;margin-top:8px">${esc(name ?? '')}</div>
+    ${rest.map((l) => `<div style="font-size:12px;color:#8A7F83">${esc(l)}</div>`).join('')}
+  </div>
+  <div style="font-size:15px;line-height:1.5;white-space:pre-line">${esc(body)}</div>
+</div>`;
+}

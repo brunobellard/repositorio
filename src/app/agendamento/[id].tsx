@@ -8,7 +8,7 @@ import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
 import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
-import { buildVars, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
+import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
 import { colors, paymentLabels, statusInfo } from '@/theme/colors';
 import type { AppointmentStatus, PaymentMethod } from '@/types';
 
@@ -60,7 +60,11 @@ export default function AgendamentoDetalhe() {
     }
     const tpl = templates.find((t) => t.channel === 'email' && t.kind === 'confirmacao')!;
     const vars = buildVars(appt!, client!, profile);
-    await emailProvider.send(client!.email, fillTemplate(tpl.subject ?? '', vars), fillTemplate(tpl.body, vars));
+    await emailProvider.send(
+      client!.email,
+      fillTemplate(tpl.subject ?? '', vars),
+      composeEmailHtml(profile, fillTemplate(tpl.body, vars)),
+    );
     notify('E-mail simulado', 'O envio real será ativado ao conectar o Resend.');
   }
 

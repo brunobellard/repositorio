@@ -41,6 +41,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o Agenda Beleza acesse suas fotos para escolher o logo do estúdio.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Permita que o Agenda Beleza use o Face ID para desbloquear o app."

@@ -3,11 +3,21 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { useAuth } from '@/data/auth';
-import { defaultTemplates, mockAppointments, mockClients, mockServices, mockTransactions } from '@/data/mock';
+import {
+  defaultBusinessHours,
+  defaultTemplates,
+  exampleStudio,
+  exampleTimeOffs,
+  mockAppointments,
+  mockClients,
+  mockServices,
+  mockTransactions,
+} from '@/data/mock';
 import { notify } from '@/lib/confirm';
 import { friendlyError, supabase } from '@/lib/supabase';
 import type {
   Appointment,
+  BusinessHours,
   AppointmentStatus,
   Client,
   MessageTemplate,
@@ -30,6 +40,16 @@ const toProfile = (r: any): Profile => ({
   workStart: String(r.work_start).slice(0, 5),
   workEnd: String(r.work_end).slice(0, 5),
   slotMinutes: r.slot_minutes,
+  tradeName: r.trade_name ?? undefined,
+  document: r.document ?? undefined,
+  instagram: r.instagram ?? undefined,
+  logoUrl: r.logo_url ?? undefined,
+  addressZip: r.address_zip ?? undefined,
+  addressStreet: r.address_street ?? undefined,
+  addressNumber: r.address_number ?? undefined,
+  addressDistrict: r.address_district ?? undefined,
+  addressCity: r.address_city ?? undefined,
+  addressState: r.address_state ?? undefined,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -38,6 +58,16 @@ const toService = (r: any): Service => ({
   price: Number(r.price),
   durationMin: r.duration_min,
   color: r.color ?? '#E8B4BC',
+  active: r.active ?? true,
+});
+const hm = (t: string | null) => (t ? String(t).slice(0, 5) : undefined);
+const toHours = (r: any): BusinessHours => ({
+  dayOfWeek: r.day_of_week,
+  isOpen: r.is_open,
+  openTime: hm(r.open_time)!,
+  closeTime: hm(r.close_time)!,
+  breakStart: hm(r.break_start),
+  breakEnd: hm(r.break_end),
 });
 const toClient = (r: any): Client => ({
   id: r.id,
@@ -115,6 +145,58 @@ interface Store {
   addTransaction: (t: Omit<Transaction, 'id'>) => Promise<boolean>;
   updateTemplate: (t: MessageTemplate) => Promise<boolean>;
   loadExampleData: () => Promise<void>;
+
+  // Ajustes
+  /** Expediente dos 7 dias (índice = dia da semana, 0 = domingo) */
+  businessHours: BusinessHours[];
+  /** false enquanto a migração de Ajustes não foi aplicada no Supabase */
+  hoursAvailable: boolean;
+  updateProfile: (patch: Partial<Omit<Profile, 'id'>>) => Promise<boolean>;
+  uploadLogo: (base64: string, mimeType: string) => Promise<boolean>;
+  saveService: (s: Omit<Service, 'id' | 'color'> & { id?: string }) => Promise<boolean>;
+  setServiceActive: (id: string, active: boolean) => Promise<void>;
+  /** 'in_use' quando o serviço já aparece em agendamentos (aí só dá para desativar) */
+  deleteService: (id: string) => Promise<'ok' | 'in_use' | 'error'>;
+  saveBusinessHours: (hours: BusinessHours[]) => Promise<boolean>;
+}
+
+/** Campos do perfil (app) -> colunas do banco */
+const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
+  businessName: 'business_name',
+  ownerName: 'owner_name',
+  phone: 'phone',
+  email: 'email',
+  slotMinutes: 'slot_minutes',
+  tradeName: 'trade_name',
+  document: 'document',
+  instagram: 'instagram',
+  logoUrl: 'logo_url',
+  addressZip: 'address_zip',
+  addressStreet: 'address_street',
+  addressNumber: 'address_number',
+  addressDistrict: 'address_district',
+  addressCity: 'address_city',
+  addressState: 'address_state',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Unhas: '#E8B4BC',
+  Sobrancelhas: '#C9A98A',
+  Cílios: '#9FB3A1',
+  Estética: '#A9B8C9',
+};
+
+/** Sufixo único para nomes de arquivo enviados ao Storage. */
+function uniqueSuffix() {
+  return Date.now().toString(36);
+}
+
+/** Converte base64 em bytes para enviar ao Storage (funciona no celular e na web). */
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
 }
 
 const emptyProfile: Profile = {
@@ -147,6 +229,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [businessHours, setBusinessHours] = useState<BusinessHours[]>(defaultBusinessHours);
+  const [hoursAvailable, setHoursAvailable] = useState(true);
   const seeded = useRef<string | null>(null);
 
   /** Conta nova: cria catálogo de serviços e modelos de mensagem padrão. */
@@ -169,20 +253,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       defaultTemplates.map((t) => ({ channel: t.channel, kind: t.kind, subject: t.subject ?? null, body: t.body })),
       { onConflict: 'owner_id,channel,kind', ignoreDuplicates: true },
     );
+    // Expediente padrão (ignora erro se a migração de Ajustes ainda não rodou)
+    await supabase.from('business_hours').upsert(
+      defaultBusinessHours.map((h) => ({
+        day_of_week: h.dayOfWeek,
+        is_open: h.isOpen,
+        open_time: h.openTime,
+        close_time: h.closeTime,
+        break_start: h.breakStart ?? null,
+        break_end: h.breakEnd ?? null,
+      })),
+      { onConflict: 'owner_id,day_of_week', ignoreDuplicates: true },
+    );
   }, []);
 
   const reload = useCallback(async () => {
     if (!userId) return;
-    const [p, s, c, a, b, t, m] = await Promise.all([
+    const [p, s, c, a, b, t, m, h] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('services').select('*').eq('active', true).order('name'),
+      supabase.from('services').select('*').order('name'),
       supabase.from('clients').select('*').order('name'),
       supabase.from('appointments').select(APPT_SELECT).order('starts_at'),
       supabase.from('schedule_blocks').select('*').order('starts_at'),
       supabase.from('transactions').select('*').order('occurred_at', { ascending: false }),
       supabase.from('message_templates').select('*'),
+      supabase.from('business_hours').select('*'),
     ]);
     const firstError = [p, s, c, a, b, t, m].find((r) => r.error)?.error;
+    // Sem a tabela business_hours (migração pendente), usa o expediente padrão
+    setHoursAvailable(!h.error);
+    const saved = (h.data ?? []).map(toHours);
+    setBusinessHours(defaultBusinessHours.map((d) => saved.find((x) => x.dayOfWeek === d.dayOfWeek) ?? d));
     if (firstError) notify('Erro ao carregar dados', friendlyError(firstError));
     if (p.data) setProfile(toProfile(p.data));
     setServices((s.data ?? []).map(toService));
@@ -220,7 +321,101 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks,
     transactions,
     templates,
+    businessHours,
+    hoursAvailable,
     reload,
+
+    async updateProfile(patch) {
+      const row: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(patch)) {
+        const col = PROFILE_COLUMNS[k as keyof Profile];
+        if (col) row[col] = v === '' || v === undefined ? null : v;
+      }
+      const { data, error } = await supabase.from('profiles').update(row).eq('id', userId!).select().single();
+      if (error) return fail(error);
+      setProfile(toProfile(data));
+      return true;
+    },
+
+    async uploadLogo(base64, mimeType) {
+      const ext = mimeType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+      // Nome novo a cada envio: evita o logo antigo ficar em cache
+      const path = `${userId}/logo-${uniqueSuffix()}.${ext}`;
+      const { error } = await supabase.storage.from('logos').upload(path, base64ToBytes(base64), {
+        contentType: mimeType,
+      });
+      if (error) {
+        notify('Não foi possível enviar o logo', error.message);
+        return false;
+      }
+      const old = profile.logoUrl?.split('/logos/')[1];
+      const { data } = supabase.storage.from('logos').getPublicUrl(path);
+      const ok = await store.updateProfile({ logoUrl: data.publicUrl });
+      if (ok && old) await supabase.storage.from('logos').remove([decodeURIComponent(old)]);
+      return ok;
+    },
+
+    async saveService({ id, ...s }) {
+      const row = {
+        name: s.name,
+        category: s.category,
+        price: s.price,
+        duration_min: s.durationMin,
+        active: s.active,
+        color: CATEGORY_COLORS[s.category] ?? '#D4B8C0',
+      };
+      const { data, error } = id
+        ? await supabase.from('services').update(row).eq('id', id).select().single()
+        : await supabase.from('services').insert(row).select().single();
+      if (error) return fail(error);
+      const saved = toService(data);
+      setServices((list) =>
+        [...list.filter((x) => x.id !== saved.id), saved].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      return true;
+    },
+
+    async setServiceActive(id, active) {
+      setServices((list) => list.map((s) => (s.id === id ? { ...s, active } : s)));
+      const { error } = await supabase.from('services').update({ active }).eq('id', id);
+      if (error) {
+        setServices((list) => list.map((s) => (s.id === id ? { ...s, active: !active } : s)));
+        fail(error);
+      }
+    },
+
+    async deleteService(id) {
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error?.code === '23503') return 'in_use';
+      if (error) {
+        fail(error);
+        return 'error';
+      }
+      setServices((list) => list.filter((s) => s.id !== id));
+      return 'ok';
+    },
+
+    async saveBusinessHours(hours) {
+      const { data, error } = await supabase
+        .from('business_hours')
+        .upsert(
+          hours.map((h) => ({
+            day_of_week: h.dayOfWeek,
+            is_open: h.isOpen,
+            open_time: h.openTime,
+            close_time: h.closeTime,
+            break_start: h.breakStart ?? null,
+            break_end: h.breakEnd ?? null,
+          })),
+          { onConflict: 'owner_id,day_of_week' },
+        )
+        .select();
+      if (error) return fail(error);
+      const saved = (data ?? []).map(toHours);
+      setBusinessHours(defaultBusinessHours.map((d) => saved.find((x) => x.dayOfWeek === d.dayOfWeek) ?? d));
+      setHoursAvailable(true);
+      return true;
+    },
 
     async addAppointment({ clientId, startsAt, serviceIds, notes }) {
       const { data, error } = await supabase.rpc('create_appointment', {
@@ -391,6 +586,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             occurred_at: t.occurredAt,
           })),
       );
+
+      // Folgas/feriados de exemplo
+      await supabase.from('schedule_blocks').insert(
+        exampleTimeOffs().map((b) => ({ starts_at: b.startsAt, ends_at: b.endsAt, all_day: true, reason: b.reason })),
+      );
+
+      // Completa só os dados do estúdio que ainda estão vazios
+      const blanks = Object.fromEntries(
+        Object.entries(exampleStudio).filter(([k]) => !profile[k as keyof Profile]),
+      ) as Partial<Profile>;
+      if (Object.keys(blanks).length) {
+        const row = Object.fromEntries(
+          Object.entries(blanks).map(([k, v]) => [PROFILE_COLUMNS[k as keyof Profile]!, v]),
+        );
+        await supabase.from('profiles').update(row).eq('id', userId!); // ignora erro se a migração não rodou
+      }
       await reload();
     },
   };
