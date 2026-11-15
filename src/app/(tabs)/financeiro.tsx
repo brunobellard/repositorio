@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { ExportFinanceSheet } from '@/components/export-sheets';
 import { Card, EmptyState, Fab, Screen, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { formatDateShort, formatTime, isSameDay, startOfDay, startOfWeek } from '@/lib/dates';
@@ -28,6 +29,7 @@ function Stat({ label, value, tone, hint }: { label: string; value: number; tone
 export default function FinanceiroScreen() {
   const { transactions } = useStore();
   const [period, setPeriod] = useState<Period>('semana');
+  const [exporting, setExporting] = useState(false);
 
   const now = new Date();
   const today = startOfDay(now);
@@ -58,14 +60,25 @@ export default function FinanceiroScreen() {
         title="Financeiro"
         subtitle="Resumo do mês"
         right={
-          <Pressable
-            onPress={() => router.push('/pacote/novo')}
-            className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
-            <Ionicons name="ticket-outline" size={14} color={colors.ink} />
-            <Text className="ml-1 text-[13px] font-semibold text-ink">+ Vender pacote</Text>
-          </Pressable>
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={() => setExporting(true)}
+              accessibilityLabel="Exportar relatório"
+              className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+              <Ionicons name="download-outline" size={14} color={colors.ink} />
+              <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/pacote/novo')}
+              accessibilityLabel="Vender pacote"
+              className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+              <Ionicons name="ticket-outline" size={14} color={colors.ink} />
+              <Text className="ml-1 text-[13px] font-semibold text-ink">Pacote</Text>
+            </Pressable>
+          </View>
         }
       />
+      <ExportFinanceSheet visible={exporting} onClose={() => setExporting(false)} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 110 }}>
         <View className="flex-row flex-wrap justify-between">
           <Stat label="Faturamento do dia" value={dayIncome} />

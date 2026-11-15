@@ -13,7 +13,10 @@ export function RangeCalendar({
   start,
   end,
   onChange,
+  allowPast = false,
 }: {
+  /** true: permite escolher datas passadas (ex: período de relatório) */
+  allowPast?: boolean;
   start: Date | null;
   end: Date | null;
   onChange: (start: Date | null, end: Date | null) => void;
@@ -54,7 +57,7 @@ export function RangeCalendar({
       <View className="mt-1 flex-row flex-wrap">
         {days.map((d) => {
           const other = d.getMonth() !== month.getMonth();
-          const past = d < today;
+          const past = !allowPast && d < today;
           const edge = (start && isSameDay(d, start)) || (end && isSameDay(d, end));
           return (
             <Pressable

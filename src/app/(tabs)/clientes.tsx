@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { ExportClientsSheet } from '@/components/export-sheets';
 import { Avatar, EmptyState, Screen, ScreenTitle, SearchBar } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
@@ -51,6 +52,17 @@ export default function ClientesScreen() {
   const { clients, appointments, profile, templates } = useStore();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('todas');
+  const [exporting, setExporting] = useState(false);
+
+  const exportButton = (
+    <Pressable
+      onPress={() => setExporting(true)}
+      accessibilityLabel="Exportar base de clientes"
+      className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+      <Ionicons name="download-outline" size={14} color={colors.ink} />
+      <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
+    </Pressable>
+  );
 
   const now = new Date();
   const recall = clientsToRecall(clients, appointments, profile.recallDays, now);
@@ -115,7 +127,8 @@ export default function ClientesScreen() {
     const list = recall.filter((r) => matches(r.client));
     return (
       <Screen>
-        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
+        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} right={exportButton} />
+        <ExportClientsSheet visible={exporting} onClose={() => setExporting(false)} />
         <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nome ou telefone" />
         <FlatList
           data={list}
@@ -155,7 +168,8 @@ export default function ClientesScreen() {
     const list = birthdays.filter((b) => matches(b.client));
     return (
       <Screen>
-        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
+        <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} right={exportButton} />
+        <ExportClientsSheet visible={exporting} onClose={() => setExporting(false)} />
         <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nome ou telefone" />
         <FlatList
           data={list}
@@ -197,7 +211,8 @@ export default function ClientesScreen() {
   const list = clients.filter(matches).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <Screen>
-      <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} />
+      <ScreenTitle title="Clientes" subtitle={`${clients.length} cadastradas`} right={exportButton} />
+      <ExportClientsSheet visible={exporting} onClose={() => setExporting(false)} />
       <SearchBar value={query} onChangeText={setQuery} placeholder="Buscar por nome ou telefone" />
       <FlatList
         data={list}

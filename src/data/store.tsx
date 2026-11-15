@@ -149,7 +149,9 @@ const toTemplate = (r: any): MessageTemplate => ({
   body: r.body,
 });
 
-const APPT_SELECT = '*, appointment_services(*)';
+// Há duas chaves ligando appointment_services a appointments (a simples e a composta
+// id+owner_id da blindagem RLS); o "!" diz ao Supabase qual usar, evitando ambiguidade.
+const APPT_SELECT = '*, appointment_services!appt_services_appt_same_owner(*)';
 
 // ---------------------------------------------------------------------
 // Store

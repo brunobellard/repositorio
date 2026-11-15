@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { initials } from '@/lib/format';
@@ -111,12 +111,15 @@ export function Button({
   variant = 'primary',
   icon,
   disabled,
+  loading,
 }: {
   title: string;
   onPress?: () => void;
   variant?: 'primary' | 'secondary' | 'whatsapp' | 'danger';
   icon?: IconName;
   disabled?: boolean;
+  /** Mostra um indicador de carregamento no lugar do ícone e bloqueia o toque */
+  loading?: boolean;
 }) {
   const styles = {
     primary: { box: 'bg-primary', text: 'text-white', icon: '#fff' },
@@ -127,9 +130,13 @@ export function Button({
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={disabled || loading}
       className={`flex-row items-center justify-center rounded-2xl px-4 py-3.5 active:opacity-80 ${styles.box} ${disabled ? 'opacity-40' : ''}`}>
-      {icon ? <Ionicons name={icon} size={18} color={styles.icon} style={{ marginRight: 8 }} /> : null}
+      {loading ? (
+        <ActivityIndicator size="small" color={styles.icon} style={{ marginRight: 8 }} />
+      ) : icon ? (
+        <Ionicons name={icon} size={18} color={styles.icon} style={{ marginRight: 8 }} />
+      ) : null}
       <Text className={`text-[15px] font-semibold ${styles.text}`}>{title}</Text>
     </Pressable>
   );
