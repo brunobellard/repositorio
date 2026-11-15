@@ -19,6 +19,9 @@ import { colors } from '@/theme/colors';
 
 SplashScreen.preventAutoHideAsync();
 
+/** Rotas abertas a qualquer pessoa, com ou sem login */
+const PUBLIC_ROUTES = ['agendar', 'termos', 'privacidade', 'redefinir-senha'];
+
 const theme = {
   ...DefaultTheme,
   colors: {
@@ -86,15 +89,18 @@ function PushSetup({ active }: { active: boolean }) {
 
 function AppStack() {
   const { session, loading } = useAuth();
-  const { loading: loadingData } = useStore();
-  // Página pública de agendamento: abre sem login e sem esperar os dados da profissional
-  const isPublic = useSegments()[0] === 'agendar';
+  const { loading: loadingData, profile } = useStore();
+  // Páginas públicas (agendamento, textos legais, nova senha): abrem sem login e sem esperar os dados
+  const isPublic = PUBLIC_ROUTES.includes(useSegments()[0] ?? '');
 
   useEffect(() => {
     if (!loading || isPublic) SplashScreen.hideAsync();
   }, [loading, isPublic]);
 
   const loggedIn = !!session;
+  // Conta nova: passa pelos 3 passos iniciais antes de ver a agenda
+  // (=== false: perfis antigos no cache, sem o campo, não caem no onboarding)
+  const needsOnboarding = loggedIn && !loadingData && profile.onboardingCompleted === false;
   // Só espera a sessão; os dados aparecem em cada tela (cache local + skeletons)
   if (!isPublic && loading) return <Loading />;
 
@@ -104,10 +110,16 @@ function AppStack() {
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
       {/* Sempre acessível, com ou sem login */}
       <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
+      <Stack.Screen name="termos" options={{ headerShown: false, title: 'Termos de Uso' }} />
+      <Stack.Screen name="privacidade" options={{ headerShown: false, title: 'Política de Privacidade' }} />
+      <Stack.Screen name="redefinir-senha" options={{ headerShown: false, title: 'Redefinir senha' }} />
       <Stack.Protected guard={!loggedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={loggedIn}>
+      <Stack.Protected guard={needsOnboarding}>
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={loggedIn && !needsOnboarding}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal', title: 'Novo agendamento' }} />
         <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal', title: 'Agendamento' }} />

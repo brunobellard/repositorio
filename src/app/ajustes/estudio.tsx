@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DeleteAccountSheet } from '@/components/delete-account-sheet';
 import { Button, Field, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
@@ -48,6 +49,7 @@ export default function DadosEstudio() {
     bookingAutoApprove: profile.bookingAutoApprove,
   }));
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [lookingUpZip, setLookingUpZip] = useState(false);
 
@@ -343,7 +345,22 @@ export default function DadosEstudio() {
         </View>
         </>
         )}
+
+        {/* Zona de perigo: exclusão permanente (exigência das lojas) */}
+        <View className="mt-10 border-t border-line pt-5">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-[#B2474F]">Zona de perigo</Text>
+          <Text className="mb-3 mt-1 text-[12px] leading-4 text-muted">
+            Excluir a conta apaga para sempre todos os dados do estúdio.
+          </Text>
+          <Pressable
+            onPress={() => setDeleting(true)}
+            className="flex-row items-center self-start rounded-2xl border border-[#E5C4C7] px-4 py-2.5 active:opacity-60">
+            <Ionicons name="trash-outline" size={16} color="#B2474F" />
+            <Text className="ml-2 text-[14px] font-medium text-[#B2474F]">Excluir minha conta</Text>
+          </Pressable>
+        </View>
       </ScrollView>
+      <DeleteAccountSheet visible={deleting} onClose={() => setDeleting(false)} />
 
       <View
         className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"

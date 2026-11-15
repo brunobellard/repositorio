@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 
 import { Button, Card, Segmented } from '@/components/ui';
 import { PLANS, planRank, yearlySavings, type BillingCycle, type PlanTier } from '@/constants/plans';
@@ -9,6 +9,7 @@ import { useAuth } from '@/data/auth';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { notify } from '@/lib/confirm';
 import { formatBRL } from '@/lib/format';
+import { LEGAL_PATHS, webUrl } from '@/lib/web';
 import { billingProvider } from '@/services/billing';
 import { colors } from '@/theme/colors';
 
@@ -129,6 +130,15 @@ export default function Assinatura() {
       <Text className="mt-4 text-center text-[11px] leading-4 text-muted">
         Cancele quando quiser. Ao fim do teste grátis, sem assinatura, a conta passa para o plano Free e seus dados
         continuam guardados.
+      </Text>
+      <Text className="mt-3 text-center text-[12px] text-muted">
+        <Text className="font-medium text-primary-dark" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}>
+          Termos de Uso
+        </Text>
+        {'   ·   '}
+        <Text className="font-medium text-primary-dark" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}>
+          Política de Privacidade
+        </Text>
       </Text>
     </ScrollView>
   );

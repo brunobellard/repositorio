@@ -30,6 +30,7 @@ export const mockProfile: Profile = {
   planTier: 'pro',
   subscriptionStatus: 'trialing',
   billingCycle: 'monthly',
+  onboardingCompleted: true,
 };
 
 export const mockServices: Service[] = [

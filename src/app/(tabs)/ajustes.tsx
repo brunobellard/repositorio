@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar, Card, Screen, ScreenTitle, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
@@ -13,6 +13,7 @@ import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
+import { LEGAL_PATHS, webUrl } from '@/lib/web';
 import { pushUnsupportedHere, registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 import type { IconName } from '@/components/ui';
@@ -251,6 +252,16 @@ export default function AjustesScreen() {
             label={loadingExample ? 'Carregando exemplos…' : 'Carregar dados de exemplo'}
             detail={clients.length ? undefined : 'Recomendado'}
             onPress={loadingExample ? () => {} : askExampleData}
+          />
+          <Row
+            icon="document-text-outline"
+            label="Termos de Uso"
+            onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}
+          />
+          <Row
+            icon="shield-checkmark-outline"
+            label="Política de Privacidade"
+            onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}
           />
           <Row
             icon="log-out-outline"

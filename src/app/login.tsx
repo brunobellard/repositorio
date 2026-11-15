@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
 import { Button, Field, Segmented } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { confirmAction } from '@/lib/confirm';
+import { LEGAL_PATHS, webUrl } from '@/lib/web';
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
@@ -18,6 +20,7 @@ export default function Login() {
   const [ownerName, setOwnerName] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
 
   const creating = mode === 'criar';
   const valid =
@@ -97,6 +100,12 @@ export default function Login() {
           />
         </View>
 
+        {!creating ? (
+          <Pressable onPress={() => setForgot(true)} className="-mt-1 mb-3 self-end py-1 active:opacity-60">
+            <Text className="text-[13px] font-medium text-primary-dark">Esqueci minha senha</Text>
+          </Pressable>
+        ) : null}
+
         {message ? (
           <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
             <Text className="text-[13px] text-primary-dark">{message}</Text>
@@ -112,7 +121,20 @@ export default function Login() {
             </Text>
           </Pressable>
         ) : null}
+
+        <Text className="mt-auto pt-8 text-center text-[11px] leading-4 text-muted">
+          Ao continuar, você concorda com os{' '}
+          <Text className="underline" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}>
+            Termos de Uso
+          </Text>{' '}
+          e a{' '}
+          <Text className="underline" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}>
+            Política de Privacidade
+          </Text>
+          .
+        </Text>
       </ScrollView>
+      <ForgotPasswordSheet visible={forgot} initialEmail={email} onClose={() => setForgot(false)} />
     </KeyboardAvoidingView>
   );
 }

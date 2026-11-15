@@ -43,6 +43,8 @@ export interface Profile {
   /** Fim do período de teste (ISO) */
   trialEndsAt?: string;
   billingCycle: BillingCycle;
+  /** false até a conta nova concluir os 3 passos iniciais */
+  onboardingCompleted: boolean;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */

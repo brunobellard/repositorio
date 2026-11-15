@@ -88,6 +88,8 @@ const toProfile = (r: any): Profile => ({
   subscriptionStatus: r.subscription_status ?? 'active',
   trialEndsAt: r.trial_ends_at ?? undefined,
   billingCycle: r.billing_cycle ?? 'monthly',
+  // Sem a coluna (migração pendente): não prende ninguém no onboarding
+  onboardingCompleted: r.onboarding_completed ?? true,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -300,6 +302,7 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   addressDistrict: 'address_district',
   addressCity: 'address_city',
   addressState: 'address_state',
+  onboardingCompleted: 'onboarding_completed',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -336,6 +339,7 @@ const emptyProfile: Profile = {
   planTier: 'pro',
   subscriptionStatus: 'active',
   billingCycle: 'monthly',
+  onboardingCompleted: true,
 };
 
 const StoreContext = createContext<Store | null>(null);
