@@ -6,11 +6,12 @@
 export const LEGAL_INFO = {
   appName: 'Agenda Beleza',
   /** Razão social ou nome de quem oferece o app (controlador dos dados da conta) */
-  company: 'Agenda Beleza',
+  // DADOS FICTÍCIOS (fase de testes): trocar pelos dados reais antes de publicar nas lojas
+  company: 'Agenda Beleza Tecnologia Ltda.',
   /** CNPJ ou CPF do responsável (deixe vazio para não exibir) */
-  document: '',
+  document: '00.000.000/0001-00',
   /** E-mail para suporte, privacidade e pedidos do titular (LGPD art. 18) */
-  contactEmail: '',
+  contactEmail: 'contato@agendabeleza.example',
   updatedAt: '15 de novembro de 2026',
 };
 
