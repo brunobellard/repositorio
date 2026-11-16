@@ -52,7 +52,7 @@ function Row({
 }
 
 export default function AjustesScreen() {
-  const { profile, services, clients, businessHours, loadExampleData, updateProfile } = useStore();
+  const { profile, services, clients, businessHours, loadExampleData, updateProfile, serviceAreas } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
@@ -167,6 +167,14 @@ export default function AjustesScreen() {
             detail={`${openDays} dias/semana`}
             href="/ajustes/horarios"
           />
+          {profile.serviceMode !== 'fixed' ? (
+            <Row
+              icon="map-outline"
+              label="Regiões e deslocamento"
+              detail={serviceAreas.length ? `${serviceAreas.length} ${serviceAreas.length === 1 ? 'bairro' : 'bairros'}` : 'Cadastrar'}
+              href="/ajustes/regioes"
+            />
+          ) : null}
         </Card>
 
         <SectionLabel>Financeiro</SectionLabel>

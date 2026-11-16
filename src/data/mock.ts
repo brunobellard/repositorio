@@ -31,6 +31,8 @@ export const mockProfile: Profile = {
   subscriptionStatus: 'trialing',
   billingCycle: 'monthly',
   onboardingCompleted: true,
+  serviceMode: 'fixed',
+  travelBufferMinutes: 30,
 };
 
 export const mockServices: Service[] = [
@@ -117,6 +119,8 @@ function buildAppointments(): Appointment[] {
       notes: i === 14 ? 'Primeira extensão — reservar tempo extra para explicar os cuidados.' : undefined,
       isRecurrenceException: false,
       source: 'manual',
+      locationType: 'fixed',
+      travelFee: 0,
     };
   });
 }

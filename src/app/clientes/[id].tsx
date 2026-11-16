@@ -23,7 +23,7 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { clients, appointments, packages, services } = useStore();
+  const { clients, appointments, packages, services, profile } = useStore();
   const access = usePlanAccess();
   const client = clients.find((c) => c.id === id);
   if (!client) {
@@ -145,6 +145,13 @@ export default function FichaCliente() {
         <Info icon="logo-whatsapp" label="WhatsApp" value={formatPhone(client.whatsapp)} />
         <Info icon="mail-outline" label="E-mail" value={client.email} />
         <Info icon="gift-outline" label="Nascimento" value={birth} />
+        {profile.serviceMode !== 'fixed' || client.address ? (
+          <Info
+            icon="home-outline"
+            label="Endereço"
+            value={[client.address, client.neighborhood].filter(Boolean).join(' – ')}
+          />
+        ) : null}
       </Card>
 
       <SectionLabel>Anotações técnicas</SectionLabel>

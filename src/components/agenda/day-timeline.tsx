@@ -24,6 +24,8 @@ interface Props {
   onPressAppointment: (a: Appointment) => void;
   onPressBlock: (b: ScheduleBlock) => void;
   onPressSlot: (minutes: number) => void;
+  /** Minutos de deslocamento reservados depois de atendimentos em domicílio */
+  travelBufferMinutes?: number;
 }
 
 /** Distribui itens sobrepostos lado a lado. */
@@ -62,6 +64,7 @@ export function DayTimeline({
   onPressAppointment,
   onPressBlock,
   onPressSlot,
+  travelBufferMinutes = 0,
 }: Props) {
   // Expande o expediente se houver agendamento fora dele
   const open = !closed && hours.isOpen;
@@ -69,7 +72,8 @@ export function DayTimeline({
   let endMin = open ? Math.ceil(hmToMinutes(hours.closeTime) / 60) * 60 : fallbackRange[1];
   for (const a of appointments) {
     startMin = Math.min(startMin, Math.floor(minutesOfDay(new Date(a.startsAt)) / 60) * 60);
-    endMin = Math.max(endMin, Math.ceil(minutesOfDay(new Date(a.endsAt)) / 60) * 60);
+    const extra = a.locationType === 'home_service' && a.status !== 'cancelado' ? travelBufferMinutes : 0;
+    endMin = Math.max(endMin, Math.ceil((minutesOfDay(new Date(a.endsAt)) + extra) / 60) * 60);
   }
   const hourMarks: number[] = [];
   for (let m = startMin; m < endMin; m += 60) hourMarks.push(m);
@@ -149,6 +153,31 @@ export function DayTimeline({
         );
       })}
 
+      {/* Deslocamento depois dos atendimentos em domicílio */}
+      {travelBufferMinutes > 0
+        ? appointments
+            .filter((a) => a.locationType === 'home_service' && a.status !== 'cancelado')
+            .map((a) => {
+              const from = minutesOfDay(new Date(a.endsAt));
+              const top = y(from);
+              const h = y(from + travelBufferMinutes) - top;
+              return (
+                <View
+                  key={`travel-${a.id}`}
+                  pointerEvents="none"
+                  style={{ position: 'absolute', top: top + 1, height: h - 2, left: LABEL_WIDTH, right: 0 }}
+                  className="mx-0.5 flex-row items-center rounded-xl border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-3">
+                  <Ionicons name="car-outline" size={14} color={colors.muted} />
+                  {h >= 18 ? (
+                    <Text className="ml-1.5 text-[12px] font-medium text-muted">
+                      Deslocamento · {travelBufferMinutes} min
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            })
+        : null}
+
       {/* Agendamentos */}
       {laidOut.map(({ item: a, col, cols }) => {
         const top = y(minutesOfDay(new Date(a.startsAt)));
@@ -187,6 +216,9 @@ export function DayTimeline({
                     ) : null}
                   </View>
                   <View className="flex-row items-center">
+                    {a.locationType === 'home_service' ? (
+                      <Ionicons name="home-outline" size={12} color={colors.primaryDark} style={{ marginRight: 3 }} />
+                    ) : null}
                     {a.source === 'online' ? (
                       <Ionicons name="globe-outline" size={12} color={colors.primaryDark} style={{ marginRight: 3 }} />
                     ) : null}

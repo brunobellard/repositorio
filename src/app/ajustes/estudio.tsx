@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -17,6 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DeleteAccountSheet } from '@/components/delete-account-sheet';
+import { ServiceModePicker } from '@/components/service-mode-picker';
 import { Button, Field, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
@@ -27,7 +29,7 @@ import { initials, maskDocument, maskPhone, maskZip, onlyDigits } from '@/lib/fo
 import { colors } from '@/theme/colors';
 
 export default function DadosEstudio() {
-  const { profile, updateProfile, uploadLogo } = useStore();
+  const { profile, updateProfile, uploadLogo, serviceAreas } = useStore();
   const access = usePlanAccess();
   const insets = useSafeAreaInsets();
 
@@ -47,6 +49,7 @@ export default function DadosEstudio() {
     addressState: profile.addressState ?? '',
     slug: profile.slug ?? '',
     bookingAutoApprove: profile.bookingAutoApprove,
+    serviceMode: profile.serviceMode,
   }));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -136,6 +139,7 @@ export default function DadosEstudio() {
       addressState: form.addressState.trim().toUpperCase(),
       slug: form.slug.trim(),
       bookingAutoApprove: form.bookingAutoApprove,
+      serviceMode: form.serviceMode,
     });
     setSaving(false);
     if (ok) notify('Dados salvos', 'Recibos e mensagens já usam as novas informações.');
@@ -220,7 +224,26 @@ export default function DadosEstudio() {
           autoCorrect={false}
         />
 
-        <SectionLabel>Endereço</SectionLabel>
+        <SectionLabel>Modelo de atendimento</SectionLabel>
+        <ServiceModePicker value={form.serviceMode} onChange={(serviceMode) => set({ serviceMode })} />
+        {form.serviceMode !== 'fixed' ? (
+          <Pressable
+            onPress={() => router.push('/ajustes/regioes')}
+            className="mt-2 flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
+            <Ionicons name="map-outline" size={18} color={colors.primaryDark} />
+            <View className="ml-3 flex-1">
+              <Text className="text-[15px] text-ink">Regiões e taxas de deslocamento</Text>
+              <Text className="text-[12px] text-muted">
+                {serviceAreas.length
+                  ? `${serviceAreas.length} ${serviceAreas.length === 1 ? 'bairro' : 'bairros'} · deslocamento de ${profile.travelBufferMinutes} min`
+                  : 'Cadastre os bairros que você atende'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.muted} />
+          </Pressable>
+        ) : null}
+
+        <SectionLabel>{form.serviceMode === 'home_service' ? 'Endereço (base)' : 'Endereço'}</SectionLabel>
         <View className="flex-row gap-3">
           <View className="flex-1">
             <Field

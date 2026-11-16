@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddressFields } from '@/components/address-fields';
 import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
@@ -31,7 +32,9 @@ function birthToIso(t: string): string | null {
 export default function NovaCliente() {
   const params = useLocalSearchParams<{ name?: string }>();
   const insets = useSafeAreaInsets();
-  const { addClient } = useStore();
+  const { addClient, profile, serviceAreas } = useStore();
+  // Endereço só interessa a quem atende a domicílio
+  const homeService = profile.serviceMode !== 'fixed';
   const access = usePlanAccess();
 
   const [name, setName] = useState(params.name ?? '');
@@ -39,6 +42,8 @@ export default function NovaCliente() {
   const [email, setEmail] = useState('');
   const [birth, setBirth] = useState('');
   const [notes, setNotes] = useState('');
+  const [address, setAddress] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
   const [saving, setSaving] = useState(false);
 
   const birthIso = birth ? birthToIso(birth) : null;
@@ -56,6 +61,8 @@ export default function NovaCliente() {
       email: email.trim() || undefined,
       birthDate: birthIso ?? undefined,
       technicalNotes: notes.trim() || undefined,
+      address: address.trim() || undefined,
+      neighborhood: neighborhood.trim() || undefined,
     });
     if (!created) {
       setSaving(false);
@@ -91,6 +98,16 @@ export default function NovaCliente() {
           placeholder="DD/MM/AAAA"
           keyboardType="number-pad"
         />
+        {homeService ? (
+          <AddressFields
+            address={address}
+            neighborhood={neighborhood}
+            onChangeAddress={setAddress}
+            onChangeNeighborhood={setNeighborhood}
+            areas={serviceAreas}
+            optional
+          />
+        ) : null}
         <Text className="mb-1.5 text-[13px] font-medium text-muted">Anotações técnicas (opcional)</Text>
         <TextInput
           value={notes}

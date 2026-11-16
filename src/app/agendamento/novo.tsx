@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NO_REPEAT, RecurrencePicker } from '@/components/agenda/recurrence-picker';
 import { SeriesScopeSheet, Sheet, SheetOption } from '@/components/sheet';
-import { Avatar, Button, Chip, Field, SectionLabel } from '@/components/ui';
+import { AddressFields, findArea } from '@/components/address-fields';
+import { Avatar, Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
 import {
@@ -37,6 +38,7 @@ import {
 import { formatBRL, formatPhone, normalize } from '@/lib/format';
 import { hoursForDay, isWithinHours, timeOffOn, WEEKDAYS_LONG } from '@/lib/hours';
 import { colors } from '@/theme/colors';
+import type { LocationType } from '@/types';
 
 export default function NovoAgendamento() {
   const params = useLocalSearchParams<{ date?: string; clientId?: string; fora?: string; editId?: string }>();
@@ -53,6 +55,8 @@ export default function NovoAgendamento() {
     updateAppointments,
     packages,
     online,
+    serviceAreas,
+    updateClientAddress,
   } = useStore();
   const access = usePlanAccess();
 
@@ -87,13 +91,32 @@ export default function NovoAgendamento() {
   const [conflicts, setConflicts] = useState<{ date: Date; reason: string }[] | null>(null);
   const [askScope, setAskScope] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
+  // Atendimento a domicílio (modelos "A domicílio" e "Híbrido")
+  const canHome = profile.serviceMode !== 'fixed';
+  const [locationType, setLocationType] = useState<LocationType>(
+    editing?.locationType ?? (profile.serviceMode === 'home_service' ? 'home_service' : 'fixed'),
+  );
+  // Endereço digitado nesta tela; sem edição, vale o da ficha da cliente escolhida
+  const [addressDraft, setAddressDraft] = useState<{ clientId?: string; address: string; neighborhood: string } | null>(
+    null,
+  );
   const dayStrip = useRef<ComponentRef<typeof ScrollView>>(null);
   const dayStripPositioned = useRef(false);
 
   const client = clients.find((c) => c.id === clientId);
   const selectedServices = serviceIds.map((id) => services.find((s) => s.id === id)!).filter(Boolean);
   const duration = selectedServices.reduce((t, s) => t + s.durationMin, 0);
-  const total = selectedServices.reduce((t, s) => t + s.price, 0);
+  const home = canHome && !editing && locationType === 'home_service';
+  const draftValid = addressDraft && addressDraft.clientId === clientId;
+  const address = draftValid ? addressDraft.address : (client?.address ?? '');
+  const neighborhood = draftValid ? addressDraft.neighborhood : (client?.neighborhood ?? '');
+  const setAddress = (patch: Partial<{ address: string; neighborhood: string }>) =>
+    setAddressDraft({ clientId, address, neighborhood, ...patch });
+  const area = home ? findArea(serviceAreas, neighborhood) : undefined;
+  const travelFee = home ? (area?.travelFee ?? 0) : 0;
+  const addressOk = !home || address.trim().length >= 5;
+  const buffer = profile.travelBufferMinutes;
+  const total = selectedServices.reduce((t, s) => t + s.price, 0) + travelFee;
 
   const q = normalize(query);
   const qDigits = query.replace(/\D/g, '');
@@ -123,7 +146,11 @@ export default function NovoAgendamento() {
   const busy = [
     ...appointments
       .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id && isSameDay(new Date(a.startsAt), day))
-      .map((a) => [minutesOfDay(new Date(a.startsAt)), minutesOfDay(new Date(a.endsAt))]),
+      // Atendimento em domicílio ocupa também o deslocamento depois dele
+      .map((a) => [
+        minutesOfDay(new Date(a.startsAt)),
+        minutesOfDay(new Date(a.endsAt)) + (a.locationType === 'home_service' ? buffer : 0),
+      ]),
     ...blocks
       .filter((b) => {
         const s = day.getTime();
@@ -137,7 +164,8 @@ export default function NovoAgendamento() {
   const slots: { min: number; free: boolean }[] = [];
   for (let m = workStart; m + slot <= workEnd; m += slot) {
     const past = isSameDay(day, now) && m < minutesOfDay(now);
-    const conflict = busy.some(([s, e]) => m < e && m + need > s);
+    // Indo à casa da cliente, o deslocamento depois também precisa estar livre
+    const conflict = busy.some(([s, e]) => m < e && m + need + (home ? buffer : 0) > s);
     // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
     const fits = ignoreHours ? m + need <= workEnd : isWithinHours(dayHours, m, m + need);
     slots.push({ min: m, free: !past && !conflict && fits });
@@ -180,7 +208,12 @@ export default function NovoAgendamento() {
   const sessionsNeeded = Math.max(1, occurrences.length);
   const packageShort = chosenPackage ? availableCredits(chosenPackage, appointments) < sessionsNeeded : false;
 
-  const canSave = !!client && selectedServices.length > 0 && timeValid && !packageShort && !saving;
+  const canSave = !!client && selectedServices.length > 0 && timeValid && !packageShort && addressOk && !saving;
+  // Bairro atendido em outros dias da semana: só avisa (a profissional decide)
+  const areaDayWarning =
+    home && area && !area.allowedDays.includes(day.getDay())
+      ? `Você não costuma atender ${area.name} ${WEEKDAYS_LONG[day.getDay()].toLowerCase()}.`
+      : null;
 
   /** Cria as sessões informadas (todas ou só as livres, depois do aviso de conflito). */
   async function create(dates: Date[]) {
@@ -194,9 +227,20 @@ export default function NovoAgendamento() {
       occurrences: dates.map((d) => d.toISOString()),
       clientPackageId: chosenPackage?.id,
       recurrenceRule: dates.length > 1 && firstStart ? toRRule(firstStart, rule) : null,
+      ...(home
+        ? {
+            locationType: 'home_service' as const,
+            serviceAddress: [address.trim(), neighborhood.trim()].filter(Boolean).join(' – '),
+            travelFee,
+          }
+        : {}),
     });
     setSaving(false);
     if (!created) return;
+    // Guarda o endereço na ficha da cliente quando mudou
+    if (home && client && (address.trim() !== (client.address ?? '') || neighborhood.trim() !== (client.neighborhood ?? ''))) {
+      await updateClientAddress(client.id, address, neighborhood);
+    }
     if (created > 1) notify('Série criada', `${created} agendamentos foram adicionados à agenda.`);
     else if (online) notify('Agendamento salvo'); // offline, o próprio store já avisa que ficou no aparelho
     closeModal();
@@ -326,6 +370,60 @@ export default function NovoAgendamento() {
           </View>
         )}
 
+        {/* Local do atendimento */}
+        {canHome && !editing ? (
+          <>
+            <SectionLabel>Local do atendimento</SectionLabel>
+            {profile.serviceMode === 'hybrid' ? (
+              <View className="mb-3">
+                <Segmented
+                  value={locationType}
+                  onChange={(v) => {
+                    setLocationType(v);
+                    setTime(null);
+                  }}
+                  options={[
+                    { value: 'fixed', label: 'No estúdio' },
+                    { value: 'home_service', label: 'A domicílio' },
+                  ]}
+                />
+              </View>
+            ) : null}
+            {home ? (
+              <>
+                <AddressFields
+                  address={address}
+                  neighborhood={neighborhood}
+                  onChangeAddress={(v) => setAddress({ address: v })}
+                  onChangeNeighborhood={(v) => setAddress({ neighborhood: v })}
+                  areas={serviceAreas}
+                />
+                <View className="mb-1 flex-row items-center rounded-2xl bg-primary-soft px-3 py-2.5">
+                  <Ionicons name="car-outline" size={16} color={colors.primaryDark} />
+                  <Text className="ml-2 flex-1 text-[13px] text-primary-dark">
+                    {area
+                      ? `Taxa de deslocamento ${formatBRL(travelFee)} · reserva ${buffer} min depois`
+                      : neighborhood.trim()
+                        ? `Bairro fora da lista: sem taxa · reserva ${buffer} min depois`
+                        : 'Escolha o bairro para calcular a taxa de deslocamento'}
+                  </Text>
+                </View>
+                {client && !client.address ? (
+                  <Text className="mb-1 text-[12px] text-muted">O endereço será salvo na ficha da cliente.</Text>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        ) : editing?.locationType === 'home_service' ? (
+          <View className="mt-4 flex-row items-start rounded-2xl bg-primary-soft px-3 py-2.5">
+            <Ionicons name="home-outline" size={16} color={colors.primaryDark} style={{ marginTop: 2 }} />
+            <Text className="ml-2 flex-1 text-[13px] text-primary-dark">
+              A domicílio: {editing.serviceAddress || 'endereço não informado'}
+              {editing.travelFee ? ` · taxa ${formatBRL(editing.travelFee)}` : ''}
+            </Text>
+          </View>
+        ) : null}
+
         {/* 2. Serviços */}
         <SectionLabel>Serviços</SectionLabel>
         {categories.map((cat) => (
@@ -430,7 +528,11 @@ export default function NovoAgendamento() {
         {timeValid && endTime ? (
           <Text className="mt-1 text-[13px] text-muted">
             Das {formatTime(atMinutes(day, time!))} às {endTime} (término calculado pela duração dos serviços)
+            {home ? ` + ${buffer} min de deslocamento` : ''}
           </Text>
+        ) : null}
+        {areaDayWarning ? (
+          <Text className="mt-1 text-[13px] text-[#8A6420]">{areaDayWarning}</Text>
         ) : null}
 
         {/* Crédito de pacote pré-pago */}
@@ -514,6 +616,7 @@ export default function NovoAgendamento() {
           <Text className="text-[13px] text-muted">
             {selectedServices.length} {selectedServices.length === 1 ? 'serviço' : 'serviços'}
             {duration ? ` · ${formatDuration(duration)}` : ''}
+            {travelFee ? ` · inclui ${formatBRL(travelFee)} de deslocamento` : ''}
           </Text>
           <Text className="text-[15px] font-semibold text-ink">
             {chosenPackage ? 'Pago com pacote' : formatBRL(total)}

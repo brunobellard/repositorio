@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { SeriesScopeSheet } from '@/components/sheet';
 import { Avatar, Button, Card, SectionLabel, StatusPill } from '@/components/ui';
@@ -186,10 +186,33 @@ export default function AgendamentoDetalhe() {
             <Text className="text-[14px] text-muted">{formatBRL(s.price)}</Text>
           </View>
         ))}
+        {appt.travelFee ? (
+          <View className="mb-1.5 flex-row justify-between">
+            <Text className="text-[14px] text-ink">Taxa de deslocamento</Text>
+            <Text className="text-[14px] text-muted">{formatBRL(appt.travelFee)}</Text>
+          </View>
+        ) : null}
         <View className="mt-1.5 flex-row justify-between">
           <Text className="text-[15px] font-semibold text-ink">Total</Text>
           <Text className="text-[15px] font-semibold text-ink">{formatBRL(appt.totalPrice)}</Text>
         </View>
+        {appt.locationType === 'home_service' ? (
+          <Pressable
+            onPress={() =>
+              appt.serviceAddress &&
+              Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.serviceAddress)}`)
+            }
+            className="mt-3 flex-row items-start rounded-xl bg-primary-soft p-3 active:opacity-70">
+            <Ionicons name="home-outline" size={16} color={colors.primaryDark} style={{ marginTop: 1 }} />
+            <View className="ml-2 flex-1">
+              <Text className="text-[13px] font-semibold text-primary-dark">Atendimento a domicílio</Text>
+              <Text className="text-[13px] text-primary-dark">{appt.serviceAddress || 'Endereço não informado'}</Text>
+              {appt.serviceAddress ? (
+                <Text className="mt-0.5 text-[12px] font-medium text-primary-dark underline">Abrir no mapa</Text>
+              ) : null}
+            </View>
+          </Pressable>
+        ) : null}
         {appt.notes ? (
           <View className="mt-3 rounded-xl bg-bg p-3">
             <Text className="text-[13px] text-muted">{appt.notes}</Text>

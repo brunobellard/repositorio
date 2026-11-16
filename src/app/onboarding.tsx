@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ServiceModePicker } from '@/components/service-mode-picker';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
 import { SPECIALTIES } from '@/constants/specialties';
 import { useStore } from '@/data/store';
@@ -34,6 +35,7 @@ export default function Onboarding() {
   const [businessName, setBusinessName] = useState(initialName);
   const [slug, setSlug] = useState(profile.slug ?? slugify(initialName));
   const [slugTouched, setSlugTouched] = useState(!!profile.slug);
+  const [serviceMode, setServiceMode] = useState(profile.serviceMode);
   // Passo 2
   const [specialtyId, setSpecialtyId] = useState<string | null>(null);
   // Passo 3
@@ -59,7 +61,7 @@ export default function Onboarding() {
     try {
       if (step === 0) {
         // Grava já: se o link estiver em uso por outro estúdio, o aviso aparece aqui
-        const ok = await updateProfile({ businessName: businessName.trim(), slug });
+        const ok = await updateProfile({ businessName: businessName.trim(), slug, serviceMode });
         if (ok) setStep(1);
       } else if (step === 1) {
         // Só pré-cadastra se a conta ainda não tem serviços (evita duplicar ao voltar)
@@ -155,6 +157,14 @@ export default function Onboarding() {
                   : 'Use letras minúsculas, números e hífen.'
                 : 'De 3 a 40 caracteres: letras minúsculas, números e hífen.'}
             </Text>
+
+            <Text className="mb-2 mt-5 text-[13px] font-medium text-muted">Como você atende?</Text>
+            <ServiceModePicker value={serviceMode} onChange={setServiceMode} />
+            {serviceMode !== 'fixed' ? (
+              <Text className="mt-2 text-[12px] leading-4 text-muted">
+                Depois você cadastra os bairros atendidos e as taxas em Ajustes › Regiões e deslocamento.
+              </Text>
+            ) : null}
           </>
         ) : step === 1 ? (
           <>

@@ -184,6 +184,7 @@ export default function AgendaScreen() {
           onPressAppointment={(a) => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}
           onPressBlock={onPressBlock}
           onPressSlot={onPressSlot}
+          travelBufferMinutes={profile.travelBufferMinutes}
         />
       </ScrollView>
       )}

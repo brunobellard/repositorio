@@ -48,8 +48,10 @@ import type {
   MessageTemplate,
   PaymentMethod,
   Profile,
+  LocationType,
   ScheduleBlock,
   Service,
+  ServiceArea,
   Transaction,
 } from '@/types';
 
@@ -90,6 +92,15 @@ const toProfile = (r: any): Profile => ({
   billingCycle: r.billing_cycle ?? 'monthly',
   // Sem a coluna (migração pendente): não prende ninguém no onboarding
   onboardingCompleted: r.onboarding_completed ?? true,
+  serviceMode: r.service_mode ?? 'fixed',
+  travelBufferMinutes: r.travel_buffer_minutes ?? 30,
+});
+const toArea = (r: any): ServiceArea => ({
+  id: r.id,
+  name: r.neighborhood_name,
+  travelFee: Number(r.travel_fee ?? 0),
+  allowedDays: (r.allowed_days ?? []).map(Number).sort(),
+  isActive: r.is_active ?? true,
 });
 const toService = (r: any): Service => ({
   id: r.id,
@@ -116,6 +127,8 @@ const toClient = (r: any): Client => ({
   email: r.email ?? undefined,
   birthDate: r.birth_date ?? undefined,
   technicalNotes: r.technical_notes ?? undefined,
+  address: r.address ?? undefined,
+  neighborhood: r.neighborhood ?? undefined,
 });
 const toAppointment = (r: any): Appointment => ({
   id: r.id,
@@ -130,6 +143,9 @@ const toAppointment = (r: any): Appointment => ({
   isRecurrenceException: !!r.is_recurrence_exception,
   clientPackageId: r.client_package_id ?? undefined,
   source: r.source === 'online' ? 'online' : 'manual',
+  locationType: r.location_type === 'home_service' ? 'home_service' : 'fixed',
+  serviceAddress: r.service_address ?? undefined,
+  travelFee: Number(r.travel_fee ?? 0),
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -193,6 +209,10 @@ export interface NewAppointment {
   recurrenceRule?: string | null;
   /** Usar crédito deste pacote (as sessões não geram nova cobrança) */
   clientPackageId?: string;
+  /** Atendimento a domicílio: endereço e taxa de deslocamento (somada ao total) */
+  locationType?: LocationType;
+  serviceAddress?: string;
+  travelFee?: number;
 }
 
 export interface NewPackage {
@@ -278,6 +298,14 @@ interface Store {
   /** 'in_use' quando o serviço já aparece em agendamentos (aí só dá para desativar) */
   deleteService: (id: string) => Promise<'ok' | 'in_use' | 'error'>;
   saveBusinessHours: (hours: BusinessHours[]) => Promise<boolean>;
+
+  // Atendimento a domicílio
+  /** Bairros/regiões atendidos */
+  serviceAreas: ServiceArea[];
+  saveServiceArea: (a: Omit<ServiceArea, 'id'> & { id?: string }) => Promise<boolean>;
+  deleteServiceArea: (id: string) => Promise<boolean>;
+  /** Guarda endereço e bairro na ficha da cliente */
+  updateClientAddress: (id: string, address?: string, neighborhood?: string) => Promise<boolean>;
 }
 
 /** Campos do perfil (app) -> colunas do banco */
@@ -303,6 +331,8 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   addressCity: 'address_city',
   addressState: 'address_state',
   onboardingCompleted: 'onboarding_completed',
+  serviceMode: 'service_mode',
+  travelBufferMinutes: 'travel_buffer_minutes',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -340,6 +370,8 @@ const emptyProfile: Profile = {
   subscriptionStatus: 'active',
   billingCycle: 'monthly',
   onboardingCompleted: true,
+  serviceMode: 'fixed',
+  travelBufferMinutes: 30,
 };
 
 const StoreContext = createContext<Store | null>(null);
@@ -408,6 +440,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [packages, setPackages] = useState<ClientPackage[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>(defaultBusinessHours);
   const [hoursAvailable, setHoursAvailable] = useState(true);
   const seeded = useRef<string | null>(null);
@@ -480,6 +513,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTemplates(snap.templates);
     setBusinessHours(snap.businessHours);
     setPackages(snap.packages);
+    setServiceAreas(snap.serviceAreas ?? []);
   }, []);
 
   /**
@@ -488,7 +522,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
    */
   const reload = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
-    const [p, s, c, a, b, t, m, h, pk] = await Promise.all([
+    const [p, s, c, a, b, t, m, h, pk, ar] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('services').select('*').order('name'),
       supabase.from('clients').select('*').order('name'),
@@ -498,6 +532,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supabase.from('message_templates').select('*'),
       supabase.from('business_hours').select('*'),
       supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
+      // Sem a tabela (migração de domicílio pendente): lista vazia
+      supabase.from('service_areas').select('*').order('neighborhood_name'),
     ]);
     const firstError = [p, s, c, a, b, t, m].find((r) => r.error)?.error;
     // Sem internet: não mexe nos dados da tela (o cache continua valendo)
@@ -518,6 +554,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       templates: (m.data ?? []).map(toTemplate),
       businessHours: defaultBusinessHours.map((d) => savedHours.find((x) => x.dayOfWeek === d.dayOfWeek) ?? d),
       packages: (pk.data ?? []).map(toPackage),
+      serviceAreas: (ar.data ?? []).map(toArea),
     };
     applySnapshot(snap);
     return true;
@@ -538,11 +575,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           templates,
           businessHours,
           packages,
+          serviceAreas,
         }),
       400,
     );
     return () => clearTimeout(t);
-  }, [userId, loadedFor, profile, services, clients, appointments, blocks, transactions, templates, businessHours, packages]);
+  }, [userId, loadedFor, profile, services, clients, appointments, blocks, transactions, templates, businessHours, packages, serviceAreas]);
 
   /**
    * Envia a fila de alterações feitas offline, na ordem em que foram feitas.
@@ -756,8 +794,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return true;
     },
 
-    async addAppointment({ clientId, startsAt, serviceIds, notes, occurrences, recurrenceRule, clientPackageId }) {
+    serviceAreas,
+
+    async saveServiceArea({ id, ...a }) {
+      const row = {
+        neighborhood_name: a.name.trim(),
+        travel_fee: a.travelFee,
+        allowed_days: [...a.allowedDays].sort(),
+        is_active: a.isActive,
+      };
+      const { data, error } = id
+        ? await supabase.from('service_areas').update(row).eq('id', id).select().single()
+        : await supabase.from('service_areas').insert(row).select().single();
+      if (error) return fail(error);
+      const saved = toArea(data);
+      setServiceAreas((list) =>
+        [...list.filter((x) => x.id !== saved.id), saved].sort((x, y) => x.name.localeCompare(y.name)),
+      );
+      return true;
+    },
+
+    async deleteServiceArea(id) {
+      const { error } = await supabase.from('service_areas').delete().eq('id', id);
+      if (error) return fail(error);
+      setServiceAreas((list) => list.filter((x) => x.id !== id));
+      return true;
+    },
+
+    async updateClientAddress(id, address, neighborhood) {
+      const clean = (v?: string) => v?.trim() || undefined;
+      const { error } = await supabase
+        .from('clients')
+        .update({ address: clean(address) ?? null, neighborhood: clean(neighborhood) ?? null })
+        .eq('id', id);
+      if (error) return fail(error);
+      setClients((list) =>
+        list.map((c) => (c.id === id ? { ...c, address: clean(address), neighborhood: clean(neighborhood) } : c)),
+      );
+      return true;
+    },
+
+    async addAppointment({
+      clientId,
+      startsAt,
+      serviceIds,
+      notes,
+      occurrences,
+      recurrenceRule,
+      clientPackageId,
+      locationType = 'fixed',
+      serviceAddress,
+      travelFee = 0,
+    }) {
       const starts = occurrences?.length ? occurrences : [startsAt];
+      const home = locationType === 'home_service';
+      const fee = home ? travelFee : 0;
 
       if (!(await isOnline())) {
         if (starts.length > 1) {
@@ -769,7 +860,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!chosen.length) return 0;
         const id = newId();
         const minutes = chosen.reduce((t, s) => t + s.durationMin, 0);
-        const total = chosen.reduce((t, s) => t + s.price, 0);
+        const total = chosen.reduce((t, s) => t + s.price, 0) + fee;
         const endsAt = new Date(new Date(starts[0]).getTime() + minutes * 60_000).toISOString();
         const optimistic: Appointment = {
           id,
@@ -783,6 +874,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           isRecurrenceException: false,
           clientPackageId,
           source: 'manual',
+          locationType,
+          serviceAddress: home ? serviceAddress : undefined,
+          travelFee: fee,
         };
         setAppointments((list) => [...list, optimistic]);
         enqueue({
@@ -797,6 +891,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             notes: notes ?? null,
             source: 'manual',
             client_package_id: clientPackageId ?? null,
+            ...(home ? { location_type: 'home_service', service_address: serviceAddress ?? null, travel_fee: fee } : {}),
           },
           services: chosen.map((s, i) => ({
             service_id: s.id,
@@ -843,6 +938,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase
           .from('appointments')
           .update({ client_package_id: clientPackageId })
+          .in('id', ids);
+        if (error) fail(error);
+      }
+      // Atendimento a domicílio: local e taxa (o banco soma a taxa ao total)
+      if (home) {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ location_type: 'home_service', service_address: serviceAddress ?? null, travel_fee: fee })
           .in('id', ids);
         if (error) fail(error);
       }
@@ -1001,6 +1104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             email: c.email ?? null,
             birth_date: c.birthDate ?? null,
             technical_notes: c.technicalNotes ?? null,
+            ...(c.address || c.neighborhood ? { address: c.address ?? null, neighborhood: c.neighborhood ?? null } : {}),
           },
         });
         notify('Cliente salva no aparelho', 'Será enviada quando a internet voltar.', 'info');
@@ -1015,6 +1119,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           email: c.email ?? null,
           birth_date: c.birthDate ?? null,
           technical_notes: c.technicalNotes ?? null,
+          ...(c.address || c.neighborhood ? { address: c.address ?? null, neighborhood: c.neighborhood ?? null } : {}),
         })
         .select()
         .single();

@@ -137,6 +137,7 @@ function AppStack() {
         <Stack.Screen name="ajustes/retorno" options={{ title: 'Retorno de clientes' }} />
         <Stack.Screen name="agendamento/recibo" options={{ presentation: 'modal', title: 'Comprovante' }} />
         <Stack.Screen name="ajustes/assinatura" options={{ title: 'Planos' }} />
+        <Stack.Screen name="ajustes/regioes" options={{ title: 'Regiões e deslocamento' }} />
       </Stack.Protected>
     </Stack>
     {loggedIn && !isPublic ? <UpgradeHost /> : null}

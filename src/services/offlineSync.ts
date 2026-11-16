@@ -20,6 +20,7 @@ import type {
   Profile,
   ScheduleBlock,
   Service,
+  ServiceArea,
   Transaction,
 } from '@/types';
 
@@ -76,6 +77,8 @@ export interface Snapshot {
   templates: MessageTemplate[];
   businessHours: BusinessHours[];
   packages: ClientPackage[];
+  /** Opcional: caches antigos não têm */
+  serviceAreas?: ServiceArea[];
 }
 
 const cacheKey = (uid: string) => `agenda-beleza:cache:v1:${uid}`;

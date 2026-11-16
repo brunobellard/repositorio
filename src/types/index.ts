@@ -45,6 +45,23 @@ export interface Profile {
   billingCycle: BillingCycle;
   /** false até a conta nova concluir os 3 passos iniciais */
   onboardingCompleted: boolean;
+  /** Onde atende: espaço fixo, a domicílio ou os dois */
+  serviceMode: ServiceMode;
+  /** Minutos bloqueados depois de um atendimento em domicílio (deslocamento) */
+  travelBufferMinutes: number;
+}
+
+export type ServiceMode = 'fixed' | 'home_service' | 'hybrid';
+export type LocationType = 'fixed' | 'home_service';
+
+/** Bairro/região atendida a domicílio. */
+export interface ServiceArea {
+  id: string;
+  name: string;
+  travelFee: number;
+  /** Dias da semana em que atende o bairro (0 = domingo ... 6 = sábado) */
+  allowedDays: number[];
+  isActive: boolean;
 }
 
 /** Expediente de um dia da semana (0 = domingo ... 6 = sábado). */
@@ -74,6 +91,9 @@ export interface Client {
   email?: string;
   birthDate?: string; // 'YYYY-MM-DD'
   technicalNotes?: string;
+  /** Endereço para atendimento a domicílio (rua, número, complemento) */
+  address?: string;
+  neighborhood?: string;
 }
 
 export interface AppointmentService {
@@ -102,6 +122,11 @@ export interface Appointment {
   clientPackageId?: string;
   /** 'manual' = feito pela profissional; 'online' = pela cliente no link público */
   source: 'manual' | 'online';
+  /** Onde acontece: no espaço ou na casa da cliente */
+  locationType: LocationType;
+  serviceAddress?: string;
+  /** Taxa de deslocamento (já somada em totalPrice) */
+  travelFee: number;
 }
 
 export interface ScheduleBlock {
