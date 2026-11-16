@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
 import { LEGAL_INFO, type LegalDocument } from '@/constants/legal';
+import { useAuth } from '@/data/auth';
+import { useStore } from '@/data/store';
 import { colors } from '@/theme/colors';
 
 /** Abre os Termos ou a Política dentro do app (rota pública, com ou sem login). */
@@ -54,7 +56,11 @@ export function LegalPage({ doc, current }: { doc: LegalDocument; current: 'term
   const { from } = useLocalSearchParams<{ from?: string }>();
   // Aberta de dentro do app: sempre há como voltar. Visitante direto no site: não há para onde voltar.
   const canLeave = Platform.OS !== 'web' || from === 'app';
-  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const { session } = useAuth();
+  const { profile } = useStore();
+  // Sem tela anterior (ex: aberta por um link): vai para a tela certa de quem está usando
+  const home = !session ? '/login' : profile.onboardingCompleted === false ? '/onboarding' : '/';
+  const leave = () => (router.canGoBack() ? router.back() : router.replace(home));
 
   return (
     <View className="flex-1 bg-bg">
