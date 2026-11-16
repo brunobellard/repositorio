@@ -114,39 +114,36 @@ export default function Aparencia() {
         <Preview t={theme} studio={profile.businessName} />
 
         <SectionLabel>Paletas</SectionLabel>
-        <View className="flex-row flex-wrap justify-between">
-          {THEME_PRESETS.map((p) => {
+        {/* Uma paleta por linha: círculo, nome e código bem separados */}
+        <View className="overflow-hidden rounded-card border border-line bg-surface">
+          {THEME_PRESETS.map((p, i) => {
             const on = selected === p.hex;
             const locked = p.hex !== DEFAULT_THEME_COLOR && !access.hasThemes;
             return (
               <Pressable
                 key={p.hex}
                 onPress={() => pickPreset(p.hex)}
-                className="mb-4 w-[31%] items-center active:opacity-70">
+                className={`flex-row items-center px-4 py-3 active:bg-bg ${i ? 'border-t border-line' : ''}`}
+                style={on ? { backgroundColor: deriveTheme(p.hex).primarySoft } : undefined}>
                 <View
-                  className="h-14 w-14 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: p.hex,
-                    borderWidth: on ? 3 : 0,
-                    borderColor: colors.surface,
-                    shadowColor: p.hex,
-                    shadowOpacity: on ? 0.5 : 0,
-                    shadowRadius: 6,
-                    elevation: on ? 4 : 0,
-                    outlineWidth: on ? 2 : 0,
-                    outlineColor: p.hex,
-                    outlineStyle: 'solid',
-                  }}>
-                  {on ? <Ionicons name="checkmark" size={22} color={deriveTheme(p.hex).onPrimary} /> : null}
-                  {locked ? <Ionicons name="lock-closed" size={16} color="#FFFFFF" /> : null}
+                  className="h-9 w-9 items-center justify-center rounded-full"
+                  style={{ backgroundColor: p.hex }}>
+                  {locked ? <Ionicons name="lock-closed" size={14} color="#FFFFFF" /> : null}
                 </View>
-                <Text className={`mt-1.5 text-center text-[12px] ${on ? 'font-semibold text-ink' : 'text-muted'}`}>
-                  {p.name}
-                </Text>
+                <View className="ml-3.5 flex-1">
+                  <Text className={`text-[15px] ${on ? 'font-semibold text-ink' : 'text-ink'}`}>{p.name}</Text>
+                  <Text className="text-[12px] text-muted">{p.hex}</Text>
+                </View>
+                {on ? (
+                  <Ionicons name="checkmark-circle" size={22} color={p.hex} />
+                ) : (
+                  <Ionicons name="ellipse-outline" size={22} color={colors.line} />
+                )}
               </Pressable>
             );
           })}
         </View>
+        <View className="h-2" />
         {!access.hasThemes ? (
           <Pressable onPress={() => openUpgrade('themes')} className="mb-2 flex-row items-center active:opacity-70">
             <Ionicons name="lock-closed" size={13} color={colors.primaryDark} />
