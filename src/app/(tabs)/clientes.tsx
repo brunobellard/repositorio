@@ -5,7 +5,7 @@ import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'rea
 
 import { ExportClientsSheet } from '@/components/export-sheets';
 import { ClientsSkeleton } from '@/components/skeleton';
-import { Avatar, EmptyState, Screen, ScreenTitle, SearchBar } from '@/components/ui';
+import { Avatar, EmptyState, Fab, Screen, ScreenTitle, SearchBar } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
@@ -244,7 +244,7 @@ export default function ClientesScreen() {
       <FlatList
         data={list}
         keyExtractor={(c) => c.id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 96 }}
           refreshControl={refreshControl}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -273,6 +273,8 @@ export default function ClientesScreen() {
           );
         }}
       />
+      {/* Nova cliente: sempre à mão, como o "+" da Agenda */}
+      <Fab onPress={() => router.push('/clientes/nova')} />
     </Screen>
   );
 }

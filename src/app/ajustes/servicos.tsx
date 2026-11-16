@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ListSkeleton } from '@/components/skeleton';
-import { EmptyState, Fab, Toggle } from '@/components/ui';
+import { Button, EmptyState, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
@@ -14,6 +15,7 @@ import { colors } from '@/theme/colors';
 export default function ServicosScreen() {
   const { services, setServiceActive, loading } = useStore();
   const access = usePlanAccess();
+  const insets = useSafeAreaInsets();
   const categories = [...new Set(services.map((s) => s.category))].sort();
   const activeCount = services.filter((s) => s.active).length;
 
@@ -21,7 +23,7 @@ export default function ServicosScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
         <Text className="mb-1 text-[13px] text-muted">
           {activeCount} {activeCount === 1 ? 'serviço ativo' : 'serviços ativos'}
           {services.length > activeCount ? ` · ${services.length - activeCount} desativado(s)` : ''}. Serviços
@@ -62,7 +64,18 @@ export default function ServicosScreen() {
           </View>
         ))}
       </ScrollView>
-      <Fab onPress={() => router.push('/ajustes/servico')} />
+      <View
+        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        <Button
+          title="Adicionar serviço"
+          icon="add"
+          onPress={() =>
+            // Serviço novo entra ativo: respeita o limite de serviços ativos do plano
+            requireFeature(access.canAddService(), 'unlimitedServices') && router.push('/ajustes/servico')
+          }
+        />
+      </View>
     </View>
   );
 }
