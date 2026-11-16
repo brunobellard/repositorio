@@ -4,6 +4,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { vars } from 'nativewind';
 import { type ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,7 @@ import { describeDays } from '@/lib/areas';
 import { formatBRL, formatPhone, initials, maskPhone, onlyDigits } from '@/lib/format';
 import { formatAddress, hoursForDay, isWithinHours, WEEKDAYS_LONG } from '@/lib/hours';
 import { supabase } from '@/lib/supabase';
+import { DEFAULT_THEME_COLOR, deriveTheme, themeVars } from '@/theme/palette';
 import { colors, statusInfo } from '@/theme/colors';
 import type { BusinessHours, Profile } from '@/types';
 
@@ -56,6 +58,8 @@ interface PublicStudio {
   slot_minutes: number;
   /** false quando o plano do estúdio não inclui agendamento online */
   booking_enabled?: boolean;
+  /** Cor do tema do estúdio (HEX) */
+  theme_color?: string;
   /** Ausentes antes da migração de atendimento a domicílio */
   service_mode?: 'fixed' | 'home_service' | 'hybrid';
   travel_buffer_minutes?: number;
@@ -193,6 +197,9 @@ export default function AgendarOnline() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [booked, setBooked] = useState<Booked | null>(null);
+  // Cor do estúdio (Ajustes > Aparência e cores), não a de quem está vendo a página
+  const brand = deriveTheme(studio?.theme_color ?? DEFAULT_THEME_COLOR);
+  const brandVars = vars(themeVars(brand));
 
   // Recarrega os horários ocupados (ex: depois de alguém ocupar o horário escolhido)
   async function loadBusy() {
@@ -242,7 +249,7 @@ export default function AgendarOnline() {
   if (studio.booking_enabled === false) {
     const digits = onlyDigits(studio.phone ?? '');
     return (
-      <View className="flex-1 items-center justify-center bg-bg px-8">
+      <View className="flex-1 items-center justify-center bg-bg px-8" style={brandVars}>
         <Stack.Screen options={{ title: studio.business_name }} />
         {studio.logo_url ? (
           <Image source={{ uri: studio.logo_url }} style={{ width: 72, height: 72, borderRadius: 20 }} contentFit="cover" />
@@ -441,7 +448,7 @@ export default function AgendarOnline() {
                       <Ionicons
                         name={on ? 'checkmark-circle' : 'ellipse-outline'}
                         size={22}
-                        color={on ? colors.primary : colors.line}
+                        color={on ? brand.primary : colors.line}
                       />
                     </Pressable>
                   );
@@ -502,12 +509,12 @@ export default function AgendarOnline() {
                   className={`mb-2 flex-row items-center rounded-card border px-4 py-3.5 active:opacity-80 ${
                     on ? 'border-primary bg-primary-soft' : 'border-line bg-surface'
                   }`}>
-                  <Ionicons name={o.icon} size={20} color={on ? colors.primaryDark : colors.muted} />
+                  <Ionicons name={o.icon} size={20} color={on ? brand.primaryDark : colors.muted} />
                   <View className="ml-3 flex-1">
                     <Text className="text-[15px] font-medium text-ink">{o.title}</Text>
                     <Text className="text-xs text-muted">{o.detail}</Text>
                   </View>
-                  <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={20} color={on ? colors.primary : colors.line} />
+                  <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={20} color={on ? brand.primary : colors.line} />
                 </Pressable>
               );
             })}
@@ -542,7 +549,7 @@ export default function AgendarOnline() {
                       <Text className="mr-3 text-[13px] font-medium text-muted">
                         {Number(a.travel_fee) ? `+ ${formatBRL(Number(a.travel_fee))}` : 'Sem taxa'}
                       </Text>
-                      <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={on ? colors.primary : colors.line} />
+                      <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={on ? brand.primary : colors.line} />
                     </Pressable>
                   );
                 })}
@@ -632,7 +639,7 @@ export default function AgendarOnline() {
                     <Text
                       className={`text-[14px] ${
                         sel
-                          ? 'font-semibold text-white'
+                          ? 'font-semibold text-on-primary'
                           : state === 'open'
                             ? 'font-medium text-primary-dark'
                             : 'text-line'
@@ -668,7 +675,7 @@ export default function AgendarOnline() {
                       className={`mb-2 mr-2 w-[74px] items-center rounded-xl border py-2.5 ${
                         sel ? 'border-primary bg-primary' : 'border-line bg-surface'
                       }`}>
-                      <Text className={`text-[14px] font-medium ${sel ? 'text-white' : 'text-ink'}`}>
+                      <Text className={`text-[14px] font-medium ${sel ? 'text-on-primary' : 'text-ink'}`}>
                         {formatTime(atMinutes(day, m))}
                       </Text>
                     </Pressable>
@@ -868,7 +875,7 @@ export default function AgendarOnline() {
   }
 
   return (
-    <View className="flex-1 bg-bg">
+    <View className="flex-1 bg-bg" style={brandVars}>
       <Stack.Screen options={{ title: pageTitle }} />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 28, paddingBottom: 200, paddingHorizontal: 20 }}>
         {/* Coluna central no computador; ocupa a tela toda no celular */}

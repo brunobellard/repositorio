@@ -38,6 +38,7 @@ import {
 } from '@/services/offlineSync';
 import { generateOccurrences, type SeriesScope } from '@/lib/recurrence';
 import { friendlyError, supabase } from '@/lib/supabase';
+import { DEFAULT_THEME_COLOR } from '@/theme/palette';
 import type {
   Appointment,
   BusinessHours,
@@ -94,6 +95,7 @@ const toProfile = (r: any): Profile => ({
   onboardingCompleted: r.onboarding_completed ?? true,
   serviceMode: r.service_mode ?? 'fixed',
   travelBufferMinutes: r.travel_buffer_minutes ?? 30,
+  themeColor: r.theme_color ?? DEFAULT_THEME_COLOR,
 });
 const toArea = (r: any): ServiceArea => ({
   id: r.id,
@@ -333,6 +335,7 @@ const PROFILE_COLUMNS: Partial<Record<keyof Profile, string>> = {
   onboardingCompleted: 'onboarding_completed',
   serviceMode: 'service_mode',
   travelBufferMinutes: 'travel_buffer_minutes',
+  themeColor: 'theme_color',
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -372,6 +375,7 @@ const emptyProfile: Profile = {
   onboardingCompleted: true,
   serviceMode: 'fixed',
   travelBufferMinutes: 30,
+  themeColor: DEFAULT_THEME_COLOR,
 };
 
 const StoreContext = createContext<Store | null>(null);

@@ -1,6 +1,9 @@
 // Valores brutos para lugares onde className não chega (ícones, tab bar).
 // Mantenha em sincronia com tailwind.config.js.
+import { DEFAULT_THEME_COLOR, deriveTheme, type ThemeColors } from '@/theme/palette';
 import type { AppointmentStatus, PaymentMethod } from '@/types';
+
+const DEFAULT_THEME = deriveTheme(DEFAULT_THEME_COLOR);
 
 export const colors = {
   bg: '#FAF8F6',
@@ -8,11 +11,21 @@ export const colors = {
   ink: '#2A2326',
   muted: '#8A7F83',
   line: '#EFE9E7',
-  primary: '#B76E79',
-  primaryDark: '#9A5561',
-  primarySoft: '#F7EBED',
+  // Cor do tema: trocada por applyThemeColors (ThemeProvider), não edite aqui
+  primary: DEFAULT_THEME.primary,
+  primaryDark: DEFAULT_THEME.primaryDark,
+  primarySoft: DEFAULT_THEME.primarySoft,
+  onPrimary: DEFAULT_THEME.onPrimary,
   whatsapp: '#25A366',
-} as const;
+};
+
+/** Atualiza as cores do tema usadas em ícones e estilos (o ThemeProvider remonta a tela em seguida). */
+export function applyThemeColors(t: ThemeColors) {
+  colors.primary = t.primary;
+  colors.primaryDark = t.primaryDark;
+  colors.primarySoft = t.primarySoft;
+  colors.onPrimary = t.onPrimary;
+}
 
 export const statusInfo: Record<
   AppointmentStatus,

@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ToastHost } from '@/components/toast';
 import { UpgradeHost } from '@/components/upgrade-modal';
+import { ThemeProvider as ColorThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/data/auth';
 import { BiometricLockProvider } from '@/data/biometric-lock';
 import { effectivePlan, planHas } from '@/hooks/usePlanAccess';
@@ -138,6 +139,7 @@ function AppStack() {
         <Stack.Screen name="agendamento/recibo" options={{ presentation: 'modal', title: 'Comprovante' }} />
         <Stack.Screen name="ajustes/assinatura" options={{ title: 'Planos' }} />
         <Stack.Screen name="ajustes/regioes" options={{ title: 'Regiões e deslocamento' }} />
+        <Stack.Screen name="ajustes/aparencia" options={{ title: 'Aparência e cores' }} />
       </Stack.Protected>
     </Stack>
     {loggedIn && !isPublic ? <UpgradeHost /> : null}
@@ -158,7 +160,9 @@ export default function RootLayout() {
           <AuthProvider>
             <BiometricLockProvider>
               <StoreProvider>
-                <AppStack />
+                <ColorThemeProvider>
+                  <AppStack />
+                </ColorThemeProvider>
               </StoreProvider>
             </BiometricLockProvider>
           </AuthProvider>

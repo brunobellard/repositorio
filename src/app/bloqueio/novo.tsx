@@ -71,8 +71,8 @@ export default function NovoBloqueio() {
               key={d.toDateString()}
               onPress={() => setDay(d)}
               className={`mr-2 w-14 items-center rounded-2xl border py-2 ${sel ? 'border-primary bg-primary' : 'border-line bg-surface'}`}>
-              <Text className={`text-[11px] ${sel ? 'text-white' : 'text-muted'}`}>{WEEKDAYS_SHORT[d.getDay()]}</Text>
-              <Text className={`text-lg font-semibold ${sel ? 'text-white' : 'text-ink'}`}>{d.getDate()}</Text>
+              <Text className={`text-[11px] ${sel ? 'text-on-primary' : 'text-muted'}`}>{WEEKDAYS_SHORT[d.getDay()]}</Text>
+              <Text className={`text-lg font-semibold ${sel ? 'text-on-primary' : 'text-ink'}`}>{d.getDate()}</Text>
             </Pressable>
           );
         })}

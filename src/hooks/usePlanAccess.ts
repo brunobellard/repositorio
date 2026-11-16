@@ -68,6 +68,8 @@ export function usePlanAccess() {
     hasReceiptImage: has('receiptImage'),
     hasCardFees: has('cardFees'),
     hasHomeService: has('homeService'),
+    hasThemes: has('themes'),
+    hasCustomTheme: has('customTheme'),
     hasPublicLink: has('publicLink'),
     hasPush: has('push'),
     hasPackages: has('packages'),

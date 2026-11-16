@@ -125,7 +125,7 @@ export function Button({
   loading?: boolean;
 }) {
   const styles = {
-    primary: { box: 'bg-primary', text: 'text-white', icon: '#fff' },
+    primary: { box: 'bg-primary', text: 'text-on-primary', icon: colors.onPrimary },
     secondary: { box: 'border border-line bg-surface', text: 'text-ink', icon: colors.ink },
     whatsapp: { box: 'bg-[#25A366]', text: 'text-white', icon: '#fff' },
     danger: { box: 'border border-line bg-surface', text: 'text-[#B2474F]', icon: '#B2474F' },
@@ -195,7 +195,7 @@ export function Fab({ onPress, icon = 'add' }: { onPress: () => void; icon?: Ico
         shadowOffset: { width: 0, height: 6 },
         elevation: 6,
       }}>
-      <Ionicons name={icon} size={28} color="#fff" />
+      <Ionicons name={icon} size={28} color={colors.onPrimary} />
     </Pressable>
   );
 }
@@ -232,7 +232,7 @@ export function EmptyState({
         <Pressable
           onPress={onAction}
           className="mt-4 flex-row items-center rounded-full bg-primary px-4 py-2.5 active:opacity-80">
-          <Text className="text-[14px] font-semibold text-white">{actionLabel}</Text>
+          <Text className="text-[14px] font-semibold text-on-primary">{actionLabel}</Text>
         </Pressable>
       ) : null}
     </View>

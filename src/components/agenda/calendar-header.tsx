@@ -93,7 +93,7 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
                 <Text
                   className={`text-[15px] ${
                     isSel
-                      ? 'font-bold text-white'
+                      ? 'font-bold text-on-primary'
                       : outside
                         ? 'text-line'
                         : blocked

@@ -16,6 +16,7 @@ import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
 import { pushUnsupportedHere, registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
 import { colors } from '@/theme/colors';
+import { THEME_PRESETS } from '@/theme/palette';
 import type { IconName } from '@/components/ui';
 
 function Row({
@@ -148,13 +149,19 @@ export default function AjustesScreen() {
             </Text>
           </View>
           <View className="rounded-full bg-primary px-3 py-1.5">
-            <Text className="text-[12px] font-semibold text-white">Ver planos</Text>
+            <Text className="text-[12px] font-semibold text-on-primary">Ver planos</Text>
           </View>
         </Pressable>
 
         <SectionLabel>Estúdio</SectionLabel>
         <Card className="py-1">
           <Row icon="storefront-outline" label="Dados do estúdio" href="/ajustes/estudio" />
+          <Row
+            icon="color-palette-outline"
+            label="Aparência e cores"
+            detail={THEME_PRESETS.find((p) => p.hex === colors.primary)?.name ?? colors.primary}
+            href="/ajustes/aparencia"
+          />
           <Row
             icon="sparkles-outline"
             label="Serviços e preços"

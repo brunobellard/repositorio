@@ -33,6 +33,7 @@ export const mockProfile: Profile = {
   onboardingCompleted: true,
   serviceMode: 'fixed',
   travelBufferMinutes: 30,
+  themeColor: '#C08497',
 };
 
 export const mockServices: Service[] = [

@@ -27,10 +27,10 @@ function FilterChip({ label, count, active, onPress }: { label: string; count?: 
       className={`mr-2 flex-row items-center rounded-full border px-3.5 py-1.5 ${
         active ? 'border-primary bg-primary' : 'border-line bg-surface'
       }`}>
-      <Text className={`text-[13px] font-semibold ${active ? 'text-white' : 'text-ink'}`}>{label}</Text>
+      <Text className={`text-[13px] font-semibold ${active ? 'text-on-primary' : 'text-ink'}`}>{label}</Text>
       {count !== undefined ? (
         <View className={`ml-1.5 min-w-[18px] items-center rounded-full px-1 ${active ? 'bg-white/25' : 'bg-primary-soft'}`}>
-          <Text className={`text-[11px] font-bold ${active ? 'text-white' : 'text-primary-dark'}`}>{count}</Text>
+          <Text className={`text-[11px] font-bold ${active ? 'text-on-primary' : 'text-primary-dark'}`}>{count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -210,7 +210,7 @@ export default function ClientesScreen() {
                 className={`h-10 w-10 items-center justify-center rounded-full ${
                   b.isToday ? 'bg-primary' : 'bg-primary-soft'
                 }`}>
-                <Text className={`text-[15px] font-bold ${b.isToday ? 'text-white' : 'text-primary-dark'}`}>
+                <Text className={`text-[15px] font-bold ${b.isToday ? 'text-on-primary' : 'text-primary-dark'}`}>
                   {b.day}
                 </Text>
               </View>

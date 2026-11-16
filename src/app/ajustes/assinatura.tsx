@@ -75,7 +75,7 @@ export default function Assinatura() {
                 <Text className="text-[17px] font-bold text-ink">{p.name}</Text>
                 {p.highlight ? (
                   <View className="rounded-full bg-primary px-2.5 py-1">
-                    <Text className="text-[11px] font-semibold text-white">{p.highlight}</Text>
+                    <Text className="text-[11px] font-semibold text-on-primary">{p.highlight}</Text>
                   </View>
                 ) : null}
               </View>

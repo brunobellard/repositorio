@@ -14,6 +14,8 @@ export type PlanFeature =
   | 'receiptImage'
   | 'cardFees'
   | 'homeService'
+  | 'themes'
+  | 'customTheme'
   | 'publicLink'
   | 'push'
   | 'packages'
@@ -66,6 +68,7 @@ export const PLANS: Record<PlanTier, Plan> = {
       'Comprovante em imagem',
       'Taxas de cartão e lucro líquido real',
       'Atendimento a domicílio (bairros por dia, taxa e tempo de trânsito)',
+      '6 paletas de cores para o app e o link',
     ],
   },
   pro: {
@@ -79,6 +82,7 @@ export const PLANS: Record<PlanTier, Plan> = {
       'Tudo do Básico',
       'Link público de agendamento online',
       'Link público inteligente (filtra dias pelo bairro da cliente)',
+      'Cor personalizada (qualquer cor da sua marca)',
       'Notificações de novos agendamentos',
       'Pacotes pré-pagos',
       'Retorno de clientes e aniversariantes',
@@ -138,6 +142,16 @@ export const FEATURES: Record<PlanFeature, { minPlan: PlanTier; title: string; d
     description:
       'Controle de bairros atendidos por dia da semana, taxa de deslocamento e tempo de trânsito entre atendimentos. A partir do plano Básico, por apenas R$ 9,90/mês.',
   },
+  themes: {
+    minPlan: 'basic',
+    title: 'Paletas de cores',
+    description: 'Troque a cor do app e do seu link de agendamento por uma das 6 paletas prontas.',
+  },
+  customTheme: {
+    minPlan: 'pro',
+    title: 'Cor personalizada',
+    description: 'Use a cor exata da sua marca (código HEX) no app e no link de agendamento.',
+  },
   publicLink: {
     minPlan: 'pro',
     title: 'Link de agendamento online',
@@ -191,4 +205,6 @@ export const LIMIT_TO_FEATURE: Record<string, PlanFeature> = {
   recurrence: 'recurrence',
   packages: 'packages',
   homeService: 'homeService',
+  themes: 'themes',
+  customTheme: 'customTheme',
 };

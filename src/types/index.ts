@@ -49,6 +49,8 @@ export interface Profile {
   serviceMode: ServiceMode;
   /** Minutos bloqueados depois de um atendimento em domicílio (deslocamento) */
   travelBufferMinutes: number;
+  /** Cor principal do tema (HEX), usada no app e no link público */
+  themeColor: string;
 }
 
 export type ServiceMode = 'fixed' | 'home_service' | 'hybrid';

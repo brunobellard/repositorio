@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeS
 
 import { LegalDocumentView } from '@/components/legal-page';
 import { PRIVACY, TERMS } from '@/constants/legal';
+import { colors } from '@/theme/colors';
 
 /**
  * Termos de Uso + Política de Privacidade numa só caixa com rolagem.
@@ -42,7 +43,7 @@ export function LegalConsentBox({ accepted, onChange }: { accepted: boolean; onC
           className={`h-6 w-6 items-center justify-center rounded-md border-2 ${
             accepted ? 'border-primary bg-primary' : 'border-line bg-surface'
           }`}>
-          {accepted ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+          {accepted ? <Ionicons name="checkmark" size={16} color={colors.onPrimary} /> : null}
         </View>
         <Text className="ml-3 flex-1 text-[13px] leading-5 text-ink">
           Li e aceito os <Text className="font-semibold">Termos de Uso</Text> e a{' '}

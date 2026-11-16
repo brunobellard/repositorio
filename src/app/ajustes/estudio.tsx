@@ -164,7 +164,7 @@ export default function DadosEstudio() {
               ) : null}
             </View>
             <View className="absolute -bottom-1 -right-1 h-8 w-8 items-center justify-center rounded-full border-2 border-bg bg-primary">
-              <Ionicons name="camera-outline" size={15} color="#fff" />
+              <Ionicons name="camera-outline" size={15} color={colors.onPrimary} />
             </View>
           </Pressable>
           <Text className="mt-2 text-[13px] text-muted">

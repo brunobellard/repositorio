@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Cor do tema padrão (Rosé Antigo). O ThemeProvider troca em tempo de execução. */
+:root {
+  --color-primary: 192 132 151;
+  --color-primary-dark: 150 103 118;
+  --color-primary-soft: 246 238 240;
+  --color-on-primary: 255 255 255;
+}

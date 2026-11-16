@@ -277,9 +277,9 @@ export default function AgendamentoDetalhe() {
                   completing && completing !== m ? 'opacity-40' : ''
                 }`}>
                 {completing === m ? (
-                  <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+                  <ActivityIndicator size="small" color={colors.onPrimary} style={{ marginRight: 6 }} />
                 ) : null}
-                <Text className="text-[14px] font-semibold text-white">{paymentLabels[m]}</Text>
+                <Text className="text-[14px] font-semibold text-on-primary">{paymentLabels[m]}</Text>
               </Pressable>
             ))}
           </View>
