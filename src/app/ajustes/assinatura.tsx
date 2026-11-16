@@ -1,15 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
+import { openLegal } from '@/components/legal-page';
 import { Button, Card, Segmented } from '@/components/ui';
 import { PLANS, planRank, yearlySavings, type BillingCycle, type PlanTier } from '@/constants/plans';
 import { useAuth } from '@/data/auth';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { notify } from '@/lib/confirm';
 import { formatBRL } from '@/lib/format';
-import { LEGAL_PATHS, webUrl } from '@/lib/web';
 import { billingProvider } from '@/services/billing';
 import { colors } from '@/theme/colors';
 
@@ -132,11 +132,11 @@ export default function Assinatura() {
         continuam guardados.
       </Text>
       <Text className="mt-3 text-center text-[12px] text-muted">
-        <Text className="font-medium text-primary-dark" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}>
+        <Text className="font-medium text-primary-dark" onPress={() => openLegal('terms')}>
           Termos de Uso
         </Text>
         {'   ·   '}
-        <Text className="font-medium text-primary-dark" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}>
+        <Text className="font-medium text-primary-dark" onPress={() => openLegal('privacy')}>
           Política de Privacidade
         </Text>
       </Text>

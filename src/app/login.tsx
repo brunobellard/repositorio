@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
+import { LegalConsentBox } from '@/components/legal-consent-box';
+import { openLegal } from '@/components/legal-page';
 import { Button, Field, Segmented } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { confirmAction } from '@/lib/confirm';
-import { LEGAL_PATHS, webUrl } from '@/lib/web';
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
@@ -21,10 +22,11 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
+  const [accepted, setAccepted] = useState(false);
 
   const creating = mode === 'criar';
   const valid =
-    email.includes('@') && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim()));
+    email.includes('@') && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim() && accepted));
 
   async function submit() {
     if (!valid || busy) return;
@@ -106,6 +108,8 @@ export default function Login() {
           </Pressable>
         ) : null}
 
+        {creating ? <LegalConsentBox accepted={accepted} onChange={setAccepted} /> : null}
+
         {message ? (
           <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
             <Text className="text-[13px] text-primary-dark">{message}</Text>
@@ -122,17 +126,19 @@ export default function Login() {
           </Pressable>
         ) : null}
 
+        {!creating ? (
         <Text className="mt-auto pt-8 text-center text-[11px] leading-4 text-muted">
-          Ao continuar, você concorda com os{' '}
-          <Text className="underline" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}>
+          Ao entrar, você concorda com os{' '}
+          <Text className="underline" onPress={() => openLegal('terms')}>
             Termos de Uso
           </Text>{' '}
           e a{' '}
-          <Text className="underline" onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}>
+          <Text className="underline" onPress={() => openLegal('privacy')}>
             Política de Privacidade
           </Text>
           .
         </Text>
+        ) : null}
       </ScrollView>
       <ForgotPasswordSheet visible={forgot} initialEmail={email} onClose={() => setForgot(false)} />
     </KeyboardAvoidingView>

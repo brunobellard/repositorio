@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { LEGAL_INFO } from '@/constants/legal';
 import { setBiometricEnabled } from '@/lib/biometrics';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { webBaseUrl } from '@/lib/web';
@@ -43,7 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     async signUp(email, password, businessName, ownerName) {
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        // Registro do aceite dos Termos e da Política (prova de consentimento, LGPD)
+        options: { data: { terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_INFO.updatedAt } },
+      });
       if (error) return friendlyError(error);
       if (!data.session) {
         return 'Conta criada! Confirme o e-mail que enviamos e depois entre com sua senha.';

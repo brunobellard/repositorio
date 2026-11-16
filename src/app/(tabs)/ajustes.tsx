@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, type Href } from 'expo-router';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { openLegal } from '@/components/legal-page';
 import { Avatar, Card, Screen, ScreenTitle, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { useState } from 'react';
@@ -13,7 +14,6 @@ import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatPhone } from '@/lib/format';
-import { LEGAL_PATHS, webUrl } from '@/lib/web';
 import { pushUnsupportedHere, registerForPushAsync, sendTestNotificationAsync } from '@/services/notifications';
 import { colors } from '@/theme/colors';
 import type { IconName } from '@/components/ui';
@@ -256,12 +256,12 @@ export default function AjustesScreen() {
           <Row
             icon="document-text-outline"
             label="Termos de Uso"
-            onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.terms))}
+            onPress={() => openLegal('terms')}
           />
           <Row
             icon="shield-checkmark-outline"
             label="Política de Privacidade"
-            onPress={() => Linking.openURL(webUrl(LEGAL_PATHS.privacy))}
+            onPress={() => openLegal('privacy')}
           />
           <Row
             icon="log-out-outline"
