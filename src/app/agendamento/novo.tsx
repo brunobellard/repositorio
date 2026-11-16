@@ -92,9 +92,9 @@ export default function NovoAgendamento() {
   const [askScope, setAskScope] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
   // Atendimento a domicílio (modelos "A domicílio" e "Híbrido")
-  const canHome = profile.serviceMode !== 'fixed';
+  const canHome = profile.serviceMode !== 'fixed' && access.hasHomeService;
   const [locationType, setLocationType] = useState<LocationType>(
-    editing?.locationType ?? (profile.serviceMode === 'home_service' ? 'home_service' : 'fixed'),
+    editing?.locationType ?? (canHome && profile.serviceMode === 'home_service' ? 'home_service' : 'fixed'),
   );
   // Endereço digitado nesta tela; sem edição, vale o da ficha da cliente escolhida
   const [addressDraft, setAddressDraft] = useState<{ clientId?: string; address: string; neighborhood: string } | null>(

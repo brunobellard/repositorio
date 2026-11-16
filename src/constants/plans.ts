@@ -13,6 +13,7 @@ export type PlanFeature =
   | 'recurrence'
   | 'receiptImage'
   | 'cardFees'
+  | 'homeService'
   | 'publicLink'
   | 'push'
   | 'packages'
@@ -64,6 +65,7 @@ export const PLANS: Record<PlanTier, Plan> = {
       'Agenda recorrente (semanal, quinzenal, mensal…)',
       'Comprovante em imagem',
       'Taxas de cartão e lucro líquido real',
+      'Atendimento a domicílio (bairros por dia, taxa e tempo de trânsito)',
     ],
   },
   pro: {
@@ -76,6 +78,7 @@ export const PLANS: Record<PlanTier, Plan> = {
     benefits: [
       'Tudo do Básico',
       'Link público de agendamento online',
+      'Link público inteligente (filtra dias pelo bairro da cliente)',
       'Notificações de novos agendamentos',
       'Pacotes pré-pagos',
       'Retorno de clientes e aniversariantes',
@@ -129,6 +132,12 @@ export const FEATURES: Record<PlanFeature, { minPlan: PlanTier; title: string; d
     title: 'Taxas de cartão',
     description: 'Desconte as taxas da maquininha e veja o lucro líquido real no Financeiro.',
   },
+  homeService: {
+    minPlan: 'basic',
+    title: 'Atendimento a domicílio',
+    description:
+      'Controle de bairros atendidos por dia da semana, taxa de deslocamento e tempo de trânsito entre atendimentos. A partir do plano Básico, por apenas R$ 9,90/mês.',
+  },
   publicLink: {
     minPlan: 'pro',
     title: 'Link de agendamento online',
@@ -181,4 +190,5 @@ export const LIMIT_TO_FEATURE: Record<string, PlanFeature> = {
   services: 'unlimitedServices',
   recurrence: 'recurrence',
   packages: 'packages',
+  homeService: 'homeService',
 };

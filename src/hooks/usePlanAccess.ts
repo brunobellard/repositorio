@@ -67,6 +67,7 @@ export function usePlanAccess() {
     hasRecurrence: has('recurrence'),
     hasReceiptImage: has('receiptImage'),
     hasCardFees: has('cardFees'),
+    hasHomeService: has('homeService'),
     hasPublicLink: has('publicLink'),
     hasPush: has('push'),
     hasPackages: has('packages'),

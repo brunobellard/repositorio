@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Chip, EmptyState, Field, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
+import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { openUpgrade, requireFeature } from '@/lib/upgrade';
 import { describeDays } from '@/lib/areas';
 import { confirmAction } from '@/lib/confirm';
 import { WEEKDAYS_SHORT } from '@/lib/dates';
@@ -22,7 +24,10 @@ const emptyDraft = (): Draft => ({ name: '', travelFee: 0, allowedDays: [1, 2, 3
 export default function Regioes() {
   const { profile, updateProfile, serviceAreas, saveServiceArea, deleteServiceArea } = useStore();
   const insets = useSafeAreaInsets();
+  const { hasHomeService } = usePlanAccess();
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** Abre o formulário só com o plano (sem ele, mostra o aviso de upgrade) */
+  const edit = (d: Draft) => requireFeature(hasHomeService, 'homeService') && setDraft(d);
   const [saving, setSaving] = useState(false);
 
   const canSave = !!draft && draft.name.trim().length >= 2 && draft.allowedDays.length > 0 && !saving;
@@ -53,7 +58,17 @@ export default function Regioes() {
   return (
     <View className="flex-1 bg-bg">
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-        {profile.serviceMode === 'fixed' ? (
+        {!hasHomeService ? (
+          <Pressable
+            onPress={() => openUpgrade('homeService')}
+            className="mb-2 flex-row items-center rounded-2xl bg-primary-soft p-3 active:opacity-80">
+            <Ionicons name="lock-closed" size={16} color={colors.primaryDark} />
+            <Text className="ml-2 flex-1 text-[13px] leading-5 text-primary-dark">
+              Bairros, taxas e tempo de deslocamento estão disponíveis a partir do plano Básico, por apenas R$ 9,90/mês.
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
+          </Pressable>
+        ) : profile.serviceMode === 'fixed' ? (
           <View className="mb-2 rounded-2xl bg-[#FBF3E4] p-3">
             <Text className="text-[13px] leading-5 text-[#8A6420]">
               Seu modelo de atendimento está como Espaço fixo. Para usar os bairros, mude para A domicílio ou Híbrido
@@ -72,7 +87,9 @@ export default function Regioes() {
               key={m}
               label={`${m} min`}
               selected={profile.travelBufferMinutes === m}
-              onPress={() => updateProfile({ travelBufferMinutes: m })}
+              onPress={() =>
+                requireFeature(hasHomeService, 'homeService') && updateProfile({ travelBufferMinutes: m })
+              }
             />
           ))}
         </View>
@@ -83,7 +100,7 @@ export default function Regioes() {
             {serviceAreas.map((a, i) => (
               <Pressable
                 key={a.id}
-                onPress={() => setDraft({ ...a })}
+                onPress={() => edit({ ...a })}
                 className={`flex-row items-center px-4 py-3 active:bg-bg ${i ? 'border-t border-line' : ''}`}>
                 <View className="flex-1">
                   <Text className={`text-[15px] font-medium ${a.isActive ? 'text-ink' : 'text-muted line-through'}`}>
@@ -101,7 +118,7 @@ export default function Regioes() {
           <EmptyState icon="map-outline" text="Nenhum bairro cadastrado ainda" />
         )}
         <View className="mt-3">
-          <Button title="Adicionar bairro" icon="add" variant="secondary" onPress={() => setDraft(emptyDraft())} />
+          <Button title="Adicionar bairro" icon="add" variant="secondary" onPress={() => edit(emptyDraft())} />
         </View>
         <Text className="mt-3 text-[12px] leading-4 text-muted">
           No link de agendamento, a cliente escolhe o bairro e só vê os dias da semana em que você atende lá. A taxa de
