@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LegalConsentBox } from '@/components/legal-consent-box';
 import { ServiceModePicker } from '@/components/service-mode-picker';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
 import { SPECIALTIES } from '@/constants/specialties';
+import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
 import { formatDuration } from '@/lib/dates';
@@ -21,10 +23,64 @@ const STEPS = ['Seu estúdio', 'Especialidade', 'Horários'];
 const hourLabel = (t: string) => `${Number(t.slice(0, 2))}h`;
 
 /**
- * Primeiro acesso de uma conta nova (profiles.onboarding_completed = false):
- * 1. nome do estúdio e link público · 2. especialidade (pré-cadastra 4 serviços) · 3. horário de trabalho.
+ * Primeiro acesso de uma conta nova (profiles.onboarding_completed = false).
+ * Antes de tudo, o aceite dos Termos de Uso e da Política de Privacidade (o único lugar do app onde ele aparece).
+ * Depois: 1. nome do estúdio e link público · 2. especialidade (pré-cadastra 4 serviços) · 3. horário de trabalho.
  */
 export default function Onboarding() {
+  const { termsAccepted } = useAuth();
+  if (!termsAccepted) return <TermsStep />;
+  return <OnboardingSteps />;
+}
+
+/** Aceite único dos Termos e da Política, logo depois do cadastro. */
+function TermsStep() {
+  const { acceptTerms } = useAuth();
+  const insets = useSafeAreaInsets();
+  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    if (!accepted || busy) return;
+    setBusy(true);
+    setError(null);
+    const err = await acceptTerms();
+    setBusy(false);
+    // Deu certo: a sessão é atualizada e o onboarding segue sozinho
+    if (err) setError(err);
+  }
+
+  return (
+    <View className="flex-1 bg-bg">
+      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: 140 }}>
+        <Text className="text-[24px] font-bold tracking-tight text-ink">Boas-vindas! 💅</Text>
+        <Text className="mb-5 mt-1 text-[14px] leading-5 text-muted">
+          Antes de começar, leia e aceite os Termos de Uso e a Política de Privacidade.
+        </Text>
+        <LegalConsentBox accepted={accepted} onChange={setAccepted} />
+        {error ? (
+          <View className="rounded-2xl bg-primary-soft px-4 py-3">
+            <Text className="text-[13px] text-primary-dark">{error}</Text>
+          </View>
+        ) : null}
+      </ScrollView>
+      <View
+        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        <Button
+          title={busy ? 'Salvando…' : 'Aceitar e continuar'}
+          icon="arrow-forward"
+          loading={busy}
+          onPress={confirm}
+          disabled={!accepted || busy}
+        />
+      </View>
+    </View>
+  );
+}
+
+function OnboardingSteps() {
   const { profile, services, updateProfile, saveService, saveBusinessHours } = useStore();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);

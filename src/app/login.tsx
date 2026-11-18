@@ -3,8 +3,6 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
-import { LegalConsentBox } from '@/components/legal-consent-box';
-import { openLegal } from '@/components/legal-page';
 import { Button, Field, Segmented } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
@@ -22,11 +20,11 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
-  const [accepted, setAccepted] = useState(false);
 
   const creating = mode === 'criar';
+  // Termos de Uso e Privacidade: aceitos uma única vez, no primeiro acesso (onboarding)
   const valid =
-    email.includes('@') && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim() && accepted));
+    email.includes('@') && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim()));
 
   async function submit() {
     if (!valid || busy) return;
@@ -108,8 +106,6 @@ export default function Login() {
           </Pressable>
         ) : null}
 
-        {creating ? <LegalConsentBox accepted={accepted} onChange={setAccepted} /> : null}
-
         {message ? (
           <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
             <Text className="text-[13px] text-primary-dark">{message}</Text>
@@ -126,19 +122,6 @@ export default function Login() {
           </Pressable>
         ) : null}
 
-        {!creating ? (
-        <Text className="mt-auto pt-8 text-center text-[11px] leading-4 text-muted">
-          Ao entrar, você concorda com os{' '}
-          <Text className="underline" onPress={() => openLegal('terms')}>
-            Termos de Uso
-          </Text>{' '}
-          e a{' '}
-          <Text className="underline" onPress={() => openLegal('privacy')}>
-            Política de Privacidade
-          </Text>
-          .
-        </Text>
-        ) : null}
       </ScrollView>
       <ForgotPasswordSheet visible={forgot} initialEmail={email} onClose={() => setForgot(false)} />
     </KeyboardAvoidingView>

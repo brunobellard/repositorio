@@ -13,6 +13,10 @@ interface Auth {
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (email: string, password: string, businessName: string, ownerName: string) => Promise<string | null>;
   signOut: () => Promise<void>;
+  /** A conta já aceitou os Termos de Uso e a Política de Privacidade */
+  termsAccepted: boolean;
+  /** Registra o aceite (uma única vez, no primeiro acesso). Devolve uma mensagem de erro ou null. */
+  acceptTerms: () => Promise<string | null>;
   /** Envia o e-mail de redefinição de senha. Devolve uma mensagem de erro ou null. */
   resetPassword: (email: string) => Promise<string | null>;
   /** Exclui a conta para sempre (Edge Function delete-account). Devolve uma mensagem de erro ou null. */
@@ -44,12 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     async signUp(email, password, businessName, ownerName) {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        // Registro do aceite dos Termos e da Política (prova de consentimento, LGPD)
-        options: { data: { terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_INFO.updatedAt } },
-      });
+      // O aceite dos Termos é registrado depois, no primeiro acesso (acceptTerms)
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
       if (error) return friendlyError(error);
       if (!data.session) {
         return 'Conta criada! Confirme o e-mail que enviamos e depois entre com sua senha.';
@@ -63,6 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async signOut() {
       await supabase.auth.signOut();
+    },
+
+    termsAccepted: !!session?.user.user_metadata?.terms_accepted_at,
+
+    async acceptTerms() {
+      // Registro do aceite dos Termos e da Política (prova de consentimento, LGPD)
+      const { error } = await supabase.auth.updateUser({
+        data: { terms_accepted_at: new Date().toISOString(), terms_version: LEGAL_INFO.updatedAt },
+      });
+      return error ? friendlyError(error) : null;
     },
 
     async resetPassword(email) {
