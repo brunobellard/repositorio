@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LegalConsentBox } from '@/components/legal-consent-box';
 import { ServiceModePicker } from '@/components/service-mode-picker';
+import { TermsStep } from '@/components/terms-step';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
 import { SPECIALTIES } from '@/constants/specialties';
 import { useAuth } from '@/data/auth';
@@ -31,52 +31,6 @@ export default function Onboarding() {
   const { termsAccepted } = useAuth();
   if (!termsAccepted) return <TermsStep />;
   return <OnboardingSteps />;
-}
-
-/** Aceite único dos Termos e da Política, logo depois do cadastro. */
-function TermsStep() {
-  const { acceptTerms } = useAuth();
-  const insets = useSafeAreaInsets();
-  const [accepted, setAccepted] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function confirm() {
-    if (!accepted || busy) return;
-    setBusy(true);
-    setError(null);
-    const err = await acceptTerms();
-    setBusy(false);
-    // Deu certo: a sessão é atualizada e o onboarding segue sozinho
-    if (err) setError(err);
-  }
-
-  return (
-    <ScrollView
-      className="flex-1 bg-bg"
-      contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 16) + 24 }}>
-      <View className="w-full max-w-[560px] self-center">
-        <Text className="text-[24px] font-bold tracking-tight text-ink">Boas-vindas! 💅</Text>
-        <Text className="mb-5 mt-1 text-[14px] leading-5 text-muted">
-          Antes de começar, leia e aceite os Termos de Uso e a Política de Privacidade.
-        </Text>
-        <LegalConsentBox accepted={accepted} onChange={setAccepted} />
-        {error ? (
-          <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
-            <Text className="text-[13px] text-primary-dark">{error}</Text>
-          </View>
-        ) : null}
-        {/* Botão logo abaixo do aceite (sempre visível, no app e no navegador) */}
-        <Button
-          title={busy ? 'Salvando…' : 'Aceitar e continuar'}
-          icon="arrow-forward"
-          loading={busy}
-          onPress={confirm}
-          disabled={!accepted || busy}
-        />
-      </View>
-    </ScrollView>
-  );
 }
 
 function OnboardingSteps() {

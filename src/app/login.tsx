@@ -7,12 +7,14 @@ import { Button, Field, Segmented } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { confirmAction } from '@/lib/confirm';
+import { takeNextLoginMode } from '@/lib/login-mode';
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
   const biometric = useBiometricLock();
   const insets = useSafeAreaInsets();
-  const [mode, setMode] = useState<'entrar' | 'criar'>('entrar');
+  // Volta do 'Não aceito' dos Termos: abre direto em 'Criar conta'
+  const [mode, setMode] = useState<'entrar' | 'criar'>(takeNextLoginMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
