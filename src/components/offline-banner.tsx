@@ -15,7 +15,10 @@ export function OfflineBanner() {
 
   const offline = !online;
   const text = offline
-    ? `Modo offline — alterações serão sincronizadas automaticamente${pendingSync ? ` (${pendingSync} pendente${pendingSync > 1 ? 's' : ''})` : ''}`
+    ? // Só três ações entram na fila offline; o resto precisa de conexão (ver services/offlineSync.ts)
+      `Sem internet — dá para cadastrar cliente, agendar e concluir atendimento${
+        pendingSync ? ` (${pendingSync} aguardando envio)` : '; o resto espera a conexão'
+      }`
     : syncing
       ? 'Sincronizando com a nuvem…'
       : `${pendingSync} alteraç${pendingSync > 1 ? 'ões' : 'ão'} aguardando envio`;

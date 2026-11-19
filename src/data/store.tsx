@@ -406,6 +406,15 @@ function fail(error: { code?: string; message?: string } | null) {
     openUpgrade(LIMIT_TO_FEATURE[limit]);
     return false;
   }
+  // Sem internet: diz claramente o que funciona offline (só essas três ações vão para a fila)
+  if (isNetworkError(error)) {
+    notify(
+      'Sem internet',
+      'Esta ação precisa de conexão. Sem internet, dá para cadastrar cliente, criar agendamento e concluir atendimento.',
+      'info',
+    );
+    return false;
+  }
   notify('Não foi possível salvar', friendlyError(error));
   return false;
 }
