@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { type ComponentRef, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { SeriesScopeSheet, Sheet, SheetOption } from '@/components/sheet';
 import { AddressFields, findArea } from '@/components/address-fields';
 import { Avatar, Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
-import { closeModal, notify } from '@/lib/confirm';
+import { closeModal, confirmAction, notify } from '@/lib/confirm';
 import {
   generateOccurrences,
   hasOpenSiblings,
@@ -92,9 +92,9 @@ export default function NovoAgendamento() {
   const [askScope, setAskScope] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
   // Atendimento a domicílio (modelos "A domicílio" e "Híbrido")
-  const canHome = profile.serviceMode !== 'fixed' && access.hasHomeService;
+  const canHome = access.serviceMode !== 'fixed';
   const [locationType, setLocationType] = useState<LocationType>(
-    editing?.locationType ?? (canHome && profile.serviceMode === 'home_service' ? 'home_service' : 'fixed'),
+    editing?.locationType ?? (access.serviceMode === 'home_service' ? 'home_service' : 'fixed'),
   );
   // Endereço digitado nesta tela; sem edição, vale o da ficha da cliente escolhida
   const [addressDraft, setAddressDraft] = useState<{ clientId?: string; address: string; neighborhood: string } | null>(
@@ -313,6 +313,19 @@ export default function NovoAgendamento() {
 
   async function save() {
     if (!canSave || !firstStart) return;
+    // Plano caiu para o Free com mais serviços ativos do que o limite: escolher quais ficam
+    const servicesChanged = !editing || serviceIds.join() !== editServiceIds.join();
+    if (servicesChanged && access.servicesOverLimit > 0) {
+      const max = access.limits.activeServices;
+      const extra = access.servicesOverLimit;
+      confirmAction(
+        'Serviços acima do limite do plano',
+        `O plano ${access.plan.name} permite ${max} serviços ativos. Desative ${extra === 1 ? '1 serviço' : `${extra} serviços`} em Ajustes › Serviços para voltar a agendar (dá para reativar quando quiser), ou assine o plano Básico.`,
+        () => router.push('/ajustes/servicos'),
+        'Ver serviços',
+      );
+      return;
+    }
     if (editing) {
       const changedTimeOrServices =
         firstStart.getTime() !== editStart!.getTime() || serviceIds.join() !== editServiceIds.join();
@@ -419,7 +432,7 @@ export default function NovoAgendamento() {
         {canHome && !editing ? (
           <>
             <SectionLabel>Local do atendimento</SectionLabel>
-            {profile.serviceMode === 'hybrid' ? (
+            {access.serviceMode === 'hybrid' ? (
               <View className="mb-3">
                 <Segmented
                   value={locationType}

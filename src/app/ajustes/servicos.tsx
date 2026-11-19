@@ -30,6 +30,17 @@ export default function ServicosScreen() {
           desativados não aparecem ao agendar.
         </Text>
 
+        {access.servicesOverLimit > 0 ? (
+          <View className="mt-3 rounded-card border border-line bg-surface p-4">
+            <Text className="text-[14px] font-semibold text-ink">Acima do limite do plano {access.plan.name}</Text>
+            <Text className="mt-1 text-[13px] leading-5 text-muted">
+              O plano permite {access.limits.activeServices} serviços ativos. Desative{' '}
+              {access.servicesOverLimit === 1 ? '1 serviço' : `${access.servicesOverLimit} serviços`} para voltar a
+              agendar. Nada é apagado: dá para reativar quando quiser.
+            </Text>
+          </View>
+        ) : null}
+
         {services.length === 0 ? <EmptyState icon="sparkles-outline" text="Nenhum serviço cadastrado" /> : null}
 
         {categories.map((cat) => (

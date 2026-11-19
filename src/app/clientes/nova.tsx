@@ -37,11 +37,11 @@ const isoToBirth = (iso?: string) => (iso ? iso.split('-').reverse().join('/') :
 export default function NovaCliente() {
   const params = useLocalSearchParams<{ name?: string; id?: string }>();
   const insets = useSafeAreaInsets();
-  const { addClient, updateClient, clients, profile, serviceAreas } = useStore();
+  const { addClient, updateClient, clients, serviceAreas } = useStore();
   const editing = params.id ? clients.find((c) => c.id === params.id) : undefined;
   // Endereço só interessa a quem atende a domicílio (na edição, mantém o que já existe)
-  const homeService = profile.serviceMode !== 'fixed' || !!editing?.address;
   const access = usePlanAccess();
+  const homeService = access.serviceMode !== 'fixed' || !!editing?.address;
 
   const [name, setName] = useState(editing?.name ?? params.name ?? '');
   const [phone, setPhone] = useState(editing?.whatsapp ? maskPhone(editing.whatsapp) : '');

@@ -53,6 +53,16 @@ export function usePlanAccess() {
     canAddService: (currentCount = services.filter((s) => s.active).length, adding = 1) =>
       limits.activeServices === null || currentCount + adding <= limits.activeServices,
     appointmentsInMonth,
+    /**
+     * Serviços ativos acima do limite do plano (ex: o teste venceu com 5 ativos no Free).
+     * Enquanto for > 0, novos agendamentos ficam bloqueados até desativar os excedentes.
+     */
+    servicesOverLimit:
+      limits.activeServices === null
+        ? 0
+        : Math.max(0, services.filter((s) => s.active).length - limits.activeServices),
+    /** Modelo de atendimento em vigor: sem o recurso no plano, vale "No estúdio" */
+    serviceMode: has('homeService') ? profile.serviceMode : ('fixed' as const),
 
     hasRecurrence: has('recurrence'),
     hasReceiptImage: has('receiptImage'),
