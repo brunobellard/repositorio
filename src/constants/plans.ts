@@ -46,6 +46,12 @@ export interface Plan {
   benefits: string[];
 }
 
+/**
+ * Envio de e-mail pelo app. Desligado até existir o serviço de envio (Resend, via Edge Function):
+ * sem ele, o recurso não é prometido nos planos e o botão de e-mail não aparece.
+ */
+export const EMAIL_SENDING_ENABLED = false;
+
 export const PLAN_ORDER: PlanTier[] = ['free', 'basic', 'pro', 'enterprise'];
 export const planRank = (t: PlanTier) => PLAN_ORDER.indexOf(t);
 
@@ -88,7 +94,7 @@ export const PLANS: Record<PlanTier, Plan> = {
       'Notificações de novos agendamentos',
       'Pacotes pré-pagos',
       'Retorno de clientes e aniversariantes',
-      'E-mails automáticos',
+      ...(EMAIL_SENDING_ENABLED ? ['E-mails automáticos'] : []),
     ],
   },
   enterprise: {

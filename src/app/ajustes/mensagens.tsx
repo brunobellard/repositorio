@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Button, Card, Segmented } from '@/components/ui';
+import { EMAIL_SENDING_ENABLED } from '@/constants/plans';
 import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
 import { colors } from '@/theme/colors';
@@ -76,14 +77,17 @@ export default function ModelosMensagem() {
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
-      <Segmented
-        value={channel}
-        onChange={setChannel}
-        options={[
-          { value: 'whatsapp', label: 'WhatsApp' },
-          { value: 'email', label: 'E-mail' },
-        ]}
-      />
+      {/* Modelos de e-mail só quando o envio real estiver ligado */}
+      {EMAIL_SENDING_ENABLED ? (
+        <Segmented
+          value={channel}
+          onChange={setChannel}
+          options={[
+            { value: 'whatsapp', label: 'WhatsApp' },
+            { value: 'email', label: 'E-mail' },
+          ]}
+        />
+      ) : null}
       <Text className="mb-4 mt-3 text-[13px] leading-5 text-muted">
         As palavras entre chaves (variáveis, listadas em cada modelo) são trocadas pelos dados da cliente e do
         agendamento na hora do envio.

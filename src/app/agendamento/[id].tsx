@@ -14,6 +14,7 @@ import {
   sessionPosition,
 } from '@/lib/recurrence';
 import { useStore } from '@/data/store';
+import { EMAIL_SENDING_ENABLED } from '@/constants/plans';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -151,7 +152,7 @@ export default function AgendamentoDetalhe() {
       fillTemplate(tpl.subject ?? '', vars),
       composeEmailHtml(profile, fillTemplate(tpl.body, vars)),
     );
-    notify('E-mail simulado', 'O envio real será ativado ao conectar o Resend.');
+    notify('E-mail enviado', client!.email);
   }
 
   return (
@@ -351,7 +352,10 @@ export default function AgendamentoDetalhe() {
         {appt.status !== 'concluido' ? (
           <Button title="Enviar confirmação no WhatsApp" icon="chatbubble-outline" variant="secondary" onPress={() => whatsapp('confirmacao')} />
         ) : null}
-        <Button title="Enviar por e-mail" icon="mail-outline" variant="secondary" onPress={email} />
+        {/* E-mail só aparece quando o envio real estiver ligado (EMAIL_SENDING_ENABLED) */}
+        {EMAIL_SENDING_ENABLED ? (
+          <Button title="Enviar por e-mail" icon="mail-outline" variant="secondary" onPress={email} />
+        ) : null}
       </View>
 
       <SeriesScopeSheet
