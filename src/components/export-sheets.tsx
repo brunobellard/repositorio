@@ -32,7 +32,7 @@ function Notice({ text, tone = 'warn' }: { text: string; tone?: 'warn' | 'error'
 }
 
 export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { transactions, appointments, clients, packages, profile } = useStore();
+  const { transactions, appointments, clients, packages, profile, historyFrom, ensureFullHistory } = useStore();
   const [preset, setPreset] = useState<PeriodPreset>('mes_atual');
   const [range, setRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [busy, setBusy] = useState<'xlsx' | 'csv' | 'pdf' | null>(null);
@@ -42,18 +42,31 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
   const period = periodFor(preset, range.start ? { start: range.start, end: range.end ?? range.start } : undefined);
   const data = { transactions, appointments, clients, packages, profile };
   const count = customReady ? countInPeriod(data, period) : 0;
+  // Período anterior ao histórico carregado (12 meses): busca o restante ao exportar
+  const needsOlder = !!historyFrom && period.from < new Date(historyFrom);
 
   async function run(kind: 'xlsx' | 'csv' | 'pdf') {
     setMessage(null);
-    if (!count) {
+    let full = data;
+    if (needsOlder) {
+      setBusy(kind);
+      const older = await ensureFullHistory();
+      if (!older) {
+        setBusy(null);
+        return;
+      }
+      full = { ...data, ...older };
+    }
+    if (!countInPeriod(full, period)) {
       // Período sem movimentações: avisa em vez de gerar arquivo vazio
+      setBusy(null);
       setMessage({ text: `Nenhuma movimentação em ${period.label}. Escolha outro período.`, tone: 'warn' });
       return;
     }
     setBusy(kind);
     try {
-      if (kind === 'pdf') await exportFinancePdf(data, period);
-      else await exportFinanceSheet(data, period, kind);
+      if (kind === 'pdf') await exportFinancePdf(full, period);
+      else await exportFinanceSheet(full, period, kind);
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Não foi possível gerar o arquivo.', tone: 'error' });
     } finally {
@@ -98,9 +111,11 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
         ) : null}
 
         <Text className="mb-3 mt-1 text-[13px] text-muted">
-          {customReady
-            ? `${period.label} · ${count} ${count === 1 ? 'movimentação' : 'movimentações'}`
-            : 'Escolha as datas do período.'}
+          {!customReady
+            ? 'Escolha as datas do período.'
+            : needsOlder
+              ? `${period.label} · inclui o histórico com mais de 12 meses, buscado ao exportar`
+              : `${period.label} · ${count} ${count === 1 ? 'movimentação' : 'movimentações'}`}
         </Text>
 
         {message ? <Notice text={message.text} tone={message.tone} /> : null}
@@ -137,7 +152,7 @@ export function ExportFinanceSheet({ visible, onClose }: { visible: boolean; onC
 }
 
 export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { clients, appointments, packages, profile } = useStore();
+  const { clients, appointments, packages, profile, ensureFullHistory } = useStore();
   const [filter, setFilter] = useState<ClientFilter>('todas');
   const [busy, setBusy] = useState<SheetFormat | null>(null);
   const [message, setMessage] = useState<{ text: string; tone: 'warn' | 'error' } | null>(null);
@@ -156,7 +171,10 @@ export function ExportClientsSheet({ visible, onClose }: { visible: boolean; onC
     }
     setBusy(format);
     try {
-      await exportClientsSheet(data, filter, format);
+      // Total gasto e última visita contam todo o histórico, não só os últimos 12 meses
+      const older = await ensureFullHistory();
+      if (!older) return;
+      await exportClientsSheet({ ...data, appointments: older.appointments }, filter, format);
     } catch (e) {
       setMessage({ text: e instanceof Error ? e.message : 'Não foi possível gerar o arquivo.', tone: 'error' });
     } finally {

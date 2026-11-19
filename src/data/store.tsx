@@ -251,6 +251,13 @@ interface Store {
 
   /** Busca tudo no Supabase; false quando não conseguiu (ex: sem internet) */
   reload: () => Promise<boolean>;
+  /**
+   * Atendimentos e lançamentos carregados a partir desta data (ISO); null = histórico completo.
+   * Ao abrir, o app traz só os últimos 12 meses.
+   */
+  historyFrom: string | null;
+  /** Traz o histórico mais antigo (ficha da cliente, relatórios). Devolve as listas completas, ou null se falhou. */
+  ensureFullHistory: () => Promise<{ appointments: Appointment[]; transactions: Transaction[] } | null>;
 
   // Offline
   /** Há conexão com a internet agora */
@@ -419,6 +426,36 @@ function fail(error: { code?: string; message?: string } | null) {
   return false;
 }
 
+// ---------------------------------------------------------------------
+// Carga em partes: o Supabase devolve no máximo 1.000 linhas por consulta.
+// Sem isso, a partir da linha 1.001 os dados sumiam da tela sem aviso.
+// ---------------------------------------------------------------------
+const PAGE_SIZE = 1000;
+/** Ao abrir o app, atendimentos e lançamentos dos últimos 12 meses (o resto vem sob demanda). */
+const HISTORY_MONTHS = 12;
+
+const historyWindowStart = () => {
+  const d = startOfDay(new Date());
+  d.setMonth(d.getMonth() - HISTORY_MONTHS);
+  return d.toISOString();
+};
+
+/**
+ * Busca todas as linhas de uma consulta, de 1.000 em 1.000.
+ * `build` monta a consulta já ordenada (com desempate por id, para as partes não se repetirem).
+ */
+async function fetchAll(
+  build: () => any,
+): Promise<{ data: any[] | null; error: { code?: string; message?: string } | null }> {
+  const rows: any[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return { data: rows, error: null };
+  }
+}
+
 /** Envia ao Supabase uma alteração que ficou na fila offline. Devolve o erro, se houver. */
 async function runOp(op: OutboxOp): Promise<{ code?: string; message?: string } | null> {
   switch (op.kind) {
@@ -476,6 +513,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>(defaultBusinessHours);
   const [hoursAvailable, setHoursAvailable] = useState(true);
   const seeded = useRef<string | null>(null);
+  // Início do histórico carregado (ISO); null = histórico completo
+  const [historyFrom, setHistoryFrom] = useState<string | null>(historyWindowStart);
+  const fullHistory = useRef(false);
 
   // Offline: conexão, fila de alterações pendentes e sincronização
   const online = useOnline();
@@ -552,16 +592,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
    */
   const reload = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
+    // Atendimentos e lançamentos: só a janela recente, a não ser que o histórico completo já tenha sido pedido
+    const since = fullHistory.current ? null : historyWindowStart();
     const [p, s, c, a, b, t, m, h, pk, ar] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('services').select('*').order('name'),
-      supabase.from('clients').select('*').order('name'),
-      supabase.from('appointments').select(APPT_SELECT).order('starts_at'),
-      supabase.from('schedule_blocks').select('*').order('starts_at'),
-      supabase.from('transactions').select('*').order('occurred_at', { ascending: false }),
+      fetchAll(() => supabase.from('services').select('*').order('name').order('id')),
+      fetchAll(() => supabase.from('clients').select('*').order('name').order('id')),
+      fetchAll(() => {
+        const q = supabase.from('appointments').select(APPT_SELECT).order('starts_at').order('id');
+        return since ? q.gte('starts_at', since) : q;
+      }),
+      fetchAll(() => supabase.from('schedule_blocks').select('*').order('starts_at').order('id')),
+      fetchAll(() => {
+        const q = supabase
+          .from('transactions')
+          .select('*')
+          .order('occurred_at', { ascending: false })
+          .order('id');
+        return since ? q.gte('occurred_at', since) : q;
+      }),
       supabase.from('message_templates').select('*'),
       supabase.from('business_hours').select('*'),
-      supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
+      fetchAll(() => supabase.from('client_packages').select('*').order('created_at', { ascending: false }).order('id')),
       // Sem a tabela (migração de domicílio pendente): lista vazia
       supabase.from('service_areas').select('*').order('neighborhood_name'),
     ]);
@@ -587,6 +639,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       serviceAreas: (ar.data ?? []).map(toArea),
     };
     applySnapshot(snap);
+    setHistoryFrom(since);
     return true;
   }, [userId, applySnapshot]);
 
@@ -650,6 +703,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
+    fullHistory.current = false; // outra conta: volta a carregar só a janela recente
     (async () => {
       const [cached, pending] = await Promise.all([loadSnapshot(userId), loadOutbox(userId)]);
       if (cancelled) return;
@@ -694,12 +748,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshPackages() {
-    const { data } = await supabase.from('client_packages').select('*').order('created_at', { ascending: false });
+    const { data } = await fetchAll(() =>
+      supabase.from('client_packages').select('*').order('created_at', { ascending: false }).order('id'),
+    );
     if (data) setPackages(data.map(toPackage));
   }
 
   const store: Store = {
     loading,
+    historyFrom,
+    async ensureFullHistory() {
+      if (!historyFrom) return { appointments, transactions };
+      const before = historyFrom;
+      const [a, t] = await Promise.all([
+        fetchAll(() =>
+          supabase.from('appointments').select(APPT_SELECT).lt('starts_at', before).order('starts_at').order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('transactions')
+            .select('*')
+            .lt('occurred_at', before)
+            .order('occurred_at', { ascending: false })
+            .order('id'),
+        ),
+      ]);
+      if (a.error || t.error) {
+        fail(a.error ?? t.error);
+        return null;
+      }
+      const olderAppts = (a.data ?? []).map(toAppointment);
+      const olderTx = (t.data ?? []).map(toTransaction);
+      const apptIds = new Set(appointments.map((x) => x.id));
+      const txIds = new Set(transactions.map((x) => x.id));
+      const allAppts = [...olderAppts.filter((x) => !apptIds.has(x.id)), ...appointments].sort((x, y) =>
+        x.startsAt.localeCompare(y.startsAt),
+      );
+      const allTx = [...transactions, ...olderTx.filter((x) => !txIds.has(x.id))].sort((x, y) =>
+        y.occurredAt.localeCompare(x.occurredAt),
+      );
+      fullHistory.current = true;
+      setAppointments(allAppts);
+      setTransactions(allTx);
+      setHistoryFrom(null);
+      return { appointments: allAppts, transactions: allTx };
+    },
     loadFailed: !!userId && failedFor === userId,
     retryLoad() {
       setFailedFor(null);
@@ -716,7 +809,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     businessHours,
 
     async sellPackage(p) {
-      const { error } = await supabase.rpc('sell_package', {
+      const { data: sold, error } = await supabase.rpc('sell_package', {
         p_client_id: p.clientId,
         p_service_id: p.serviceId,
         p_name: p.name,
@@ -727,12 +820,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       if (error) return fail(error);
       // Pacote novo + receita lançada (com taxa calculada no banco)
+      // (só a receita deste pacote: a lista inteira de lançamentos pode ser grande)
       const [pk, tx] = await Promise.all([
-        supabase.from('client_packages').select('*').order('created_at', { ascending: false }),
-        supabase.from('transactions').select('*').order('occurred_at', { ascending: false }),
+        fetchAll(() => supabase.from('client_packages').select('*').order('created_at', { ascending: false }).order('id')),
+        sold?.id
+          ? supabase.from('transactions').select('*').eq('client_package_id', sold.id)
+          : Promise.resolve({ data: null }),
       ]);
       if (pk.data) setPackages(pk.data.map(toPackage));
-      if (tx.data) setTransactions(tx.data.map(toTransaction));
+      const newTx = (tx.data ?? []).map(toTransaction);
+      if (newTx.length) {
+        setTransactions((list) =>
+          [...newTx, ...list.filter((t) => !newTx.some((n) => n.id === t.id))].sort((x, y) =>
+            y.occurredAt.localeCompare(x.occurredAt),
+          ),
+        );
+      }
       return true;
     },
 

@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar, Button, Card, EmptyState, SectionLabel, StatusPill } from '@/components/ui';
@@ -24,8 +25,10 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { clients, appointments, packages, services, profile, deleteClient } = useStore();
+  const { clients, appointments, packages, services, profile, deleteClient, historyFrom, ensureFullHistory } =
+    useStore();
   const access = usePlanAccess();
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const client = clients.find((c) => c.id === id);
   if (!client) {
     return (
@@ -242,6 +245,23 @@ export default function FichaCliente() {
       ) : (
         <EmptyState icon="time-outline" text="Sem atendimentos ainda" />
       )}
+      {historyFrom ? (
+        // O app abre com os últimos 12 meses; o restante vem quando pedido
+        <Pressable
+          disabled={loadingOlder}
+          onPress={async () => {
+            setLoadingOlder(true);
+            await ensureFullHistory();
+            setLoadingOlder(false);
+          }}
+          className="mt-2 self-center py-2 active:opacity-60">
+          <Text className="text-[13px] font-medium text-primary-dark">
+            {loadingOlder
+              ? 'Carregando…'
+              : `Mostrando desde ${formatDateShort(historyFrom)}/${new Date(historyFrom).getFullYear()} · ver histórico completo`}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <View className="mt-6 gap-3">
         <Button
