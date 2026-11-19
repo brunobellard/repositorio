@@ -116,6 +116,8 @@ export default function NovoAgendamento() {
   const travelFee = home ? (area?.travelFee ?? 0) : 0;
   const addressOk = !home || address.trim().length >= 5;
   const buffer = profile.travelBufferMinutes;
+  // Reserva o deslocamento depois deste atendimento: ao criar a domicílio, ou ao editar um que já é a domicílio
+  const needsTravel = editing ? editing.locationType === 'home_service' : home;
   const total = selectedServices.reduce((t, s) => t + s.price, 0) + travelFee;
 
   const q = normalize(query);
@@ -165,7 +167,7 @@ export default function NovoAgendamento() {
   for (let m = workStart; m + slot <= workEnd; m += slot) {
     const past = isSameDay(day, now) && m < minutesOfDay(now);
     // Indo à casa da cliente, o deslocamento depois também precisa estar livre
-    const conflict = busy.some(([s, e]) => m < e && m + need + (home ? buffer : 0) > s);
+    const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
     // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
     const fits = ignoreHours ? m + need <= workEnd : isWithinHours(dayHours, m, m + need);
     slots.push({ min: m, free: !past && !conflict && fits });
@@ -286,7 +288,7 @@ export default function NovoAgendamento() {
     )
       return;
     // Confere todas as datas futuras da série antes de criar
-    const ctx = { appointments, blocks, businessHours, ignoreHours: override };
+    const ctx = { appointments, blocks, businessHours, ignoreHours: override, travelBufferMin: buffer, home };
     const found = occurrences
       .slice(1)
       .map((date) => ({ date, reason: slotConflict(date, duration, ctx) }))
@@ -528,7 +530,7 @@ export default function NovoAgendamento() {
         {timeValid && endTime ? (
           <Text className="mt-1 text-[13px] text-muted">
             Das {formatTime(atMinutes(day, time!))} às {endTime} (término calculado pela duração dos serviços)
-            {home ? ` + ${buffer} min de deslocamento` : ''}
+            {needsTravel ? ` + ${buffer} min de deslocamento` : ''}
           </Text>
         ) : null}
         {areaDayWarning ? (

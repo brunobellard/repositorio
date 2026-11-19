@@ -186,6 +186,10 @@ export interface AvailabilityContext {
   ignoreIds?: string[];
   /** true = profissional escolheu atender fora do expediente */
   ignoreHours?: boolean;
+  /** Minutos de deslocamento reservados depois de cada atendimento a domicílio */
+  travelBufferMin?: number;
+  /** O novo atendimento é a domicílio (reserva o deslocamento depois dele também) */
+  home?: boolean;
 }
 
 /** Motivo pelo qual o horário não está livre, ou null se estiver. */
@@ -204,12 +208,15 @@ export function slotConflict(start: Date, durationMin: number, ctx: Availability
     (b) => !b.allDay && new Date(b.startsAt) < end && new Date(b.endsAt) > start,
   );
   if (busyBlock) return busyBlock.reason ?? 'Horário bloqueado';
+  // Atendimento a domicílio ocupa também o deslocamento depois dele (o novo e os já marcados)
+  const buffer = (ctx.travelBufferMin ?? 0) * 60_000;
+  const endWithTravel = end.getTime() + (ctx.home ? buffer : 0);
   const clash = ctx.appointments.find(
     (a) =>
       a.status !== 'cancelado' &&
       !ctx.ignoreIds?.includes(a.id) &&
-      new Date(a.startsAt) < end &&
-      new Date(a.endsAt) > start,
+      new Date(a.startsAt).getTime() < endWithTravel &&
+      new Date(a.endsAt).getTime() + (a.locationType === 'home_service' ? buffer : 0) > start.getTime(),
   );
   if (clash) return 'Horário ocupado';
   return null;
