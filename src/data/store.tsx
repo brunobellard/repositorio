@@ -14,7 +14,6 @@ import {
   exampleTimeOffs,
   mockAppointments,
   mockClients,
-  mockServices,
   mockTransactions,
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
@@ -467,22 +466,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const enqueue = (op: OutboxOp) => writeOutbox([...outboxRef.current, outboxItem(op)]);
 
-  /** Conta nova: cria catálogo de serviços e modelos de mensagem padrão. */
+  /**
+   * Conta nova: cria os modelos de mensagem e o expediente padrão.
+   * Os serviços NÃO são criados aqui: quem cadastra é o passo de especialidade do primeiro acesso.
+   */
   const ensureDefaults = useCallback(async (uid: string) => {
     if (seeded.current === uid) return;
     seeded.current = uid;
-    const { count } = await supabase.from('services').select('id', { count: 'exact', head: true });
-    if (!count) {
-      await supabase.from('services').insert(
-        mockServices.map((s) => ({
-          name: s.name,
-          category: s.category,
-          price: s.price,
-          duration_min: s.durationMin,
-          color: s.color,
-        })),
-      );
-    }
     await supabase.from('message_templates').upsert(
       defaultTemplates.map((t) => ({ channel: t.channel, kind: t.kind, subject: t.subject ?? null, body: t.body })),
       { onConflict: 'owner_id,channel,kind', ignoreDuplicates: true },
