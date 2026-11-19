@@ -102,8 +102,10 @@ function AppStack() {
   // Conta nova: passa pelos 3 passos iniciais antes de ver a agenda
   // (=== false: perfis antigos no cache, sem o campo, não caem no onboarding)
   const needsOnboarding = loggedIn && !loadingData && profile.onboardingCompleted === false;
-  // Só espera a sessão; os dados aparecem em cada tela (cache local + skeletons)
-  if (!isPublic && loading) return <Loading />;
+  // Espera a sessão. Logado sem dados no aparelho (ex: conta recém-criada), espera também os dados:
+  // senão a agenda pisca antes de o app saber que falta o primeiro acesso.
+  // Com dados no aparelho, loadingData já é false: abre na hora (cache local + skeletons).
+  if (!isPublic && (loading || (loggedIn && loadingData))) return <Loading />;
 
   return (
     <>
