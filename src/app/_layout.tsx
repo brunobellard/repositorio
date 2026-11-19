@@ -109,11 +109,6 @@ function AppStack() {
     <>
     <PushSetup active={loggedIn && !loadingData && !isPublic} />
     <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
-      {/* Sempre acessível, com ou sem login */}
-      <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
-      <Stack.Screen name="termos" options={{ headerShown: false, title: 'Termos de Uso' }} />
-      <Stack.Screen name="privacidade" options={{ headerShown: false, title: 'Política de Privacidade' }} />
-      <Stack.Screen name="redefinir-senha" options={{ headerShown: false, title: 'Redefinir senha' }} />
       <Stack.Protected guard={!loggedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
@@ -141,6 +136,11 @@ function AppStack() {
         <Stack.Screen name="ajustes/regioes" options={{ title: 'Regiões e deslocamento' }} />
         <Stack.Screen name="ajustes/aparencia" options={{ title: 'Aparência e cores' }} />
       </Stack.Protected>
+      {/* Sempre acessível, com ou sem login. Ficam por último: ao abrir o site sem endereço, o app vai para a primeira tela liberada da lista (login, onboarding ou agenda), nunca para os Termos */}
+      <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
+      <Stack.Screen name="termos" options={{ headerShown: false, title: 'Termos de Uso' }} />
+      <Stack.Screen name="privacidade" options={{ headerShown: false, title: 'Política de Privacidade' }} />
+      <Stack.Screen name="redefinir-senha" options={{ headerShown: false, title: 'Redefinir senha' }} />
     </Stack>
     {loggedIn && !isPublic ? <UpgradeHost /> : null}
     </>
