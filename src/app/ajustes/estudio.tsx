@@ -287,7 +287,7 @@ export default function DadosEstudio() {
         </View>
         <Text className="text-[12px] leading-4 text-muted">
           Esses dados aparecem no cabeçalho dos recibos por e-mail e nas variáveis {'{estudio}'} e {'{endereco}'}{' '}
-          das mensagens.
+          das mensagens. Em atendimento a domicílio, {'{endereco}'} usa o endereço da cliente.
         </Text>
 
         {/* Agendamento online */}

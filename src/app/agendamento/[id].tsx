@@ -132,7 +132,7 @@ export default function AgendamentoDetalhe() {
   async function whatsapp(kind: 'lembrete' | 'confirmacao' | 'recibo') {
     const tpl = templates.find((t) => t.channel === 'whatsapp' && t.kind === kind)!;
     try {
-      await sendWhatsApp(tpl, appt!, client!, profile);
+      await sendWhatsApp(tpl, appt!, client!, profile, packages);
     } catch (e) {
       notify('Não foi possível abrir o WhatsApp', e instanceof Error ? e.message : undefined);
     }
@@ -145,7 +145,7 @@ export default function AgendamentoDetalhe() {
       return;
     }
     const tpl = templates.find((t) => t.channel === 'email' && t.kind === 'confirmacao')!;
-    const vars = buildVars(appt!, client!, profile);
+    const vars = buildVars(appt!, client!, profile, packages);
     await emailProvider.send(
       client!.email,
       fillTemplate(tpl.subject ?? '', vars),

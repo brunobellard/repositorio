@@ -10,7 +10,8 @@ import { Linking } from 'react-native';
 import { formatTime, relativeDayPhrase } from '@/lib/dates';
 import { formatBRL, formatPhone, maskDocument } from '@/lib/format';
 import { formatAddress } from '@/lib/hours';
-import type { Appointment, Client, MessageTemplate, Profile } from '@/types';
+import { amountDue } from '@/lib/packages';
+import type { Appointment, Client, ClientPackage, MessageTemplate, Profile } from '@/types';
 
 export interface TemplateVars {
   nome: string;
@@ -22,16 +23,27 @@ export interface TemplateVars {
   endereco: string;
 }
 
-export function buildVars(appt: Appointment, client: Client, profile: Profile): TemplateVars {
+/**
+ * Variáveis das mensagens de um atendimento.
+ * {endereco} é onde o atendimento acontece: o endereço da cliente quando é a domicílio.
+ * {valor} é o que falta pagar (sem a parte já paga no pacote, quando os pacotes são informados).
+ */
+export function buildVars(
+  appt: Appointment,
+  client: Client,
+  profile: Profile,
+  packages: ClientPackage[] = [],
+): TemplateVars {
   const start = new Date(appt.startsAt);
+  const home = appt.locationType === 'home_service';
   return {
     nome: client.name.split(' ')[0],
     servico: appt.services.map((s) => s.name).join(' + '),
     data: relativeDayPhrase(start),
     hora: formatTime(start),
-    valor: formatBRL(appt.totalPrice),
+    valor: formatBRL(amountDue(appt, packages)),
     estudio: profile.businessName,
-    endereco: formatAddress(profile),
+    endereco: home ? appt.serviceAddress || client.address || 'no seu endereço' : formatAddress(profile),
   };
 }
 
@@ -70,9 +82,10 @@ export async function sendWhatsApp(
   appt: Appointment,
   client: Client,
   profile: Profile,
+  packages: ClientPackage[] = [],
 ) {
   if (!client.whatsapp) throw new Error('Cliente sem WhatsApp cadastrado');
-  const message = fillTemplate(template.body, buildVars(appt, client, profile));
+  const message = fillTemplate(template.body, buildVars(appt, client, profile, packages));
   await whatsappProvider.send(client.whatsapp, message);
 }
 

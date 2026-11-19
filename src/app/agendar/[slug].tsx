@@ -12,9 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui';
 import {
   addDays,
-  atMinutes,
   formatDuration,
-  formatTime,
   hmToMinutes,
   isSameDay,
   chunkWeeks,
@@ -27,6 +25,7 @@ import { describeDays } from '@/lib/areas';
 import { formatBRL, formatPhone, initials, maskPhone, onlyDigits } from '@/lib/format';
 import { formatAddress, hoursForDay, isWithinHours, WEEKDAYS_LONG } from '@/lib/hours';
 import { supabase } from '@/lib/supabase';
+import { DEFAULT_TIMEZONE, minutesLabel, zonedInstant, zonedParts, zonedToday } from '@/lib/timezone';
 import { DEFAULT_THEME_COLOR, deriveTheme, themeVars } from '@/theme/palette';
 import { colors, statusInfo } from '@/theme/colors';
 import type { BusinessHours, Profile } from '@/types';
@@ -56,6 +55,8 @@ interface PublicStudio {
   address_state: string | null;
   address_zip: string | null;
   slot_minutes: number;
+  /** Fuso do estúdio (ex: America/Sao_Paulo): os horários seguem o relógio do estúdio, não o de quem abre o link */
+  timezone?: string;
   /** false quando o plano do estúdio não inclui agendamento online */
   booking_enabled?: boolean;
   /** Cor do tema do estúdio (HEX) */
@@ -95,11 +96,12 @@ const isoDate = (d: Date) =>
  * A função do banco devolve só início e fim — nenhum dado de outras clientes.
  */
 async function fetchBusySlots(slug: string): Promise<Busy[]> {
-  const from = startOfDay(new Date());
+  // Um dia de folga para cada lado: quem abre o link pode estar em outro fuso
+  const from = addDays(startOfDay(new Date()), -1);
   const { data } = await supabase.rpc('get_public_busy_slots', {
     p_slug: slug,
     p_start_date: isoDate(from),
-    p_end_date: isoDate(addDays(from, DAYS_AHEAD)),
+    p_end_date: isoDate(addDays(from, DAYS_AHEAD + 2)),
   });
   return ((data as { start_time: string; end_time: string }[]) ?? []).map((b) => ({
     start: new Date(b.start_time).getTime(),
@@ -322,7 +324,8 @@ export default function AgendarOnline() {
   const duration = selected.reduce((t, s) => t + s.duration_min, 0);
   const total = selected.reduce((t, s) => t + Number(s.price), 0) + travelFee;
   const slotStep = Math.max(15, studio.slot_minutes);
-  const today = startOfDay(new Date());
+  const tz = studio.timezone || DEFAULT_TIMEZONE;
+  const today = zonedToday(tz);
   const lastDay = addDays(today, DAYS_AHEAD);
   const earliest = new Date().getTime() + MIN_NOTICE_MIN * 60_000;
 
@@ -335,7 +338,7 @@ export default function AgendarOnline() {
     const result: number[] = [];
     for (let m = hmToMinutes(h.openTime); m + duration <= hmToMinutes(h.closeTime); m += slotStep) {
       if (!isWithinHours(h, m, m + duration)) continue; // não atravessa a pausa
-      const s = atMinutes(d, m).getTime();
+      const s = zonedInstant(d, m, tz).getTime();
       const e = s + duration * 60_000;
       if (s < earliest) continue;
       // Em domicílio, o deslocamento depois do atendimento também precisa estar livre
@@ -365,7 +368,7 @@ export default function AgendarOnline() {
     const { data, error: e } = await supabase.rpc('create_public_booking', {
       p_slug: slug,
       p_service_ids: serviceIds,
-      p_starts_at: atMinutes(day, time).toISOString(),
+      p_starts_at: zonedInstant(day, time, tz).toISOString(),
       p_name: name.trim(),
       p_whatsapp: onlyDigits(phone),
       p_notes: notes.trim() || null,
@@ -676,7 +679,7 @@ export default function AgendarOnline() {
                         sel ? 'border-primary bg-primary' : 'border-line bg-surface'
                       }`}>
                       <Text className={`text-[14px] font-medium ${sel ? 'text-on-primary' : 'text-ink'}`}>
-                        {formatTime(atMinutes(day, m))}
+                        {minutesLabel(m)}
                       </Text>
                     </Pressable>
                   );
@@ -693,8 +696,8 @@ export default function AgendarOnline() {
       <>
         {day && time !== null ? (
           <Text className="mb-2 text-[13px] text-muted">
-            {day.getDate()}/{String(day.getMonth() + 1).padStart(2, '0')} das {formatTime(atMinutes(day, time))} às{' '}
-            {formatTime(atMinutes(day, time + duration))}
+            {day.getDate()}/{String(day.getMonth() + 1).padStart(2, '0')} das {minutesLabel(time)} às{' '}
+            {minutesLabel(time + duration)}
           </Text>
         ) : null}
         <Button title="Continuar" onPress={() => setStep('details')} disabled={!day || time === null} />
@@ -708,7 +711,7 @@ export default function AgendarOnline() {
           <Text className="text-[15px] font-semibold text-ink">{selected.map((s) => s.name).join(' + ')}</Text>
           <Text className="mt-0.5 text-[13px] text-muted">
             {day && time !== null
-              ? `${WEEKDAYS_LONG[day.getDay()]}, ${day.getDate()}/${String(day.getMonth() + 1).padStart(2, '0')} às ${formatTime(atMinutes(day, time))}`
+              ? `${WEEKDAYS_LONG[day.getDay()]}, ${day.getDate()}/${String(day.getMonth() + 1).padStart(2, '0')} às ${minutesLabel(time)}`
               : ''}{' '}
             · {formatDuration(duration)} · {formatBRL(total)}
           </Text>
@@ -799,8 +802,9 @@ export default function AgendarOnline() {
       />
     );
   } else if (booked) {
-    const start = new Date(booked.starts_at);
-    const when = `${WEEKDAYS_LONG[start.getDay()]}, ${start.getDate()}/${String(start.getMonth() + 1).padStart(2, '0')} às ${formatTime(start)}`;
+    // Data e hora no relógio do estúdio
+    const { day: start, minutes: startMin } = zonedParts(new Date(booked.starts_at), tz);
+    const when = `${WEEKDAYS_LONG[start.getDay()]}, ${start.getDate()}/${String(start.getMonth() + 1).padStart(2, '0')} às ${minutesLabel(startMin)}`;
     const serviceNames = selected.map((s) => s.name).join(' + ');
     const confirmed = booked.status === 'confirmado';
     const place = home && area ? `${serviceAddress} – ${area.name}` : address;
