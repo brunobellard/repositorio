@@ -29,6 +29,17 @@ export const SPECIALTIES: Specialty[] = [
     ],
   },
   {
+    id: 'hair',
+    label: 'Cabeleireiro(a)',
+    icon: 'cut-outline',
+    services: [
+      { name: 'Corte feminino', category: 'Cabelo', price: 90, durationMin: 60 },
+      { name: 'Escova', category: 'Cabelo', price: 60, durationMin: 45 },
+      { name: 'Coloração', category: 'Cabelo', price: 180, durationMin: 120 },
+      { name: 'Hidratação capilar', category: 'Cabelo', price: 80, durationMin: 60 },
+    ],
+  },
+  {
     id: 'brows',
     label: 'Design de Sobrancelhas',
     icon: 'eye-outline',

@@ -110,7 +110,7 @@ export default function Aparencia() {
 
   return (
     <HeaderKeyboardView>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <SectionLabel>Prévia</SectionLabel>
         <Preview t={theme} studio={profile.businessName} />
 
@@ -203,7 +203,7 @@ export default function Aparencia() {
       </ScrollView>
 
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Pressable
           onPress={save}

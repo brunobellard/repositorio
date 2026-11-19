@@ -138,7 +138,7 @@ export default function DadosEstudio() {
 
   return (
     <HeaderKeyboardView>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {/* Logo */}
         <View className="items-center">
           <Pressable onPress={pickLogo} disabled={uploading} className="active:opacity-70">
@@ -377,7 +377,7 @@ export default function DadosEstudio() {
       <DeleteAccountSheet visible={deleting} onClose={() => setDeleting(false)} />
 
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button title={saving ? 'Salvando…' : 'Salvar dados'} onPress={save} disabled={!canSave} />
       </View>

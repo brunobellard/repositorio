@@ -75,7 +75,7 @@ export default function NovaCliente() {
 
   return (
     <HeaderKeyboardView>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Field label="Nome completo" value={name} onChangeText={setName} placeholder="Ex: Maria Silva" autoFocus />
         <Field
           label="WhatsApp"
@@ -121,7 +121,7 @@ export default function NovaCliente() {
         />
       </ScrollView>
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button title={saving ? 'Salvando…' : 'Cadastrar cliente'} loading={saving} onPress={save} disabled={!canSave} />
       </View>

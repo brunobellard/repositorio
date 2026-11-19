@@ -82,7 +82,7 @@ export default function VenderPacote() {
 
   return (
     <HeaderKeyboardView>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 170 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {/* Cliente */}
         <SectionLabel>Cliente</SectionLabel>
         {client ? (
@@ -215,7 +215,7 @@ export default function VenderPacote() {
       </ScrollView>
 
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <View className="mb-2 flex-row justify-between">
           <Text className="text-[13px] text-muted">

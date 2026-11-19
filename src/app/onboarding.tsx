@@ -12,7 +12,7 @@ import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
 import { formatDuration } from '@/lib/dates';
-import { formatBRL } from '@/lib/format';
+import { formatBRL, maskBRL, onlyDigits } from '@/lib/format';
 import { colors } from '@/theme/colors';
 import type { BusinessHours } from '@/types';
 
@@ -22,6 +22,16 @@ const CLOSE_TIMES = ['17:00', '18:00', '19:00', '20:00', '21:00'];
 const STEPS = ['Seu estúdio', 'Especialidade', 'Horários'];
 
 const hourLabel = (t: string) => `${Number(t.slice(0, 2))}h`;
+
+/** Serviço digitado na opção "Outra especialidade". */
+interface CustomService {
+  name: string;
+  price: number;
+  durationMin: number;
+}
+const EMPTY_SERVICE: CustomService = { name: '', price: 0, durationMin: 60 };
+const MAX_CUSTOM_SERVICES = 6;
+const isCustomValid = (c: CustomService) => !!c.name.trim() && c.price > 0 && c.durationMin > 0;
 
 /**
  * Primeiro acesso de uma conta nova (profiles.onboarding_completed = false).
@@ -48,6 +58,8 @@ function OnboardingSteps() {
   const [serviceMode, setServiceMode] = useState(profile.serviceMode);
   // Passo 2
   const [specialtyId, setSpecialtyId] = useState<string | null>(null);
+  const [customName, setCustomName] = useState('');
+  const [customServices, setCustomServices] = useState<CustomService[]>([EMPTY_SERVICE]);
   // Passo 3
   const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5, 6]);
   const [openTime, setOpenTime] = useState('09:00');
@@ -55,6 +67,9 @@ function OnboardingSteps() {
   const [lunch, setLunch] = useState(true);
 
   const specialty = SPECIALTIES.find((s) => s.id === specialtyId);
+  const isOther = specialtyId === 'other';
+  const validCustom = customServices.filter(isCustomValid);
+  const otherReady = isOther && !!customName.trim() && validCustom.length > 0;
   const link = isValidSlug(slug) ? bookingUrl(slug) : null;
 
   const canNext =
@@ -62,7 +77,7 @@ function OnboardingSteps() {
     (step === 0
       ? !!businessName.trim() && isValidSlug(slug)
       : step === 1
-        ? !!specialty
+        ? !!specialty || otherReady
         : days.length > 0 && openTime < closeTime);
 
   async function next() {
@@ -75,8 +90,13 @@ function OnboardingSteps() {
         if (ok) setStep(1);
       } else if (step === 1) {
         // Só pré-cadastra se a conta ainda não tem serviços (evita duplicar ao voltar)
-        if (specialty && services.length === 0) {
-          for (const s of specialty.services) {
+        const toCreate = specialty
+          ? specialty.services
+          : otherReady
+            ? validCustom.map((c) => ({ ...c, name: c.name.trim(), category: customName.trim() }))
+            : [];
+        if (toCreate.length && services.length === 0) {
+          for (const s of toCreate) {
             const ok = await saveService({ ...s, active: true });
             if (!ok) return;
           }
@@ -101,6 +121,10 @@ function OnboardingSteps() {
     }
   }
 
+  function updateCustom(i: number, patch: Partial<CustomService>) {
+    setCustomServices(customServices.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  }
+
   function skipSpecialty() {
     setSpecialtyId(null);
     setStep(2);
@@ -109,7 +133,7 @@ function OnboardingSteps() {
   return (
     <KeyboardView>
       <ScrollView
-        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: 140 }}
+        contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled">
         {/* Progresso */}
         <View className="mb-6 flex-row items-center">
@@ -180,7 +204,8 @@ function OnboardingSteps() {
           <>
             <Text className="text-[24px] font-bold tracking-tight text-ink">Qual é a sua especialidade?</Text>
             <Text className="mb-5 mt-1 text-[14px] leading-5 text-muted">
-              Já deixamos 4 serviços cadastrados com preço e duração. Você ajusta tudo depois em Ajustes.
+              Escolha uma e já deixamos 4 serviços cadastrados com preço e duração. Não achou a sua? Use “Outra
+              especialidade”. Você ajusta tudo depois em Ajustes.
             </Text>
             {SPECIALTIES.map((s) => {
               const selected = s.id === specialtyId;
@@ -215,6 +240,93 @@ function OnboardingSteps() {
                 </Pressable>
               );
             })}
+            {/* Outra especialidade: a pessoa escreve o nome e os próprios serviços */}
+            <Pressable
+              onPress={() => setSpecialtyId('other')}
+              className={`mb-2.5 rounded-card border px-4 py-3.5 active:opacity-80 ${
+                isOther ? 'border-primary bg-primary-soft' : 'border-line bg-surface'
+              }`}>
+              <View className="flex-row items-center">
+                <Ionicons name="add-circle-outline" size={20} color={isOther ? colors.primaryDark : colors.muted} />
+                <Text className="ml-3 flex-1 text-[15px] font-semibold text-ink">Outra especialidade</Text>
+                <Ionicons
+                  name={isOther ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={20}
+                  color={isOther ? colors.primary : colors.line}
+                />
+              </View>
+              {!isOther ? (
+                <Text className="ml-8 mt-0.5 text-[12px] text-muted">Escreva a sua e cadastre seus serviços</Text>
+              ) : null}
+            </Pressable>
+            {isOther ? (
+              <View className="mb-2.5">
+                <Field
+                  label="Nome da especialidade"
+                  value={customName}
+                  onChangeText={setCustomName}
+                  placeholder="Ex: Massoterapia"
+                  autoFocus
+                />
+                <Text className="mb-1.5 text-[13px] font-medium text-muted">Seus serviços</Text>
+                {customServices.map((c, i) => (
+                  <View key={i} className="mb-2 rounded-2xl border border-line bg-surface p-3">
+                    <View className="flex-row items-center">
+                      <TextInput
+                        value={c.name}
+                        onChangeText={(t) => updateCustom(i, { name: t })}
+                        placeholder={`Serviço ${i + 1} (ex: Massagem relaxante)`}
+                        placeholderTextColor={colors.muted}
+                        className="flex-1 rounded-xl border border-line bg-bg px-3 py-2.5 text-[15px] text-ink"
+                      />
+                      {customServices.length > 1 ? (
+                        <Pressable
+                          onPress={() => setCustomServices(customServices.filter((_, j) => j !== i))}
+                          hitSlop={8}
+                          className="ml-2 p-1 active:opacity-60">
+                          <Ionicons name="close-circle" size={22} color={colors.muted} />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    <View className="mt-2 flex-row gap-2">
+                      <View className="flex-1">
+                        <Text className="mb-1 text-[12px] text-muted">Preço</Text>
+                        <TextInput
+                          value={formatBRL(c.price)}
+                          onChangeText={(t) => updateCustom(i, { price: maskBRL(t).value })}
+                          keyboardType="number-pad"
+                          className="rounded-xl border border-line bg-bg px-3 py-2.5 text-[15px] text-ink"
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="mb-1 text-[12px] text-muted">Duração (minutos)</Text>
+                        <TextInput
+                          value={c.durationMin ? String(c.durationMin) : ''}
+                          onChangeText={(t) => updateCustom(i, { durationMin: Number(onlyDigits(t).slice(0, 3)) })}
+                          keyboardType="number-pad"
+                          placeholder="60"
+                          placeholderTextColor={colors.muted}
+                          className="rounded-xl border border-line bg-bg px-3 py-2.5 text-[15px] text-ink"
+                        />
+                      </View>
+                    </View>
+                  </View>
+                ))}
+                {customServices.length < MAX_CUSTOM_SERVICES ? (
+                  <Pressable
+                    onPress={() => setCustomServices([...customServices, EMPTY_SERVICE])}
+                    className="flex-row items-center justify-center rounded-2xl border border-dashed border-primary py-3 active:opacity-70">
+                    <Ionicons name="add" size={18} color={colors.primaryDark} />
+                    <Text className="ml-1.5 text-[14px] font-semibold text-primary-dark">Adicionar serviço</Text>
+                  </Pressable>
+                ) : null}
+                {!otherReady ? (
+                  <Text className="mt-2 text-[12px] leading-4 text-muted">
+                    Preencha o nome da especialidade e pelo menos um serviço com nome, preço e duração.
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {services.length > 0 ? (
               <Text className="mt-1 text-[12px] leading-4 text-muted">
                 Você já tem serviços cadastrados, então nenhum serviço novo será criado.
@@ -275,7 +387,7 @@ function OnboardingSteps() {
       </ScrollView>
 
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
+        className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button
           title={busy ? 'Salvando…' : step === STEPS.length - 1 ? 'Concluir e abrir a agenda' : 'Continuar'}

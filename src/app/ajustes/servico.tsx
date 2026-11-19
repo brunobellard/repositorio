@@ -77,7 +77,7 @@ export default function EditarServico() {
   return (
     <HeaderKeyboardView>
       <Stack.Screen options={{ title: existing ? 'Editar serviço' : 'Novo serviço' }} />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 160 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Field
           label="Nome do serviço"
           value={name}
@@ -158,7 +158,7 @@ export default function EditarServico() {
       </ScrollView>
 
       <View
-        className="absolute bottom-0 left-0 right-0 gap-2 border-t border-line bg-surface px-5 pt-3"
+        className="gap-2 border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button title={saving ? 'Salvando…' : 'Salvar serviço'} onPress={save} disabled={!canSave} />
         {existing ? <Button title="Excluir serviço" variant="danger" icon="trash-outline" onPress={remove} /> : null}
