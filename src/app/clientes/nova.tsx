@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import { AddressFields } from '@/components/address-fields';
 import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
-import { notify } from '@/lib/confirm';
+import { closeModal, notify } from '@/lib/confirm';
 import { maskPhone, onlyDigits } from '@/lib/format';
 import { requireFeature } from '@/lib/upgrade';
 import { colors } from '@/theme/colors';
@@ -30,21 +30,26 @@ function birthToIso(t: string): string | null {
   return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
 }
 
+/** "1992-03-15" -> "15/03/1992" */
+const isoToBirth = (iso?: string) => (iso ? iso.split('-').reverse().join('/') : '');
+
+/** Cadastro de cliente; com `id`, edita a cliente existente. */
 export default function NovaCliente() {
-  const params = useLocalSearchParams<{ name?: string }>();
+  const params = useLocalSearchParams<{ name?: string; id?: string }>();
   const insets = useSafeAreaInsets();
-  const { addClient, profile, serviceAreas } = useStore();
-  // Endereço só interessa a quem atende a domicílio
-  const homeService = profile.serviceMode !== 'fixed';
+  const { addClient, updateClient, clients, profile, serviceAreas } = useStore();
+  const editing = params.id ? clients.find((c) => c.id === params.id) : undefined;
+  // Endereço só interessa a quem atende a domicílio (na edição, mantém o que já existe)
+  const homeService = profile.serviceMode !== 'fixed' || !!editing?.address;
   const access = usePlanAccess();
 
-  const [name, setName] = useState(params.name ?? '');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [birth, setBirth] = useState('');
-  const [notes, setNotes] = useState('');
-  const [address, setAddress] = useState('');
-  const [neighborhood, setNeighborhood] = useState('');
+  const [name, setName] = useState(editing?.name ?? params.name ?? '');
+  const [phone, setPhone] = useState(editing?.whatsapp ? maskPhone(editing.whatsapp) : '');
+  const [email, setEmail] = useState(editing?.email ?? '');
+  const [birth, setBirth] = useState(isoToBirth(editing?.birthDate));
+  const [notes, setNotes] = useState(editing?.technicalNotes ?? '');
+  const [address, setAddress] = useState(editing?.address ?? '');
+  const [neighborhood, setNeighborhood] = useState(editing?.neighborhood ?? '');
   const [saving, setSaving] = useState(false);
 
   const birthIso = birth ? birthToIso(birth) : null;
@@ -54,9 +59,7 @@ export default function NovaCliente() {
 
   async function save() {
     if (!canSave) return;
-    if (!requireFeature(access.canAddClient(), 'unlimitedClients')) return;
-    setSaving(true); // trava o botão no primeiro toque (evita cadastro duplicado)
-    const created = await addClient({
+    const data = {
       name: name.trim(),
       whatsapp: onlyDigits(phone) || undefined,
       email: email.trim() || undefined,
@@ -64,7 +67,21 @@ export default function NovaCliente() {
       technicalNotes: notes.trim() || undefined,
       address: address.trim() || undefined,
       neighborhood: neighborhood.trim() || undefined,
-    });
+    };
+    if (editing) {
+      setSaving(true);
+      const ok = await updateClient(editing.id, data);
+      if (!ok) {
+        setSaving(false);
+        return;
+      }
+      notify('Dados atualizados', data.name);
+      closeModal();
+      return;
+    }
+    if (!requireFeature(access.canAddClient(), 'unlimitedClients')) return;
+    setSaving(true); // trava o botão no primeiro toque (evita cadastro duplicado)
+    const created = await addClient(data);
     if (!created) {
       setSaving(false);
       return;
@@ -75,6 +92,7 @@ export default function NovaCliente() {
 
   return (
     <HeaderKeyboardView>
+      {editing ? <Stack.Screen options={{ title: 'Editar cliente' }} /> : null}
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Field label="Nome completo" value={name} onChangeText={setName} placeholder="Ex: Maria Silva" autoFocus />
         <Field
@@ -123,7 +141,7 @@ export default function NovaCliente() {
       <View
         className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <Button title={saving ? 'Salvando…' : 'Cadastrar cliente'} loading={saving} onPress={save} disabled={!canSave} />
+        <Button title={saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar cliente'} loading={saving} onPress={save} disabled={!canSave} />
       </View>
     </HeaderKeyboardView>
   );

@@ -5,6 +5,7 @@ import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { Avatar, Button, Card, EmptyState, SectionLabel, StatusPill } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
+import { confirmAction, notify } from '@/lib/confirm';
 import { requireFeature } from '@/lib/upgrade';
 import { formatDateShort, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
@@ -23,7 +24,7 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { clients, appointments, packages, services, profile } = useStore();
+  const { clients, appointments, packages, services, profile, deleteClient } = useStore();
   const access = usePlanAccess();
   const client = clients.find((c) => c.id === id);
   if (!client) {
@@ -43,6 +44,50 @@ export default function FichaCliente() {
   const spent =
     done.reduce((t, a) => t + amountDue(a, packages), 0) +
     clientPackages.reduce((t, p) => t + p.totalPaid, 0);
+
+  const c = client;
+  function askDelete() {
+    const open = history.filter(
+      (a) => (a.status === 'pendente' || a.status === 'confirmado') && new Date(a.endsAt) > new Date(),
+    );
+    if (open.length) {
+      notify(
+        'Há atendimentos marcados',
+        `${c.name} tem ${open.length === 1 ? '1 atendimento marcado' : `${open.length} atendimentos marcados`}. Cancele ou conclua antes de excluir.`,
+        'info',
+      );
+      return;
+    }
+    if (!history.length) {
+      confirmAction(
+        'Excluir cliente?',
+        clientPackages.length
+          ? `${c.name} e os pacotes dela serão excluídos. Os valores já recebidos continuam no Financeiro. Não dá para desfazer.`
+          : `${c.name} será excluída. Não dá para desfazer.`,
+        async () => {
+          const r = await deleteClient(c.id);
+          if (r) {
+            notify('Cliente excluída');
+            router.back();
+          }
+        },
+        'Excluir',
+      );
+      return;
+    }
+    confirmAction(
+      'Apagar dados da cliente?',
+      `${c.name} tem atendimentos no histórico, que precisam continuar na agenda e no Financeiro. O nome, o WhatsApp, o e-mail, o nascimento, o endereço e as anotações serão apagados, e ela passará a aparecer como "Cliente removida". Não dá para desfazer.`,
+      async () => {
+        const r = await deleteClient(c.id);
+        if (r) {
+          notify('Dados da cliente apagados');
+          router.back();
+        }
+      },
+      'Apagar dados',
+    );
+  }
 
   const birth = client.birthDate
     ? client.birthDate.split('-').reverse().join('/')
@@ -104,7 +149,10 @@ export default function FichaCliente() {
             const scheduled = scheduledSessions(p, appointments);
             const expired = isExpired(p);
             return (
-              <View key={p.id} className={`py-3 ${i ? 'border-t border-line' : ''}`}>
+              <Pressable
+                key={p.id}
+                onPress={() => router.push({ pathname: '/pacote/editar', params: { id: p.id } })}
+                className={`py-3 active:opacity-60 ${i ? 'border-t border-line' : ''}`}>
                 <View className="flex-row items-center justify-between">
                   <Text className="flex-1 text-[14px] font-medium text-ink" numberOfLines={1}>
                     {p.name}
@@ -132,7 +180,7 @@ export default function FichaCliente() {
                   {services.find((s) => s.id === p.serviceId)?.name ?? 'Serviço'} · {formatBRL(p.totalPaid)}
                   {p.expiresAt ? ` · vence ${p.expiresAt.split('-').reverse().join('/')}` : ''}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </Card>
@@ -194,6 +242,16 @@ export default function FichaCliente() {
       ) : (
         <EmptyState icon="time-outline" text="Sem atendimentos ainda" />
       )}
+
+      <View className="mt-6 gap-3">
+        <Button
+          title="Editar dados"
+          icon="create-outline"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/clientes/nova', params: { id: client.id } })}
+        />
+        <Button title="Excluir cliente" icon="trash-outline" variant="danger" onPress={askDelete} />
+      </View>
     </ScrollView>
   );
 }

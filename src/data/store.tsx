@@ -283,10 +283,23 @@ interface Store {
   packages: ClientPackage[];
   /** Cria o pacote e lança o valor recebido no Financeiro */
   sellPackage: (p: NewPackage) => Promise<boolean>;
+  /** Corrige nome, quantidade de sessões e validade do pacote */
+  updatePackage: (
+    id: string,
+    patch: { name: string; totalSessions: number; expiresAt?: string },
+  ) => Promise<boolean>;
+  /** Exclui um pacote sem sessões marcadas, junto com a receita da venda */
+  deletePackage: (id: string) => Promise<boolean>;
   updatePaymentFees: (fees: PaymentFees) => Promise<boolean>;
   addBlock: (b: Omit<ScheduleBlock, 'id'>) => Promise<boolean>;
   removeBlock: (id: string) => Promise<void>;
   addClient: (c: Omit<Client, 'id'>) => Promise<Client | null>;
+  updateClient: (id: string, c: Omit<Client, 'id'>) => Promise<boolean>;
+  /**
+   * Sem atendimentos: exclui a cliente. Com atendimentos no histórico: apaga os dados
+   * pessoais e mantém o histórico e o financeiro ('anonymized').
+   */
+  deleteClient: (id: string) => Promise<'deleted' | 'anonymized' | false>;
   addTransaction: (t: Omit<Transaction, 'id' | 'grossAmount' | 'feeAmount' | 'netAmount'>) => Promise<boolean>;
   /** Exclui uma despesa lançada à mão (receitas saem ao desfazer a conclusão ou o pacote). */
   deleteExpense: (id: string) => Promise<boolean>;
@@ -710,6 +723,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       if (pk.data) setPackages(pk.data.map(toPackage));
       if (tx.data) setTransactions(tx.data.map(toTransaction));
+      return true;
+    },
+
+    async updatePackage(id, patch) {
+      const pkg = packages.find((p) => p.id === id);
+      if (!pkg) return false;
+      const { data, error } = await supabase
+        .from('client_packages')
+        .update({
+          name: patch.name,
+          total_sessions: patch.totalSessions,
+          expires_at: patch.expiresAt ?? null,
+          status: pkg.usedSessions >= patch.totalSessions ? 'completed' : 'active',
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) return fail(error);
+      setPackages((list) => list.map((p) => (p.id === id ? toPackage(data) : p)));
+      return true;
+    },
+
+    async deletePackage(id) {
+      // A receita da venda sai junto (o pacote foi vendido por engano ou devolvido)
+      const tx = await supabase.from('transactions').delete().eq('client_package_id', id);
+      if (tx.error) return fail(tx.error);
+      const { error } = await supabase.from('client_packages').delete().eq('id', id);
+      if (error) return fail(error);
+      setPackages((list) => list.filter((p) => p.id !== id));
+      setTransactions((list) => list.filter((t) => t.clientPackageId !== id));
       return true;
     },
 
@@ -1146,6 +1189,74 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const created = toClient(data);
       setClients((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
       return created;
+    },
+
+    async updateClient(id, c) {
+      if (outboxRef.current.some((i) => i.op.kind === 'addClient' && i.op.row.id === id)) {
+        notify('Cliente ainda não sincronizada', 'Conecte-se à internet e espere sincronizar para editar.', 'info');
+        return false;
+      }
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          name: c.name,
+          whatsapp: c.whatsapp ?? null,
+          email: c.email ?? null,
+          birth_date: c.birthDate ?? null,
+          technical_notes: c.technicalNotes ?? null,
+          address: c.address ?? null,
+          neighborhood: c.neighborhood ?? null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) return fail(error);
+      const updated = toClient(data);
+      setClients((list) => list.map((x) => (x.id === id ? updated : x)).sort((a, b) => a.name.localeCompare(b.name)));
+      return true;
+    },
+
+    async deleteClient(id) {
+      if (outboxRef.current.some((i) => i.op.kind === 'addClient' && i.op.row.id === id)) {
+        notify('Cliente ainda não sincronizada', 'Conecte-se à internet e espere sincronizar para excluir.', 'info');
+        return false;
+      }
+      const hasHistory = appointments.some((a) => a.clientId === id);
+      if (!hasHistory) {
+        // Pacotes saem junto (cascata); receitas já lançadas continuam no Financeiro
+        const { error } = await supabase.from('clients').delete().eq('id', id);
+        if (error) {
+        fail(error);
+        return false;
+      }
+        setClients((list) => list.filter((c) => c.id !== id));
+        setPackages((list) => list.filter((p) => p.clientId !== id));
+        return 'deleted';
+      }
+      // Com histórico: apaga os dados pessoais (LGPD) e mantém atendimentos e valores
+      const { data, error } = await supabase
+        .from('clients')
+        .update({
+          name: 'Cliente removida',
+          whatsapp: null,
+          email: null,
+          birth_date: null,
+          technical_notes: null,
+          address: null,
+          neighborhood: null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) {
+        fail(error);
+        return false;
+      }
+      // Endereço do atendimento a domicílio também é dado pessoal
+      await supabase.from('appointments').update({ service_address: null }).eq('client_id', id).not('service_address', 'is', null);
+      setClients((list) => list.map((c) => (c.id === id ? toClient(data) : c)).sort((a, b) => a.name.localeCompare(b.name)));
+      setAppointments((list) => list.map((a) => (a.clientId === id ? { ...a, serviceAddress: undefined } : a)));
+      return 'anonymized';
     },
 
     async addTransaction(t) {
