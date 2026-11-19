@@ -163,9 +163,15 @@ export default function NovoAgendamento() {
   ];
   const need = Math.max(duration, slot);
   const now = new Date();
+  // Na edição, o horário original continua disponível mesmo se já começou (ex: trocar serviços durante o atendimento)
+  const originalMin = editStart && isSameDay(day, editStart) ? minutesOfDay(editStart) : null;
+  const gridMins: number[] = [];
+  for (let m = workStart; m + slot <= workEnd; m += slot) gridMins.push(m);
+  if (originalMin !== null && !gridMins.includes(originalMin)) gridMins.push(originalMin);
+  gridMins.sort((a, b) => a - b);
   const slots: { min: number; free: boolean }[] = [];
-  for (let m = workStart; m + slot <= workEnd; m += slot) {
-    const past = isSameDay(day, now) && m < minutesOfDay(now);
+  for (const m of gridMins) {
+    const past = isSameDay(day, now) && m < minutesOfDay(now) && m !== originalMin;
     // Indo à casa da cliente, o deslocamento depois também precisa estar livre
     const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
     // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
@@ -252,13 +258,50 @@ export default function NovoAgendamento() {
   async function applyEdit(scope: SeriesScope) {
     setAskScope(false);
     if (!editing || !firstStart) return;
-    setSaving(true);
     const servicesChanged = serviceIds.join() !== editServiceIds.join();
+    const targets = seriesTargets(editing, appointments, scope);
+    const shiftMs = firstStart.getTime() - editStart!.getTime();
+    if (scope !== 'one') {
+      const ctx = {
+        appointments,
+        blocks,
+        businessHours,
+        ignoreIds: targets,
+        ignoreHours: override,
+        travelBufferMin: buffer,
+        home: needsTravel,
+      };
+      // Sessões que já passaram não são conferidas (só as que ainda vão acontecer)
+      const found = appointments
+        .filter((a) => a.id !== editing.id && targets.includes(a.id) && new Date(a.startsAt) >= new Date())
+        .map((a) => {
+          const start = new Date(new Date(a.startsAt).getTime() + shiftMs);
+          const minutes = servicesChanged
+            ? duration
+            : (new Date(a.endsAt).getTime() - new Date(a.startsAt).getTime()) / 60_000;
+          return { start, reason: slotConflict(start, minutes, ctx) };
+        })
+        .filter((c): c is { start: Date; reason: string } => !!c.reason)
+        .sort((a, b) => a.start.getTime() - b.start.getTime());
+      if (found.length) {
+        const list = found
+          .slice(0, 6)
+          .map((c) => `• ${formatDateShort(c.start)} às ${formatTime(c.start)}: ${c.reason}`)
+          .join('\n');
+        const more = found.length > 6 ? `\n…e mais ${found.length - 6}` : '';
+        notify(
+          found.length === 1 ? '1 sessão ficaria em conflito' : `${found.length} sessões ficariam em conflito`,
+          `${list}${more}\n\nNada foi alterado. Escolha outro horário ou altere só esta sessão.`,
+        );
+        return;
+      }
+    }
+    setSaving(true);
     const ok = await updateAppointments(
       editing.id,
-      seriesTargets(editing, appointments, scope),
+      targets,
       {
-        shiftMs: firstStart.getTime() - editStart!.getTime(),
+        shiftMs,
         serviceIds: servicesChanged ? serviceIds : undefined,
         notes: notes.trim() !== (editing.notes ?? '') ? notes.trim() : undefined,
       },
