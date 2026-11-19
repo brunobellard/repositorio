@@ -237,6 +237,10 @@ export interface AppointmentChanges {
 
 interface Store {
   loading: boolean;
+  /** A primeira carga falhou e não há cópia no aparelho: mostrar aviso com "Tentar de novo" */
+  loadFailed: boolean;
+  /** Tenta carregar os dados de novo depois de uma falha */
+  retryLoad: () => void;
   profile: Profile;
   services: Service[];
   clients: Client[];
@@ -475,6 +479,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const ensureDefaults = useCallback(async (uid: string) => {
     if (seeded.current === uid) return;
     seeded.current = uid;
+    const meta = (await supabase.auth.getSession()).data.session?.user.user_metadata as Record<string, unknown> | undefined;
+    // Nomes digitados no cadastro (guardados na conta): preenche o perfil só se ainda estiver vazio.
+    // Cobre quem confirmou o e-mail antes de entrar, quando o perfil ainda não podia ser gravado.
+    for (const col of ['business_name', 'owner_name'] as const) {
+      const value = typeof meta?.[col] === 'string' ? (meta[col] as string).trim() : '';
+      if (value) await supabase.from('profiles').update({ [col]: value }).eq('id', uid).eq(col, '');
+    }
     await supabase.from('message_templates').upsert(
       defaultTemplates.map((t) => ({ channel: t.channel, kind: t.kind, subject: t.subject ?? null, body: t.body })),
       { onConflict: 'owner_id,channel,kind', ignoreDuplicates: true },
@@ -607,6 +618,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return sent > 0 || dropped.length > 0;
   }, [writeOutbox]);
 
+  // Primeira carga sem cópia no aparelho que não deu certo: o app mostra um aviso com
+  // "Tentar de novo" em vez de abrir com dados vazios (e pular o primeiro acesso)
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+
   // Abertura do app: mostra o cache na hora, depois sincroniza com o Supabase
   useEffect(() => {
     if (!userId) return;
@@ -620,17 +636,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         applySnapshot(cached);
         setLoadedFor(userId); // tela pronta com os dados do aparelho
       }
+      let loaded = false;
       if (await isOnline()) {
         await ensureDefaults(userId);
         await flushOutbox();
-        await reload();
+        loaded = await reload();
       }
-      if (!cancelled) setLoadedFor(userId);
+      if (cancelled) return;
+      if (!cached && !loaded) {
+        seeded.current = null; // na nova tentativa, refaz também os passos de conta nova
+        setFailedFor(userId);
+        return;
+      }
+      setFailedFor(null);
+      setLoadedFor(userId);
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId, ensureDefaults, reload, applySnapshot, flushOutbox]);
+  }, [userId, ensureDefaults, reload, applySnapshot, flushOutbox, loadAttempt]);
 
   // Quando a internet volta: envia a fila e atualiza os dados
   useEffect(() => {
@@ -653,6 +677,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const store: Store = {
     loading,
+    loadFailed: !!userId && failedFor === userId,
+    retryLoad() {
+      setFailedFor(null);
+      setLoadAttempt((n) => n + 1);
+    },
     profile,
     services,
     clients,

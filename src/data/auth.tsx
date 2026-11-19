@@ -49,7 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async signUp(email, password, businessName, ownerName) {
       // O aceite dos Termos é registrado depois, no primeiro acesso (acceptTerms)
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      // Os nomes vão junto com a conta: se for preciso confirmar o e-mail antes de entrar,
+      // o app os aplica ao perfil no primeiro acesso (ver ensureDefaults no store)
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { business_name: businessName.trim(), owner_name: ownerName.trim() } },
+      });
       if (error) return friendlyError(error);
       if (!data.session) {
         return 'Conta criada! Confirme o e-mail que enviamos e depois entre com sua senha.';
@@ -62,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     async signOut() {
+      // Apaga a cópia local dos dados e a fila offline: o aparelho pode ser de outra pessoa
+      const uid = session?.user.id;
+      if (uid) await clearOfflineData(uid);
       await supabase.auth.signOut();
     },
 

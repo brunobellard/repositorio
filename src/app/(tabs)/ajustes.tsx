@@ -53,7 +53,7 @@ function Row({
 }
 
 export default function AjustesScreen() {
-  const { profile, services, clients, businessHours, loadExampleData, updateProfile, serviceAreas } = useStore();
+  const { profile, services, clients, businessHours, loadExampleData, updateProfile, serviceAreas, pendingSync } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
@@ -284,7 +284,16 @@ export default function AjustesScreen() {
             icon="log-out-outline"
             label="Sair"
             detail={session?.user.email}
-            onPress={() => confirmAction('Sair da conta?', 'Você precisará entrar de novo com e-mail e senha.', signOut, 'Sair')}
+            onPress={() =>
+              confirmAction(
+                'Sair da conta?',
+                pendingSync
+                  ? `${pendingSync === 1 ? 'Há 1 alteração feita sem internet que ainda não foi enviada' : `Há ${pendingSync} alterações feitas sem internet que ainda não foram enviadas`}. Se sair agora, ${pendingSync === 1 ? 'ela será perdida' : 'elas serão perdidas'}. Conecte-se à internet e espere sincronizar antes de sair.`
+                  : 'Os dados guardados neste aparelho serão apagados. Você precisará entrar de novo com e-mail e senha.',
+                signOut,
+                pendingSync ? 'Sair e perder' : 'Sair',
+              )
+            }
           />
         </Card>
       </ScrollView>

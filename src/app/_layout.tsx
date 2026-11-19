@@ -8,6 +8,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ToastHost } from '@/components/toast';
+import { Button } from '@/components/ui';
 import { UpgradeHost } from '@/components/upgrade-modal';
 import { ThemeProvider as ColorThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/data/auth';
@@ -40,6 +41,24 @@ function Loading({ text }: { text?: string }) {
     <View className="flex-1 items-center justify-center bg-bg">
       <ActivityIndicator color={colors.primary} />
       {text ? <Text className="mt-3 text-[13px] text-muted">{text}</Text> : null}
+    </View>
+  );
+}
+
+/** A primeira carga dos dados falhou (sem cópia no aparelho): não abre a agenda vazia. */
+function LoadFailed() {
+  const { retryLoad } = useStore();
+  const { signOut } = useAuth();
+  return (
+    <View className="flex-1 items-center justify-center bg-bg px-8">
+      <Text className="mb-2 text-lg font-semibold text-ink">Não foi possível carregar seus dados</Text>
+      <Text className="mb-6 text-center text-[14px] leading-5 text-muted">
+        Confira a conexão com a internet e tente de novo.
+      </Text>
+      <View className="w-full gap-3">
+        <Button title="Tentar de novo" icon="refresh" onPress={retryLoad} />
+        <Button title="Sair da conta" variant="secondary" onPress={signOut} />
+      </View>
     </View>
   );
 }
@@ -91,7 +110,7 @@ function PushSetup({ active }: { active: boolean }) {
 
 function AppStack() {
   const { session, loading } = useAuth();
-  const { loading: loadingData, profile } = useStore();
+  const { loading: loadingData, loadFailed, profile } = useStore();
   // Páginas públicas (agendamento, textos legais, nova senha): abrem sem login e sem esperar os dados
   const isPublic = PUBLIC_ROUTES.includes(useSegments()[0] ?? '');
 
@@ -106,6 +125,7 @@ function AppStack() {
   // Espera a sessão. Logado sem dados no aparelho (ex: conta recém-criada), espera também os dados:
   // senão a agenda pisca antes de o app saber que falta o primeiro acesso.
   // Com dados no aparelho, loadingData já é false: abre na hora (cache local + skeletons).
+  if (!isPublic && loggedIn && loadFailed) return <LoadFailed />;
   if (!isPublic && (loading || (loggedIn && loadingData))) return <Loading />;
 
   return (
