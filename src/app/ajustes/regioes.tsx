@@ -24,7 +24,7 @@ const emptyDraft = (): Draft => ({ name: '', travelFee: 0, allowedDays: [1, 2, 3
 export default function Regioes() {
   const { profile, updateProfile, serviceAreas, saveServiceArea, deleteServiceArea } = useStore();
   const insets = useSafeAreaInsets();
-  const { hasHomeService } = usePlanAccess();
+  const { hasHomeService, hasPublicLink } = usePlanAccess();
   const [draft, setDraft] = useState<Draft | null>(null);
   /** Abre o formulário só com o plano (sem ele, mostra o aviso de upgrade) */
   const edit = (d: Draft) => requireFeature(hasHomeService, 'homeService') && setDraft(d);
@@ -121,8 +121,10 @@ export default function Regioes() {
           <Button title="Adicionar bairro" icon="add" variant="secondary" onPress={() => edit(emptyDraft())} />
         </View>
         <Text className="mt-3 text-[12px] leading-4 text-muted">
-          No link de agendamento, a cliente escolhe o bairro e só vê os dias da semana em que você atende lá. A taxa de
-          deslocamento é somada ao valor do atendimento.
+          {hasPublicLink
+            ? 'No link de agendamento, a cliente escolhe o bairro e só vê os dias da semana em que você atende lá. '
+            : 'Ao agendar, o app avisa se o bairro não costuma ser atendido naquele dia. '}
+          A taxa de deslocamento é somada ao valor do atendimento.
         </Text>
       </ScrollView>
 

@@ -105,7 +105,11 @@ export default function Aparencia() {
     const ok = await updateProfile({ themeColor: selected });
     setSaving(false);
     // O app redesenha com a nova cor (ThemeProvider)
-    if (ok) showToast('Cor aplicada', 'O app e o seu link de agendamento já usam a nova cor.');
+    if (ok)
+      showToast(
+        'Cor aplicada',
+        access.hasPublicLink ? 'O app e o seu link de agendamento já usam a nova cor.' : 'O app já usa a nova cor.',
+      );
   }
 
   return (
@@ -197,8 +201,10 @@ export default function Aparencia() {
         )}
 
         <Text className="mt-5 text-[12px] leading-4 text-muted">
-          A cor vale para o app e para o seu link de agendamento online. Os tons mais claro e mais escuro são
-          calculados automaticamente.
+          {access.hasPublicLink
+            ? 'A cor vale para o app e para o seu link de agendamento online.'
+            : 'A cor vale para o app (e para o link de agendamento online, a partir do plano Intermediário).'}{' '}
+          Os tons mais claro e mais escuro são calculados automaticamente.
         </Text>
       </ScrollView>
 

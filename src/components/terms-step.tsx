@@ -5,14 +5,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LegalConsentBox } from '@/components/legal-consent-box';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/data/auth';
+import { useStore } from '@/data/store';
+import { confirmAction } from '@/lib/confirm';
 import { setNextLoginMode } from '@/lib/login-mode';
 
 /**
  * Aceite único dos Termos de Uso e da Política de Privacidade, logo depois do cadastro.
- * "Não aceito" sai da conta e volta para a tela de cadastro.
+ * "Não aceito" apaga a conta recém-criada (o e-mail fica livre para um novo cadastro)
+ * e volta para a tela de cadastro.
  */
 export function TermsStep() {
-  const { acceptTerms, signOut } = useAuth();
+  const { acceptTerms, signOut, deleteAccount } = useAuth();
+  const { clients, appointments } = useStore();
   const insets = useSafeAreaInsets();
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -28,12 +32,29 @@ export function TermsStep() {
     if (err) setError(err);
   }
 
-  async function decline() {
+  function decline() {
     if (busy) return;
-    setBusy(true);
-    // Sem sessão, o app volta sozinho para o login, já na aba "Criar conta"
-    setNextLoginMode('criar');
-    await signOut();
+    // Segurança: só apaga uma conta ainda vazia (sem clientes nem agendamentos)
+    const fresh = clients.length === 0 && appointments.length === 0;
+    confirmAction(
+      'Não aceitar os termos?',
+      fresh
+        ? 'A conta que você acabou de criar será apagada. Você pode se cadastrar de novo quando quiser, com o mesmo e-mail.'
+        : 'Você vai sair da conta. Para usar o app, é preciso aceitar os termos.',
+      async () => {
+        setBusy(true);
+        setError(null);
+        // Sem sessão, o app volta sozinho para o login, já na aba "Criar conta"
+        setNextLoginMode('criar');
+        if (fresh) {
+          const err = await deleteAccount();
+          if (!err) return;
+          // Não deu para apagar (ex: sem internet): sai mesmo assim; a conta fica e pode ser usada no login
+        }
+        await signOut();
+      },
+      fresh ? 'Apagar e sair' : 'Sair',
+    );
   }
 
   return (

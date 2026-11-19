@@ -68,7 +68,7 @@ export const PLANS: Record<PlanTier, Plan> = {
       'Comprovante em imagem',
       'Taxas de cartão e lucro líquido real',
       'Atendimento a domicílio (bairros por dia, taxa e tempo de trânsito)',
-      '6 paletas de cores para o app e o link',
+      '6 paletas de cores prontas para o app',
     ],
   },
   pro: {
@@ -80,7 +80,7 @@ export const PLANS: Record<PlanTier, Plan> = {
     limits: { clients: null, appointmentsPerMonth: null, activeServices: null },
     benefits: [
       'Tudo do Básico',
-      'Link público de agendamento online',
+      'Link público de agendamento online (com a cor do seu app)',
       'Link público inteligente (filtra dias pelo bairro da cliente)',
       'Cor personalizada (qualquer cor da sua marca)',
       'Notificações de novos agendamentos',
@@ -140,12 +140,13 @@ export const FEATURES: Record<PlanFeature, { minPlan: PlanTier; title: string; d
     minPlan: 'basic',
     title: 'Atendimento a domicílio',
     description:
-      'Controle de bairros atendidos por dia da semana, taxa de deslocamento e tempo de trânsito entre atendimentos. A partir do plano Básico, por apenas R$ 9,90/mês.',
+      'Controle de bairros atendidos por dia da semana, taxa de deslocamento e tempo de trânsito entre atendimentos. A partir do plano Básico, por apenas R$ 9,90/mês. No link de agendamento (a partir do Intermediário), a cliente escolhe o bairro.',
   },
   themes: {
     minPlan: 'basic',
     title: 'Paletas de cores',
-    description: 'Troque a cor do app e do seu link de agendamento por uma das 6 paletas prontas.',
+    description:
+      'Troque a cor do app por uma das 6 paletas prontas. A partir do Intermediário, a cor vale também para o seu link de agendamento.',
   },
   customTheme: {
     minPlan: 'pro',
