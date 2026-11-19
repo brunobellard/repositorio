@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { openUpgrade } from '@/lib/upgrade';
-import { LIMIT_TO_FEATURE } from '@/constants/plans';
+import { effectivePlan, LIMIT_TO_FEATURE, planHas, PLANS } from '@/constants/plans';
 import { useAuth } from '@/data/auth';
 import {
   defaultBusinessHours,
@@ -304,7 +304,8 @@ interface Store {
   /** Exclui uma despesa lançada à mão (receitas saem ao desfazer a conclusão ou o pacote). */
   deleteExpense: (id: string) => Promise<boolean>;
   updateTemplate: (t: MessageTemplate) => Promise<boolean>;
-  loadExampleData: () => Promise<void>;
+  /** Cria dados de exemplo dentro dos limites do plano. false se nada foi criado. */
+  loadExampleData: () => Promise<boolean>;
 
   // Ajustes
   /** Expediente dos 7 dias (índice = dia da semana, 0 = domingo) */
@@ -1296,16 +1297,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     /** Preenche a conta com clientes, agendamentos e despesas de exemplo. */
     async loadExampleData() {
-      // Taxas típicas de maquininha (só se ainda estiverem zeradas), antes de lançar as receitas
-      const f = profile.paymentFees;
-      if (!f.debit && !f.credit && !f.pix) {
-        await supabase.from('profiles').update({ payment_fees: exampleFees }).eq('id', userId!);
+      // Respeita o plano em vigor: no Free, só o que cabe nos limites (e sobra espaço para os dados reais)
+      const plan = effectivePlan(profile);
+      const clientLimit = PLANS[plan].limits.clients;
+      // No Free (10 clientes), no máximo 5 de exemplo: as outras vagas ficam para as clientes reais
+      const room = clientLimit === null ? mockClients.length : Math.max(0, Math.min(5, clientLimit - clients.length));
+      const exampleClients = mockClients.slice(0, Math.min(mockClients.length, room));
+      if (!exampleClients.length) {
+        notify('Sem espaço para exemplos', `O plano ${PLANS[plan].name} já está no limite de clientes.`, 'info');
+        return false;
       }
+      // No Free, poucos agendamentos de exemplo: o limite é de 20 por mês
+      let apptBudget = plan === 'free' ? 6 : Infinity;
 
       const { data: newClients, error } = await supabase
         .from('clients')
         .insert(
-          mockClients.map((c) => ({
+          exampleClients.map((c) => ({
             name: c.name,
             whatsapp: c.whatsapp ?? null,
             email: c.email ?? null,
@@ -1316,15 +1324,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .select();
       if (error || !newClients) {
         fail(error);
-        return;
+        return false;
       }
-      const clientIdMap = new Map(mockClients.map((c, i) => [c.id, newClients[i].id as string]));
+      // Taxas típicas de maquininha (só com o recurso no plano e se ainda estiverem zeradas),
+      // antes de lançar as receitas; só depois que as clientes deram certo
+      const f = profile.paymentFees;
+      if (planHas(plan, 'cardFees') && !f.debit && !f.credit && !f.pix) {
+        await supabase.from('profiles').update({ payment_fees: exampleFees }).eq('id', userId!);
+      }
+      const clientIdMap = new Map(exampleClients.map((c, i) => [c.id, newClients[i].id as string]));
       const serviceIdByName = new Map(services.map((s) => [s.name, s.id]));
       const mockTx = new Map(mockTransactions.filter((t) => t.appointmentId).map((t) => [t.appointmentId, t]));
 
       for (const a of mockAppointments) {
         const serviceIds = a.services.map((s) => serviceIdByName.get(s.name)).filter(Boolean) as string[];
-        if (!serviceIds.length) continue;
+        if (!serviceIds.length || !clientIdMap.has(a.clientId)) continue;
+        if (apptBudget <= 0) break;
+        apptBudget--;
         const { data: appt, error: e } = await supabase.rpc('create_appointment', {
           p_client_id: clientIdMap.get(a.clientId),
           p_starts_at: a.startsAt,
@@ -1362,7 +1378,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Uma série recorrente de exemplo: manutenção de cílios a cada 3 semanas
       const lashes = serviceIdByName.get('Manutenção de cílios');
       const firstClient = newClients[1]?.id;
-      if (lashes && firstClient) {
+      if (lashes && firstClient && planHas(plan, 'recurrence')) {
         const first = atMinutes(addDays(startOfDay(new Date()), 3), 14 * 60);
         const series = generateOccurrences(first, {
           freq: 'triweekly',
@@ -1378,8 +1394,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           p_recurrence_rule: 'FREQ=WEEKLY;INTERVAL=3;COUNT=4',
         }); // ignora erro: algum horário pode já estar ocupado
 
-        // Pacote pré-pago de exemplo cobrindo essa série
-        const { data: pkg } = await supabase.rpc('sell_package', {
+        // Pacote pré-pago de exemplo cobrindo essa série (só com pacotes no plano)
+        const { data: pkg } = !planHas(plan, 'packages') ? { data: null } : await supabase.rpc('sell_package', {
           p_client_id: firstClient,
           p_service_id: lashes,
           p_name: 'Combo 4 manutenções de cílios',
@@ -1412,6 +1428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await supabase.from('profiles').update(row).eq('id', userId!); // ignora erro se a migração não rodou
       }
       await reload();
+      return true;
     },
   };
 

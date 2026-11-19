@@ -101,12 +101,14 @@ export default function AjustesScreen() {
   function askExampleData() {
     confirmAction(
       'Carregar dados de exemplo?',
-      'Serão criadas 12 clientes, agendamentos desta semana e algumas despesas, para você testar o app.',
+      access.limits.clients === null
+        ? 'Serão criadas 12 clientes, agendamentos desta semana e algumas despesas, para você testar o app.'
+        : `No plano ${access.plan.name}, serão criadas até 5 clientes, alguns agendamentos e despesas, para você testar o app sem gastar os limites do plano.`,
       async () => {
         setLoadingExample(true);
-        await loadExampleData();
+        const ok = await loadExampleData();
         setLoadingExample(false);
-        notify('Pronto!', 'Os dados de exemplo foram adicionados.');
+        if (ok) notify('Pronto!', 'Os dados de exemplo foram adicionados.');
       },
       'Carregar',
     );
