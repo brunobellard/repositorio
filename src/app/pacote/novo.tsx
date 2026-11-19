@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { Avatar, Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
@@ -80,7 +81,7 @@ export default function VenderPacote() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 170 }} keyboardShouldPersistTaps="handled">
         {/* Cliente */}
         <SectionLabel>Cliente</SectionLabel>
@@ -225,6 +226,6 @@ export default function VenderPacote() {
         </View>
         <Button title={saving ? 'Salvando…' : 'Vender pacote'} loading={saving} onPress={save} disabled={!canSave} />
       </View>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

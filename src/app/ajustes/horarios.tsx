@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { RangeCalendar } from '@/components/range-calendar';
 import { Button, Card, Chip, EmptyState, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
@@ -146,7 +147,7 @@ export default function HorariosScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
         {!hoursAvailable ? (
           <View className="mb-3 rounded-2xl bg-[#FBF3E4] p-3">
@@ -293,6 +294,6 @@ export default function HorariosScreen() {
           <EmptyState icon="calendar-outline" text="Nenhuma folga programada" />
         ) : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

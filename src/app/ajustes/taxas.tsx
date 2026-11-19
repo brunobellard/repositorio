@@ -1,7 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { Button, Card } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { notify } from '@/lib/confirm';
@@ -50,7 +51,7 @@ export default function TaxasPagamento() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <Text className="mb-4 text-[13px] leading-5 text-muted">
           Informe o percentual que a maquininha ou o banco desconta em cada forma de pagamento. O Financeiro passa
@@ -88,6 +89,6 @@ export default function TaxasPagamento() {
           </View>
         ) : null}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

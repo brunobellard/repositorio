@@ -1,6 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 
 import { LegalDocumentView } from '@/components/legal-page';
 import { PRIVACY, TERMS } from '@/constants/legal';
@@ -12,12 +20,21 @@ import { colors } from '@/theme/colors';
  */
 export function LegalConsentBox({ accepted, onChange }: { accepted: boolean; onChange: (v: boolean) => void }) {
   const [readAll, setReadAll] = useState(false);
+  // Posição da marca "Fim dos termos" e altura da caixa (medidas na tela, não dependem do evento de rolagem)
+  const endY = useRef(0);
+  const boxHeight = useRef(0);
 
-  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    if (readAll) return;
-    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 32) setReadAll(true);
+  /** Chegou ao fim quando a marca "Fim dos termos" entra na parte visível da caixa. */
+  function check(offsetY: number) {
+    if (readAll || !endY.current || !boxHeight.current) return;
+    if (offsetY + boxHeight.current >= endY.current - 8) setReadAll(true);
   }
+
+  // Confere em todo tipo de rolagem: no Android o último evento às vezes chega só no fim do arrasto/inércia
+  const onScrollEvent = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (e.nativeEvent.layoutMeasurement?.height) boxHeight.current = e.nativeEvent.layoutMeasurement.height;
+    check(e.nativeEvent.contentOffset?.y ?? 0);
+  };
 
   return (
     <View className="mb-4">
@@ -26,12 +43,19 @@ export function LegalConsentBox({ accepted, onChange }: { accepted: boolean; onC
           style={{ height: 260 }}
           contentContainerStyle={{ padding: 16 }}
           nestedScrollEnabled
-          onScroll={onScroll}
-          scrollEventThrottle={64}>
+          onLayout={(e: LayoutChangeEvent) => (boxHeight.current = e.nativeEvent.layout.height)}
+          onScroll={onScrollEvent}
+          onScrollEndDrag={onScrollEvent}
+          onMomentumScrollEnd={onScrollEvent}
+          scrollEventThrottle={16}>
           <LegalDocumentView doc={TERMS} compact />
           <View className="my-5 h-px bg-line" />
           <LegalDocumentView doc={PRIVACY} compact />
-          <Text className="mt-4 text-center text-[12px] font-medium text-primary-dark">Fim dos termos ✓</Text>
+          <Text
+            onLayout={(e: LayoutChangeEvent) => (endY.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height)}
+            className="mt-4 text-center text-[12px] font-medium text-primary-dark">
+            Fim dos termos ✓
+          </Text>
         </ScrollView>
       </View>
 

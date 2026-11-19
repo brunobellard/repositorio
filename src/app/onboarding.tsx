@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardView } from '@/components/keyboard-view';
 import { ServiceModePicker } from '@/components/service-mode-picker';
 import { TermsStep } from '@/components/terms-step';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
@@ -106,7 +107,7 @@ function OnboardingSteps() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <KeyboardView>
       <ScrollView
         contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: 140 }}
         keyboardShouldPersistTaps="handled">
@@ -284,6 +285,6 @@ function OnboardingSteps() {
           disabled={!canNext}
         />
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardView>
   );
 }

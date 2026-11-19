@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { AddressFields } from '@/components/address-fields';
 import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
@@ -73,7 +74,7 @@ export default function NovaCliente() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         <Field label="Nome completo" value={name} onChangeText={setName} placeholder="Ex: Maria Silva" autoFocus />
         <Field
@@ -124,6 +125,6 @@ export default function NovaCliente() {
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button title={saving ? 'Salvando…' : 'Cadastrar cliente'} loading={saving} onPress={save} disabled={!canSave} />
       </View>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

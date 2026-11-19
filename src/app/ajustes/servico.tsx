@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { serviceCategories } from '@/data/mock';
 import { useStore } from '@/data/store';
@@ -74,7 +75,7 @@ export default function EditarServico() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <Stack.Screen options={{ title: existing ? 'Editar serviço' : 'Novo serviço' }} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 160 }} keyboardShouldPersistTaps="handled">
         <Field
@@ -162,6 +163,6 @@ export default function EditarServico() {
         <Button title={saving ? 'Salvando…' : 'Salvar serviço'} onPress={save} disabled={!canSave} />
         {existing ? <Button title="Excluir serviço" variant="danger" icon="trash-outline" onPress={remove} /> : null}
       </View>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

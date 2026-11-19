@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Link, router, Stack, useLocalSearchParams } from 'expo-router';
+import { Link, Redirect, router, Stack, useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -61,6 +61,10 @@ export function LegalPage({ doc, current }: { doc: LegalDocument; current: 'term
   // Sem tela anterior (ex: aberta por um link): vai para a tela certa de quem está usando
   const home = !session ? '/login' : profile.onboardingCompleted === false ? '/onboarding' : '/';
   const leave = () => (router.canGoBack() ? router.back() : router.replace(home));
+
+  // No celular, os textos legais só abrem pelos links do app (from=app). Se o roteador cair aqui sozinho
+  // (ex: logo depois do cadastro), segue para a tela certa: o aceite fica no primeiro acesso.
+  if (Platform.OS !== 'web' && from !== 'app') return <Redirect href={home} />;
 
   return (
     <View className="flex-1 bg-bg">

@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { showToast } from '@/components/toast';
 import { Button, SectionLabel } from '@/components/ui';
 import { useTheme } from '@/context/ThemeContext';
@@ -108,7 +109,7 @@ export default function Aparencia() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         <SectionLabel>Prévia</SectionLabel>
         <Preview t={theme} studio={profile.businessName} />
@@ -219,6 +220,6 @@ export default function Aparencia() {
           </View>
         ) : null}
       </View>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }

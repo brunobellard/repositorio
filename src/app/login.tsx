@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardView } from '@/components/keyboard-view';
 import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
 import { Button, Field, Segmented } from '@/components/ui';
 import { useAuth } from '@/data/auth';
@@ -22,6 +23,9 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  // Teclado aberto: rola até o campo tocado (e-mail e senha ficam no fim do formulário)
+  const revealField = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
 
   const creating = mode === 'criar';
   // Termos de Uso e Privacidade: aceitos uma única vez, no primeiro acesso (onboarding)
@@ -49,8 +53,9 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <KeyboardView>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, flexGrow: 1 }}
         keyboardShouldPersistTaps="handled">
         <View className="mb-8 items-center">
@@ -90,6 +95,7 @@ export default function Login() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoComplete="email"
+            onFocus={revealField}
           />
           <Field
             label="Senha"
@@ -99,6 +105,7 @@ export default function Login() {
             secureTextEntry
             autoComplete={creating ? 'new-password' : 'current-password'}
             onSubmitEditing={submit}
+            onFocus={revealField}
           />
         </View>
 
@@ -126,6 +133,6 @@ export default function Login() {
 
       </ScrollView>
       <ForgotPasswordSheet visible={forgot} initialEmail={email} onClose={() => setForgot(false)} />
-    </KeyboardAvoidingView>
+    </KeyboardView>
   );
 }

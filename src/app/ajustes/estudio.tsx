@@ -4,19 +4,10 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Linking,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { DeleteAccountSheet } from '@/components/delete-account-sheet';
 import { ServiceModePicker } from '@/components/service-mode-picker';
 import { Button, Field, SectionLabel, Toggle } from '@/components/ui';
@@ -146,7 +137,7 @@ export default function DadosEstudio() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-bg">
+    <HeaderKeyboardView>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         {/* Logo */}
         <View className="items-center">
@@ -390,6 +381,6 @@ export default function DadosEstudio() {
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <Button title={saving ? 'Salvando…' : 'Salvar dados'} onPress={save} disabled={!canSave} />
       </View>
-    </KeyboardAvoidingView>
+    </HeaderKeyboardView>
   );
 }
