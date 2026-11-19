@@ -52,22 +52,21 @@ function TermsStep() {
   }
 
   return (
-    <View className="flex-1 bg-bg">
-      <ScrollView contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: 140 }}>
+    <ScrollView
+      className="flex-1 bg-bg"
+      contentContainerStyle={{ padding: 24, paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 16) + 24 }}>
+      <View className="w-full max-w-[560px] self-center">
         <Text className="text-[24px] font-bold tracking-tight text-ink">Boas-vindas! 💅</Text>
         <Text className="mb-5 mt-1 text-[14px] leading-5 text-muted">
           Antes de começar, leia e aceite os Termos de Uso e a Política de Privacidade.
         </Text>
         <LegalConsentBox accepted={accepted} onChange={setAccepted} />
         {error ? (
-          <View className="rounded-2xl bg-primary-soft px-4 py-3">
+          <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
             <Text className="text-[13px] text-primary-dark">{error}</Text>
           </View>
         ) : null}
-      </ScrollView>
-      <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
-        style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        {/* Botão logo abaixo do aceite (sempre visível, no app e no navegador) */}
         <Button
           title={busy ? 'Salvando…' : 'Aceitar e continuar'}
           icon="arrow-forward"
@@ -76,7 +75,7 @@ function TermsStep() {
           disabled={!accepted || busy}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
