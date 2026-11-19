@@ -61,9 +61,10 @@ function MissingConfig() {
  * (se a profissional não desligou em Ajustes) e trata o toque na notificação.
  */
 function PushSetup({ active }: { active: boolean }) {
-  const { profile, updateProfile } = useStore();
+  const { profile, updateProfile, refresh } = useStore();
   const registeredFor = useRef<string | null>(null);
-  useNotificationNavigation(active);
+  // Agendamento online novo: recarrega os dados para ele aparecer na agenda
+  useNotificationNavigation(active, refresh);
 
   // Push é recurso do plano Intermediário em diante
   const hasPush = planHas(effectivePlan(profile), 'push');

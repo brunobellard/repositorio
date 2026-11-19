@@ -9,7 +9,14 @@ import { useStore } from '@/data/store';
 import { confirmAction, notify } from '@/lib/confirm';
 import { addDays, formatDateShort, hmToMinutes, startOfDay } from '@/lib/dates';
 import { maskTime } from '@/lib/format';
-import { isValidTime, WEEK_ORDER, WEEKDAYS_LONG } from '@/lib/hours';
+import {
+  appointmentsBetween,
+  appointmentsOutsideHours,
+  describeAppointments,
+  isValidTime,
+  WEEK_ORDER,
+  WEEKDAYS_LONG,
+} from '@/lib/hours';
 import { colors } from '@/theme/colors';
 import type { BusinessHours } from '@/types';
 
@@ -73,7 +80,8 @@ function TimeBox({ label, value, onChange }: { label: string; value: string; onC
 const REASONS = ['Folga', 'Feriado Nacional', 'Férias', 'Consulta médica', 'Curso'];
 
 export default function HorariosScreen() {
-  const { businessHours, saveBusinessHours, hoursAvailable, blocks, addBlock, removeBlock } = useStore();
+  const { businessHours, saveBusinessHours, hoursAvailable, blocks, addBlock, removeBlock, appointments, clients } =
+    useStore();
   const [drafts, setDrafts] = useState<DayDraft[]>(() => businessHours.map(toDraft));
   const [saving, setSaving] = useState(false);
 
@@ -98,28 +106,54 @@ export default function HorariosScreen() {
     );
   }
 
-  async function save() {
+  const newHours: BusinessHours[] = drafts.map((d) => ({
+    dayOfWeek: d.dayOfWeek,
+    isOpen: d.isOpen,
+    openTime: d.openTime,
+    closeTime: d.closeTime,
+    breakStart: d.hasBreak ? d.breakStart : undefined,
+    breakEnd: d.hasBreak ? d.breakEnd : undefined,
+  }));
+
+  /** Avisa se atendimentos já marcados ficam fora do novo expediente (eles não são alterados). */
+  function save() {
     if (hasErrors || saving) return;
-    setSaving(true);
-    const ok = await saveBusinessHours(
-      drafts.map((d) => ({
-        dayOfWeek: d.dayOfWeek,
-        isOpen: d.isOpen,
-        openTime: d.openTime,
-        closeTime: d.closeTime,
-        breakStart: d.hasBreak ? d.breakStart : undefined,
-        breakEnd: d.hasBreak ? d.breakEnd : undefined,
-      })),
+    const affected = appointmentsOutsideHours(appointments, newHours);
+    if (!affected.length) return doSave();
+    confirmAction(
+      affected.length === 1
+        ? '1 atendimento fica fora do novo horário'
+        : `${affected.length} atendimentos ficam fora do novo horário`,
+      `${describeAppointments(affected, clients)}\n\nEles continuam marcados. Remarque se precisar.`,
+      doSave,
+      'Salvar mesmo assim',
     );
+  }
+
+  async function doSave() {
+    setSaving(true);
+    const ok = await saveBusinessHours(newHours);
     setSaving(false);
     if (ok) notify('Horários salvos', 'A agenda já segue o novo expediente.');
   }
 
-  async function saveTimeOff() {
+  /** Avisa se já há atendimentos nos dias da folga (a folga não cancela nenhum). */
+  function saveTimeOff() {
     if (!range.start || savingOff) return;
-    setSavingOff(true);
     const start = startOfDay(range.start);
     const end = addDays(startOfDay(range.end ?? range.start), 1);
+    const affected = appointmentsBetween(appointments, start, end);
+    if (!affected.length) return doSaveTimeOff(start, end);
+    confirmAction(
+      affected.length === 1 ? 'Há 1 atendimento nesses dias' : `Há ${affected.length} atendimentos nesses dias`,
+      `${describeAppointments(affected, clients)}\n\nA folga não cancela esses atendimentos: eles continuam na agenda. Remarque ou cancele se precisar.`,
+      () => doSaveTimeOff(start, end),
+      'Salvar folga mesmo assim',
+    );
+  }
+
+  async function doSaveTimeOff(start: Date, end: Date) {
+    setSavingOff(true);
     const ok = await addBlock({
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),

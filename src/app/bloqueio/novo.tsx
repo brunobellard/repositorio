@@ -4,15 +4,16 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
-import { closeModal, notify } from '@/lib/confirm';
+import { closeModal, confirmAction, notify } from '@/lib/confirm';
 import { addDays, atMinutes, formatDayTitle, hmToMinutes, isSameDay, startOfDay, WEEKDAYS_SHORT } from '@/lib/dates';
+import { appointmentsBetween, describeAppointments, hoursForDay, weekRange } from '@/lib/hours';
 
 const REASONS = ['Almoço', 'Folga', 'Curso', 'Compromisso pessoal'];
 const DURATIONS = [30, 60, 90, 120, 180, 240];
 
 export default function NovoBloqueio() {
   const params = useLocalSearchParams<{ date?: string }>();
-  const { profile, addBlock } = useStore();
+  const { addBlock, appointments, clients, businessHours } = useStore();
 
   const [kind, setKind] = useState<'horario' | 'dia'>('horario');
   const [day, setDay] = useState(startOfDay(params.date ? new Date(params.date) : new Date()));
@@ -21,12 +22,37 @@ export default function NovoBloqueio() {
   const [reason, setReason] = useState('Almoço');
 
   const days = Array.from({ length: 30 }, (_, i) => addDays(startOfDay(new Date()), i));
+  // Horários de início seguem o expediente do dia escolhido (dia fechado: a faixa da semana)
+  const dayHours = hoursForDay(day, businessHours);
+  const [from, to] = dayHours.isOpen
+    ? [hmToMinutes(dayHours.openTime), hmToMinutes(dayHours.closeTime)]
+    : weekRange(businessHours);
   const startOptions: number[] = [];
-  for (let m = hmToMinutes(profile.workStart); m < hmToMinutes(profile.workEnd); m += 30) startOptions.push(m);
+  for (let m = Math.floor(from / 30) * 30; m < to; m += 30) startOptions.push(m);
+  // Início escolhido fora da faixa do novo dia: usa o primeiro horário disponível
+  const startMin = startOptions.includes(start) ? start : (startOptions[0] ?? start);
 
   const [saving, setSaving] = useState(false);
 
-  async function save() {
+  const period =
+    kind === 'dia'
+      ? { start: day, end: addDays(day, 1) }
+      : { start: atMinutes(day, startMin), end: atMinutes(day, startMin + duration) };
+
+  /** Avisa se já há atendimentos marcados no período (o bloqueio não cancela nenhum). */
+  function save() {
+    if (saving) return;
+    const affected = appointmentsBetween(appointments, period.start, period.end);
+    if (!affected.length) return doSave();
+    confirmAction(
+      affected.length === 1 ? 'Há 1 atendimento nesse período' : `Há ${affected.length} atendimentos nesse período`,
+      `${describeAppointments(affected, clients)}\n\nO bloqueio não cancela esses atendimentos: eles continuam na agenda. Remarque ou cancele se precisar.`,
+      doSave,
+      'Bloquear mesmo assim',
+    );
+  }
+
+  async function doSave() {
     if (saving) return;
     setSaving(true); // trava no primeiro toque: evita bloqueio duplicado
     let ok: boolean;
@@ -34,8 +60,8 @@ export default function NovoBloqueio() {
       ok = await addBlock({ startsAt: day.toISOString(), endsAt: addDays(day, 1).toISOString(), allDay: true, reason });
     } else {
       ok = await addBlock({
-        startsAt: atMinutes(day, start).toISOString(),
-        endsAt: atMinutes(day, start + duration).toISOString(),
+        startsAt: period.start.toISOString(),
+        endsAt: period.end.toISOString(),
         allDay: false,
         reason,
       });
@@ -83,10 +109,10 @@ export default function NovoBloqueio() {
           <SectionLabel>Início</SectionLabel>
           <View className="flex-row flex-wrap">
             {startOptions.map((m) => (
-              <Chip key={m} label={hm(m)} selected={start === m} onPress={() => setStart(m)} />
+              <Chip key={m} label={hm(m)} selected={startMin === m} onPress={() => setStart(m)} />
             ))}
           </View>
-          <SectionLabel>Duração · até {hm(start + duration)}</SectionLabel>
+          <SectionLabel>Duração · até {hm(startMin + duration)}</SectionLabel>
           <View className="flex-row flex-wrap">
             {DURATIONS.map((d) => (
               <Chip key={d} label={d < 60 ? `${d}min` : `${d / 60}h`} selected={duration === d} onPress={() => setDuration(d)} />

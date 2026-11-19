@@ -13,7 +13,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { AndroidImportance } from 'expo-notifications';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 export const PUSH_CHANNEL = 'agendamentos';
@@ -130,29 +130,50 @@ export async function sendTestNotificationAsync(token?: string): Promise<'push' 
   return 'local';
 }
 
-/** Abre a Agenda no dia do agendamento ao tocar na notificação. */
-function openFromNotification(response: Notifications.NotificationResponse | null | undefined) {
-  const data = response?.notification.request.content.data as Partial<BookingPushData> | undefined;
-  if (data?.type !== 'new_booking' || !data.date) return;
-  router.navigate({ pathname: '/', params: { date: data.date } });
-}
+const isNewBooking = (n: Notifications.Notification | undefined) =>
+  (n?.request.content.data as Partial<BookingPushData> | undefined)?.type === 'new_booking';
 
-/** Liga o toque na notificação à navegação (com o app aberto ou abrindo do zero). */
-export function useNotificationNavigation(enabled: boolean) {
+/**
+ * Liga as notificações de agendamento online ao app (com o app aberto ou abrindo do zero):
+ *   * ao chegar uma, com o app aberto, recarrega os dados (o novo horário aparece na agenda);
+ *   * ao tocar nela, recarrega e abre a Agenda no dia do agendamento.
+ */
+export function useNotificationNavigation(enabled: boolean, onNewBooking?: () => void) {
+  // Guarda a função mais recente sem refazer as inscrições
+  const reload = useRef(onNewBooking);
+  useEffect(() => {
+    reload.current = onNewBooking;
+  }, [onNewBooking]);
+
   useEffect(() => {
     // No Expo Go do Android não há push: nada para ouvir
     if (!enabled || Platform.OS === 'web' || pushUnsupportedHere) return;
+
+    const open = (response: Notifications.NotificationResponse | null | undefined) => {
+      if (!isNewBooking(response?.notification)) return;
+      reload.current?.();
+      const date = (response!.notification.request.content.data as Partial<BookingPushData>).date;
+      if (date) router.navigate({ pathname: '/', params: { date } });
+    };
+
     // App aberto a partir de uma notificação (estava fechado)
     Notifications.getLastNotificationResponseAsync()
       .then((r) => {
-        openFromNotification(r);
+        open(r);
         if (r) return Notifications.clearLastNotificationResponseAsync();
       })
       .catch(() => {});
-    // Toque com o app aberto ou em segundo plano
     try {
-      const sub = Notifications.addNotificationResponseReceivedListener(openFromNotification);
-      return () => sub.remove();
+      // Toque com o app aberto ou em segundo plano
+      const tap = Notifications.addNotificationResponseReceivedListener(open);
+      // Chegou com o app aberto: atualiza a agenda mesmo sem toque
+      const received = Notifications.addNotificationReceivedListener((n) => {
+        if (isNewBooking(n)) reload.current?.();
+      });
+      return () => {
+        tap.remove();
+        received.remove();
+      };
     } catch {
       return;
     }
