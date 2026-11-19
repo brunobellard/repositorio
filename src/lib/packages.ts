@@ -50,3 +50,20 @@ export function usablePackages(
       availableCredits(p, appointments) > 0,
   );
 }
+
+/**
+ * Quanto do atendimento o pacote já pagou: o preço de UMA sessão do serviço do pacote.
+ * Outros serviços do mesmo horário e a taxa de deslocamento continuam sendo cobrados.
+ * (Mesma conta feita no banco ao concluir.)
+ */
+export function packageCovered(appt: Appointment, packages: ClientPackage[]): number {
+  if (!appt.clientPackageId) return 0;
+  const pkg = packages.find((p) => p.id === appt.clientPackageId);
+  const item = pkg ? appt.services.find((s) => s.serviceId === pkg.serviceId) : undefined;
+  return Math.min(appt.totalPrice, item?.price ?? 0);
+}
+
+/** Valor que ainda falta receber neste atendimento (total menos o que o pacote cobre). */
+export function amountDue(appt: Appointment, packages: ClientPackage[]): number {
+  return Math.max(0, Math.round((appt.totalPrice - packageCovered(appt, packages)) * 100) / 100);
+}

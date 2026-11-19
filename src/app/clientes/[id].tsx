@@ -8,7 +8,7 @@ import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { formatDateShort, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
-import { availableCredits, isExpired, scheduledSessions } from '@/lib/packages';
+import { amountDue, availableCredits, isExpired, scheduledSessions } from '@/lib/packages';
 import { colors } from '@/theme/colors';
 
 function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string }) {
@@ -39,9 +39,9 @@ export default function FichaCliente() {
     .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const done = history.filter((a) => a.status === 'concluido');
   const clientPackages = packages.filter((p) => p.clientId === client.id);
-  // Sessões de pacote já foram pagas na venda: conta o valor do pacote, não o de cada sessão
+  // Sessões de pacote já foram pagas na venda: conta o valor do pacote e só os extras de cada sessão
   const spent =
-    done.filter((a) => !a.clientPackageId).reduce((t, a) => t + a.totalPrice, 0) +
+    done.reduce((t, a) => t + amountDue(a, packages), 0) +
     clientPackages.reduce((t, p) => t + p.totalPaid, 0);
 
   const birth = client.birthDate
@@ -182,7 +182,11 @@ export default function FichaCliente() {
                 </View>
               </View>
               <Text className="text-[14px] font-medium text-ink">
-                {a.clientPackageId ? 'Pacote' : formatBRL(a.totalPrice)}
+                {a.clientPackageId
+                  ? amountDue(a, packages) > 0
+                    ? `Pacote + ${formatBRL(amountDue(a, packages))}`
+                    : 'Pacote'
+                  : formatBRL(a.totalPrice)}
               </Text>
             </Pressable>
           ))}

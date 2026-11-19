@@ -10,6 +10,7 @@ import { Card, EmptyState, Fab, Screen, ScreenTitle, SectionLabel, Segmented } f
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
+import { confirmAction, notify } from '@/lib/confirm';
 import { formatDateShort, formatTime, isSameDay, startOfDay, startOfWeek } from '@/lib/dates';
 import { formatBRL } from '@/lib/format';
 import { colors, paymentLabels } from '@/theme/colors';
@@ -31,7 +32,14 @@ function Stat({ label, value, tone, hint }: { label: string; value: number; tone
 }
 
 export default function FinanceiroScreen() {
-  const { transactions, loading, refresh } = useStore();
+  const { transactions, loading, refresh, deleteExpense } = useStore();
+
+  /** Despesa lançada errado: exclui depois de confirmar. */
+  function removeExpense(id: string, label: string, amount: number) {
+    confirmAction('Excluir despesa?', `"${label}" (${formatBRL(amount)}) sai do Financeiro.`, async () => {
+      if (await deleteExpense(id)) notify('Despesa excluída');
+    }, 'Excluir');
+  }
   const access = usePlanAccess();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const [period, setPeriod] = useState<Period>('semana');
@@ -151,6 +159,15 @@ export default function FinanceiroScreen() {
                       style={{ color: income ? '#5E8B6A' : '#B2474F' }}>
                       {income ? '+' : '−'} {formatBRL(t.amount)}
                     </Text>
+                    {!income ? (
+                      <Pressable
+                        onPress={() => removeExpense(t.id, t.description || t.category, t.amount)}
+                        hitSlop={8}
+                        accessibilityLabel="Excluir despesa"
+                        className="ml-2 p-1 active:opacity-60">
+                        <Ionicons name="trash-outline" size={17} color={colors.muted} />
+                      </Pressable>
+                    ) : null}
                   </View>
                 );
               })}

@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { expenseCategories } from '@/data/mock';
 import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
+import { formatBRL, maskBRL } from '@/lib/format';
 
 export default function NovaDespesa() {
   const { addTransaction } = useStore();
-  const [amount, setAmount] = useState('');
+  // Valor em reais, digitado como na maquininha: 1250 → R$ 12,50 (sem dúvida entre ponto e vírgula)
+  const [value, setValue] = useState(0);
   const [category, setCategory] = useState('Materiais');
   const [description, setDescription] = useState('');
 
-  const value = Number(amount.replace(/\./g, '').replace(',', '.'));
-  const valid = Number.isFinite(value) && value > 0;
+  const valid = value > 0;
 
   const [saving, setSaving] = useState(false);
 
@@ -34,27 +36,31 @@ export default function NovaDespesa() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
-      <Field
-        label="Valor (R$)"
-        value={amount}
-        onChangeText={setAmount}
-        placeholder="0,00"
-        keyboardType="decimal-pad"
-        autoFocus
-      />
-      <SectionLabel>Categoria</SectionLabel>
-      <View className="flex-row flex-wrap">
-        {expenseCategories.map((c) => (
-          <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
-        ))}
-      </View>
-      <View className="mt-3">
-        <Field label="Descrição" value={description} onChangeText={setDescription} placeholder="Ex: esmaltes, algodão" />
-      </View>
-      <View className="mt-2">
-        <Button title={saving ? 'Salvando…' : 'Lançar despesa'} loading={saving} onPress={save} disabled={!valid} />
-      </View>
-    </ScrollView>
+    <HeaderKeyboardView>
+      <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+        <View className="mb-3">
+          <Text className="mb-1.5 text-[13px] font-medium text-muted">Valor</Text>
+          <TextInput
+            value={formatBRL(value)}
+            onChangeText={(t) => setValue(maskBRL(t).value)}
+            keyboardType="number-pad"
+            autoFocus
+            className="rounded-2xl border border-line bg-surface px-4 py-3 text-[20px] font-semibold text-ink"
+          />
+        </View>
+        <SectionLabel>Categoria</SectionLabel>
+        <View className="flex-row flex-wrap">
+          {expenseCategories.map((c) => (
+            <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
+          ))}
+        </View>
+        <View className="mt-3">
+          <Field label="Descrição" value={description} onChangeText={setDescription} placeholder="Ex: esmaltes, algodão" />
+        </View>
+        <View className="mt-2">
+          <Button title={saving ? 'Salvando…' : 'Lançar despesa'} loading={saving} onPress={save} disabled={!valid} />
+        </View>
+      </ScrollView>
+    </HeaderKeyboardView>
   );
 }

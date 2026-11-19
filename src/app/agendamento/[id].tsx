@@ -16,7 +16,8 @@ import {
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
-import { notify } from '@/lib/confirm';
+import { confirmAction, notify } from '@/lib/confirm';
+import { amountDue, packageCovered } from '@/lib/packages';
 import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
 import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
@@ -59,6 +60,9 @@ export default function AgendamentoDetalhe() {
   const duration = appt.services.reduce((t, s) => t + s.durationMin, 0);
   const income = transactions.find((t) => t.appointmentId === appt.id);
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
+  // O pacote paga uma sessão do serviço dele; outros serviços e o deslocamento são cobrados à parte
+  const covered = packageCovered(appt, packages);
+  const due = amountDue(appt, packages);
 
   /** Conclui uma vez só (trava toques repetidos) e vibra de leve ao terminar. */
   async function finish(method?: PaymentMethod) {
@@ -74,15 +78,37 @@ export default function AgendamentoDetalhe() {
   function onStatus(s: AppointmentStatus) {
     if (completing) return;
     if (s === 'concluido') {
-      // Sessão de pacote já foi paga: conclui direto e dá baixa no crédito
-      if (pkg) {
-        if (appt!.status !== 'concluido') finish();
+      if (appt!.status === 'concluido') return;
+      // Pacote cobre tudo: conclui direto e dá baixa no crédito. Sobrou valor: pergunta a forma de pagamento
+      if (appt!.clientPackageId && due === 0) {
+        finish();
         return;
       }
       setAskPayment(true);
       return;
     }
     setAskPayment(false);
+    if (s === appt!.status) return;
+    // Desfazer uma conclusão apaga a receita do Financeiro (e devolve o crédito do pacote): confirma antes
+    if (appt!.status === 'concluido') {
+      const undo = [
+        income ? `a receita de ${formatBRL(income.amount)} sai do Financeiro` : '',
+        pkg ? 'a sessão volta para o saldo do pacote' : '',
+      ].filter(Boolean);
+      confirmAction(
+        'Desfazer a conclusão?',
+        undo.length
+          ? `O atendimento deixa de estar concluído e ${undo.join(' e ')}.`
+          : 'O atendimento deixa de estar concluído.',
+        () => changeStatus(s),
+        'Desfazer',
+      );
+      return;
+    }
+    changeStatus(s);
+  }
+
+  function changeStatus(s: Exclude<AppointmentStatus, 'concluido'>) {
     // Cancelar uma sessão de série: pergunta se cancela também as próximas
     if (s === 'cancelado' && appt!.status !== 'cancelado' && hasOpenSiblings(appt!, appointments)) {
       setAskCancelScope(true);
@@ -186,6 +212,12 @@ export default function AgendamentoDetalhe() {
             <Text className="text-[14px] text-muted">{formatBRL(s.price)}</Text>
           </View>
         ))}
+        {covered > 0 ? (
+          <View className="mb-1.5 flex-row justify-between">
+            <Text className="text-[14px] text-primary-dark">Crédito do pacote</Text>
+            <Text className="text-[14px] text-primary-dark">− {formatBRL(covered)}</Text>
+          </View>
+        ) : null}
         {appt.travelFee ? (
           <View className="mb-1.5 flex-row justify-between">
             <Text className="text-[14px] text-ink">Taxa de deslocamento</Text>
@@ -193,8 +225,8 @@ export default function AgendamentoDetalhe() {
           </View>
         ) : null}
         <View className="mt-1.5 flex-row justify-between">
-          <Text className="text-[15px] font-semibold text-ink">Total</Text>
-          <Text className="text-[15px] font-semibold text-ink">{formatBRL(appt.totalPrice)}</Text>
+          <Text className="text-[15px] font-semibold text-ink">{appt.clientPackageId ? 'A receber' : 'Total'}</Text>
+          <Text className="text-[15px] font-semibold text-ink">{formatBRL(due)}</Text>
         </View>
         {appt.locationType === 'home_service' ? (
           <Pressable
@@ -265,7 +297,8 @@ export default function AgendamentoDetalhe() {
         <Card className="mt-3">
           <Text className="text-[14px] font-semibold text-ink">Forma de pagamento</Text>
           <Text className="mb-3 text-xs text-muted">
-            {formatBRL(appt.totalPrice)} será lançado como receita no Financeiro.
+            {formatBRL(due)} será lançado como receita no Financeiro
+            {pkg ? ' (o restante já foi pago no pacote)' : ''}.
           </Text>
           <View className="flex-row flex-wrap gap-2">
             {METHODS.map((m) => (

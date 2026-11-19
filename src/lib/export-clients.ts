@@ -1,6 +1,7 @@
 // Backup / exportação da base de clientes em CSV (Excel em português).
 import { ddmmyyyy, money, shareTable, type Cell, type SheetFormat, type Table } from '@/lib/export-files';
 import { formatPhone } from '@/lib/format';
+import { amountDue } from '@/lib/packages';
 import { clientsToRecall } from '@/lib/recall';
 import type { Appointment, Client, ClientPackage } from '@/types';
 
@@ -28,9 +29,9 @@ export async function exportClientsSheet(d: ClientsData, filter: ClientFilter, f
 
   const rows: Cell[][] = list.map((c) => {
     const done = d.appointments.filter((a) => a.clientId === c.id && a.status === 'concluido');
-    // Sessões de pacote já foram pagas na venda: conta o valor do pacote, não o de cada sessão
+    // Sessões de pacote já foram pagas na venda: conta o valor do pacote e só os extras de cada sessão
     const spent =
-      done.filter((a) => !a.clientPackageId).reduce((t, a) => t + a.totalPrice, 0) +
+      done.reduce((t, a) => t + amountDue(a, d.packages), 0) +
       d.packages.filter((p) => p.clientId === c.id).reduce((t, p) => t + p.totalPaid, 0);
     const last = done
       .filter((a) => a.startsAt <= nowIso)

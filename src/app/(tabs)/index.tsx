@@ -13,6 +13,7 @@ import { confirmAction } from '@/lib/confirm';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
 import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
+import { amountDue } from '@/lib/packages';
 import { colors } from '@/theme/colors';
 import type { ScheduleBlock } from '@/types';
 
@@ -23,7 +24,7 @@ function overlapsDay(b: ScheduleBlock, day: Date) {
 }
 
 export default function AgendaScreen() {
-  const { appointments, blocks, clients, profile, businessHours, removeBlock, loading, refresh } = useStore();
+  const { appointments, blocks, clients, profile, businessHours, packages, removeBlock, loading, refresh } = useStore();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
   // ?date=YYYY-MM-DD (ex: ao tocar na notificação de agendamento online) abre a Agenda nesse dia
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
@@ -63,8 +64,8 @@ export default function AgendaScreen() {
   const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
   const allDayBlock = dayBlocks.find((b) => b.allDay);
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
-  // Sessões de pacote já foram pagas na venda: não entram no "previsto" do dia
-  const expected = active.filter((a) => !a.clientPackageId).reduce((t, a) => t + a.totalPrice, 0);
+  // O que o pacote já pagou na venda não entra no "previsto" do dia (só extras e deslocamento)
+  const expected = active.reduce((t, a) => t + amountDue(a, packages), 0);
   const dayHours = hoursForDay(selected, businessHours);
   const dayOff = timeOffOn(selected, blocks);
   const closedDay = !dayHours.isOpen || !!dayOff;

@@ -15,6 +15,7 @@ import { notify } from '@/lib/confirm';
 import { formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone, initials, maskDocument } from '@/lib/format';
 import { formatAddress } from '@/lib/hours';
+import { amountDue } from '@/lib/packages';
 import { whatsappProvider } from '@/services/messaging';
 import { colors, paymentLabels } from '@/theme/colors';
 
@@ -54,6 +55,10 @@ export default function Comprovante() {
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
   const remaining = pkg ? pkg.totalSessions - pkg.usedSessions : 0;
   const method = income?.paymentMethod;
+  // Pacote paga uma sessão do serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
+  const due = amountDue(appt, packages);
+  const pkgItem = pkg ? appt.services.find((s) => s.serviceId === pkg.serviceId) : undefined;
+  const priceLabel = (s: (typeof appt.services)[number]) => (s === pkgItem ? 'pacote' : formatBRL(s.price));
   const address = formatAddress(profile);
   const contact = [formatPhone(profile.phone), profile.instagram ? `@${profile.instagram}` : '']
     .filter(Boolean)
@@ -68,11 +73,11 @@ export default function Comprovante() {
       `👤 ${client!.name}`,
       `📅 ${fullDate(start)} às ${formatTime(start)}`,
       '',
-      ...appt!.services.map((s) => (pkg ? `✨ ${s.name}` : `✨ ${s.name} — ${formatBRL(s.price)}`)),
+      ...appt!.services.map((s) => `✨ ${s.name} — ${priceLabel(s)}`),
+      appt!.travelFee ? `🚗 Deslocamento — ${formatBRL(appt!.travelFee)}` : '',
       '',
-      pkg
-        ? `🎟️ *Descontado do pacote* "${pkg.name}"\nRestam ${remaining} de ${pkg.totalSessions} sessões`
-        : `💳 *Total pago: ${formatBRL(appt!.totalPrice)}*${method ? ` (${paymentLabels[method]})` : ''}`,
+      pkg ? `🎟️ *Descontado do pacote* "${pkg.name}"\nRestam ${remaining} de ${pkg.totalSessions} sessões` : '',
+      !pkg || due > 0 ? `💳 *Total pago: ${formatBRL(due)}*${method ? ` (${paymentLabels[method]})` : ''}` : '',
       '',
       address ? `📍 ${address}` : '',
       profile.instagram ? `📷 @${profile.instagram}` : '',
@@ -161,8 +166,9 @@ export default function Comprovante() {
           <View className="my-3 h-px bg-line" />
 
           {appt.services.map((s) => (
-            <Line key={s.serviceId} label={s.name} value={pkg ? 'pacote' : formatBRL(s.price)} />
+            <Line key={s.serviceId} label={s.name} value={priceLabel(s)} />
           ))}
+          {appt.travelFee ? <Line label="Deslocamento" value={formatBRL(appt.travelFee)} /> : null}
 
           <View className="my-3 h-px bg-line" />
 
@@ -173,12 +179,13 @@ export default function Comprovante() {
                 {pkg.name} · Restam {remaining} de {pkg.totalSessions} sessões
               </Text>
             </View>
-          ) : (
-            <>
-              <Line label="Total pago" value={formatBRL(appt.totalPrice)} strong />
+          ) : null}
+          {!pkg || due > 0 ? (
+            <View className={pkg ? 'mt-3' : ''}>
+              <Line label="Total pago" value={formatBRL(due)} strong />
               <Line label="Forma de pagamento" value={method ? paymentLabels[method] : '—'} />
-            </>
-          )}
+            </View>
+          ) : null}
 
           <View className="mt-5 items-center">
             {address ? <Text className="text-center text-[11px] leading-4 text-muted">{address}</Text> : null}

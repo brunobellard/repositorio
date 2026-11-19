@@ -18,7 +18,7 @@ import {
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
 import { addDays, atMinutes, startOfDay } from '@/lib/dates';
-import { feeFor } from '@/lib/packages';
+import { amountDue, feeFor } from '@/lib/packages';
 import {
   describeOp,
   isNetworkError,
@@ -284,6 +284,8 @@ interface Store {
   removeBlock: (id: string) => Promise<void>;
   addClient: (c: Omit<Client, 'id'>) => Promise<Client | null>;
   addTransaction: (t: Omit<Transaction, 'id' | 'grossAmount' | 'feeAmount' | 'netAmount'>) => Promise<boolean>;
+  /** Exclui uma despesa lançada à mão (receitas saem ao desfazer a conclusão ou o pacote). */
+  deleteExpense: (id: string) => Promise<boolean>;
   updateTemplate: (t: MessageTemplate) => Promise<boolean>;
   loadExampleData: () => Promise<void>;
 
@@ -900,6 +902,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       await flushOutbox(); // mantém a ordem das alterações feitas offline
 
+      // Pacote e domicílio vão na mesma chamada: o banco grava tudo junto ou nada
+      const extra = {
+        ...(clientPackageId ? { p_client_package_id: clientPackageId } : {}),
+        ...(home ? { p_location_type: 'home_service', p_service_address: serviceAddress ?? null, p_travel_fee: fee } : {}),
+      };
       let ids: string[];
       if (starts.length === 1) {
         const { data, error } = await supabase.rpc('create_appointment', {
@@ -907,6 +914,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           p_starts_at: starts[0],
           p_service_ids: serviceIds,
           p_notes: notes ?? null,
+          ...extra,
         });
         if (error) {
           fail(error);
@@ -920,28 +928,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           p_service_ids: serviceIds,
           p_notes: notes ?? null,
           p_recurrence_rule: recurrenceRule ?? null,
+          ...extra,
         });
         if (error) {
           fail(error);
           return 0;
         }
         ids = (data as any[]).map((r) => r.id);
-      }
-      // Sessões pagas com crédito de pacote
-      if (clientPackageId) {
-        const { error } = await supabase
-          .from('appointments')
-          .update({ client_package_id: clientPackageId })
-          .in('id', ids);
-        if (error) fail(error);
-      }
-      // Atendimento a domicílio: local e taxa (o banco soma a taxa ao total)
-      if (home) {
-        const { error } = await supabase
-          .from('appointments')
-          .update({ location_type: 'home_service', service_address: serviceAddress ?? null, travel_fee: fee })
-          .in('id', ids);
-        if (error) fail(error);
       }
       const { data: full } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
       if (full) setAppointments((list) => [...list, ...full.map(toAppointment)]);
@@ -1010,8 +1003,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setPackages((list) =>
             list.map((p) => (p.id === appt.clientPackageId ? { ...p, usedSessions: p.usedSessions + 1 } : p)),
           );
-        } else if (method) {
-          const gross = appt.totalPrice;
+        }
+        const gross = amountDue(appt, packages);
+        if (method && gross > 0) {
           const fee = feeFor(gross, method, profile.paymentFees);
           setTransactions((list) => [
             {
@@ -1041,12 +1035,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         p_payment_method: method ?? null,
       });
       if (error) return fail(error);
-      // Sessão de pacote não gera receita (data vem vazio): só dá baixa no crédito
+      // Receita do que não foi pago pelo pacote (vazio quando o pacote cobre tudo)
       if (data?.id) {
         setTransactions((list) => [toTransaction(data), ...list.filter((t) => t.appointmentId !== id)]);
-      } else {
-        await refreshPackages();
       }
+      if (appointments.find((a) => a.id === id)?.clientPackageId) await refreshPackages();
       await refreshAppointment(id);
       return true;
     },
@@ -1141,6 +1134,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .single();
       if (error) return fail(error);
       setTransactions((list) => [toTransaction(data), ...list]);
+      return true;
+    },
+
+    async deleteExpense(id) {
+      const { error } = await supabase.from('transactions').delete().eq('id', id).eq('type', 'despesa');
+      if (error) return fail(error);
+      setTransactions((list) => list.filter((t) => t.id !== id));
       return true;
     },
 
