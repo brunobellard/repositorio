@@ -1,6 +1,8 @@
 // Planos de assinatura: preços, limites e recursos de cada nível.
 // As mesmas regras são conferidas no banco (migração 20261121000000_planos_assinatura.sql).
 
+import type { Profile } from '@/types';
+
 export type PlanTier = 'free' | 'basic' | 'pro' | 'enterprise';
 export type BillingCycle = 'monthly' | 'yearly';
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
@@ -194,6 +196,20 @@ export const FEATURES: Record<PlanFeature, { minPlan: PlanTier; title: string; d
     description: 'Atendimento com prioridade.',
   },
 };
+
+/** Plano em vigor a partir do perfil: teste vencido sem assinatura ativa vale como Free (mesma regra do banco). */
+export function effectivePlan(
+  p: Pick<Profile, 'planTier' | 'subscriptionStatus' | 'trialEndsAt'>,
+  now = new Date(),
+): PlanTier {
+  if (p.subscriptionStatus === 'active') return p.planTier;
+  if (p.subscriptionStatus === 'trialing' && p.trialEndsAt && new Date(p.trialEndsAt) > now) return p.planTier;
+  return 'free';
+}
+
+export function planHas(plan: PlanTier, feature: PlanFeature) {
+  return planRank(plan) >= planRank(FEATURES[feature].minPlan);
+}
 
 /** Desconto do plano anual em meses grátis (12x mensal − anual) */
 export const yearlySavings = (p: Plan) => Math.round((p.price.monthly * 12 - p.price.yearly) * 100) / 100;

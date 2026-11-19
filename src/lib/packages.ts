@@ -1,6 +1,16 @@
 // Regras de pacotes pré-pagos e taxas de pagamento.
+import { effectivePlan, planHas } from '@/constants/plans';
 import { startOfDay } from '@/lib/dates';
-import type { Appointment, ClientPackage, PaymentFees, PaymentMethod } from '@/types';
+import type { Appointment, ClientPackage, PaymentFees, PaymentMethod, Profile } from '@/types';
+
+const NO_FEES: PaymentFees = { debit: 0, credit: 0, pix: 0, cash: 0 };
+
+/** Taxas que valem agora: sem o plano com "Taxas de cartão" (ex: depois de baixar para o Free), nada é descontado. */
+export function activeFees(
+  profile: Pick<Profile, 'paymentFees' | 'planTier' | 'subscriptionStatus' | 'trialEndsAt'>,
+): PaymentFees {
+  return planHas(effectivePlan(profile), 'cardFees') ? profile.paymentFees : NO_FEES;
+}
 
 /** Chave do JSON de taxas para cada forma de pagamento */
 export const FEE_KEY: Record<PaymentMethod, keyof PaymentFees> = {

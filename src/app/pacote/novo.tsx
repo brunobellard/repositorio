@@ -10,7 +10,7 @@ import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
 import { addDays, formatDateShort, startOfDay } from '@/lib/dates';
 import { formatBRL, formatPhone, maskBRL, normalize, onlyDigits } from '@/lib/format';
-import { feeFor } from '@/lib/packages';
+import { activeFees, feeFor } from '@/lib/packages';
 import { colors, paymentLabels } from '@/theme/colors';
 import type { PaymentMethod } from '@/types';
 
@@ -49,7 +49,7 @@ export default function VenderPacote() {
   // Sugere o preço cheio até a profissional digitar um valor com desconto
   const total = priceTouched ? price : fullPrice;
   const discount = fullPrice > total ? fullPrice - total : 0;
-  const fee = feeFor(total, method, profile.paymentFees);
+  const fee = feeFor(total, method, activeFees(profile));
   const autoName = service ? `Pacote ${sessions}x ${service.name}` : '';
   const expiresAt = validity ? addDays(startOfDay(new Date()), validity) : null;
 

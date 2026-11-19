@@ -18,7 +18,7 @@ import {
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
 import { addDays, atMinutes, startOfDay } from '@/lib/dates';
-import { amountDue, feeFor } from '@/lib/packages';
+import { activeFees, amountDue, feeFor } from '@/lib/packages';
 import {
   describeOp,
   isNetworkError,
@@ -1006,7 +1006,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         const gross = amountDue(appt, packages);
         if (method && gross > 0) {
-          const fee = feeFor(gross, method, profile.paymentFees);
+          const fee = feeFor(gross, method, activeFees(profile));
           setTransactions((list) => [
             {
               id: `pendente-${id}`,

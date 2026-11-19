@@ -1,22 +1,12 @@
 // Permissões e limites do plano atual.
 // Teste vencido sem assinatura ativa vale como Free (mesma regra do banco).
-import { FEATURES, PLANS, planRank, type PlanFeature, type PlanTier } from '@/constants/plans';
+import { effectivePlan, PLANS, planHas, type PlanFeature } from '@/constants/plans';
 import { useStore } from '@/data/store';
 import { startOfDay } from '@/lib/dates';
-import type { Profile } from '@/types';
 
 const DAY = 86_400_000;
 
-/** Plano em vigor a partir do perfil (função pura, usada também fora de componentes). */
-export function effectivePlan(p: Pick<Profile, 'planTier' | 'subscriptionStatus' | 'trialEndsAt'>, now = new Date()): PlanTier {
-  if (p.subscriptionStatus === 'active') return p.planTier;
-  if (p.subscriptionStatus === 'trialing' && p.trialEndsAt && new Date(p.trialEndsAt) > now) return p.planTier;
-  return 'free';
-}
-
-export function planHas(plan: PlanTier, feature: PlanFeature) {
-  return planRank(plan) >= planRank(FEATURES[feature].minPlan);
-}
+export { effectivePlan, planHas };
 
 export function usePlanAccess() {
   const { profile, clients, appointments, services } = useStore();

@@ -190,9 +190,11 @@ export default function AjustesScreen() {
             icon="card-outline"
             label="Taxas de pagamento"
             detail={
-              profile.paymentFees.credit || profile.paymentFees.debit
-                ? `Créd. ${String(profile.paymentFees.credit).replace('.', ',')}%`
-                : 'Não definidas'
+              !access.hasCardFees
+                ? undefined
+                : profile.paymentFees.credit || profile.paymentFees.debit
+                  ? `Créd. ${String(profile.paymentFees.credit).replace('.', ',')}%`
+                  : 'Não definidas'
             }
             onPress={() => requireFeature(access.hasCardFees, 'cardFees') && router.push('/ajustes/taxas')}
           />
