@@ -6,8 +6,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Platform, View } from 'react-native';
 
 import { planRank, type PlanTier } from '@/constants/plans';
+import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { effectivePlan } from '@/hooks/usePlanAccess';
+import { THEME_CACHE_KEY } from '@/lib/theme-cache';
 import { applyThemeColors } from '@/theme/colors';
 import {
   DEFAULT_THEME_COLOR,
@@ -18,7 +20,7 @@ import {
   type ThemeColors,
 } from '@/theme/palette';
 
-const CACHE_KEY = 'agenda-beleza:theme-color';
+const CACHE_KEY = THEME_CACHE_KEY;
 
 interface Theme {
   /** Cor principal (HEX) */
@@ -43,6 +45,7 @@ export function allowedThemeColor(hex: string | undefined, plan: PlanTier): stri
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { profile, loading } = useStore();
+  const { session } = useAuth();
   // undefined = ainda lendo o aparelho (a tela de abertura continua visível)
   const [cached, setCached] = useState<string | null | undefined>(undefined);
 
@@ -52,8 +55,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       .catch(() => setCached(null));
   }, []);
 
-  const fromProfile = profile.id && !loading ? allowedThemeColor(profile.themeColor, effectivePlan(profile)) : null;
-  const color = fromProfile ?? cached ?? DEFAULT_THEME_COLOR;
+  // Sem sessão (tela de login): sempre a cor padrão, nunca a do estúdio que usou o aparelho antes
+  const fromProfile =
+    session && profile.id && !loading ? allowedThemeColor(profile.themeColor, effectivePlan(profile)) : null;
+  const color = (session ? (fromProfile ?? cached) : null) ?? DEFAULT_THEME_COLOR;
   const theme = useMemo(() => deriveTheme(color), [color]);
   // Ícones e estilos que usam colors.primary (src/theme/colors.ts)
   applyThemeColors(theme);

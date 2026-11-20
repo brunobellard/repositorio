@@ -6,7 +6,7 @@ import { LegalConsentBox } from '@/components/legal-consent-box';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
-import { confirmAction } from '@/lib/confirm';
+import { confirmAction, notify } from '@/lib/confirm';
 import { setNextLoginMode } from '@/lib/login-mode';
 
 /**
@@ -49,9 +49,15 @@ export function TermsStep() {
         if (fresh) {
           const err = await deleteAccount();
           if (!err) return;
-          // Não deu para apagar (ex: sem internet): sai mesmo assim; a conta fica e pode ser usada no login
+          // Não deu para apagar (ex: sem internet): sai mesmo assim e avisa que a conta continua existindo
+          notify(
+            'A conta não foi apagada',
+            'Sem conexão para apagar agora. Ela continua criada: entre com o mesmo e-mail e senha quando quiser, ou apague em Ajustes.',
+            'info',
+          );
         }
         await signOut();
+        setBusy(false);
       },
       fresh ? 'Apagar e sair' : 'Sair',
     );

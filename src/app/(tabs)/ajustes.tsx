@@ -290,7 +290,7 @@ export default function AjustesScreen() {
                 'Sair da conta?',
                 pendingSync
                   ? `${pendingSync === 1 ? 'Há 1 alteração feita sem internet que ainda não foi enviada' : `Há ${pendingSync} alterações feitas sem internet que ainda não foram enviadas`}. Se sair agora, ${pendingSync === 1 ? 'ela será perdida' : 'elas serão perdidas'}. Conecte-se à internet e espere sincronizar antes de sair.`
-                  : 'Os dados guardados neste aparelho serão apagados. Você precisará entrar de novo com e-mail e senha.',
+                  : 'Os dados guardados neste aparelho serão apagados e ele deixa de receber os avisos de agendamento. Você precisará entrar de novo com e-mail e senha (e escolher de novo se quer entrar com digital).',
                 signOut,
                 pendingSync ? 'Sair e perder' : 'Sair',
               )

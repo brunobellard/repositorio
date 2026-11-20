@@ -517,6 +517,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [historyFrom, setHistoryFrom] = useState<string | null>(historyWindowStart);
   const fullHistory = useRef(false);
 
+  // Saiu ou trocou de conta: limpa da memória tudo da conta anterior
+  // (antes, nome do estúdio, clientes e cor ficavam na memória até a próxima carga)
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (userId !== prevUserId) {
+    setPrevUserId(userId);
+    setLoadedFor(null);
+    setProfile(emptyProfile);
+    setServices([]);
+    setClients([]);
+    setAppointments([]);
+    setBlocks([]);
+    setTransactions([]);
+    setTemplates([]);
+    setPackages([]);
+    setServiceAreas([]);
+    setBusinessHours(defaultBusinessHours);
+    setHistoryFrom(historyWindowStart);
+  }
+
+  // Conta atual, para descartar respostas que chegam depois de sair ou trocar de conta
+  const activeUser = useRef(userId);
+  useEffect(() => {
+    activeUser.current = userId;
+  }, [userId]);
+
   // Offline: conexão, fila de alterações pendentes e sincronização
   const online = useOnline();
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
@@ -617,6 +642,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Sem a tabela (migração de domicílio pendente): lista vazia
       supabase.from('service_areas').select('*').order('neighborhood_name'),
     ]);
+    // Saiu ou trocou de conta enquanto carregava: descarta (não mistura dados de contas diferentes)
+    if (activeUser.current !== userId) return false;
     const firstError = [p, s, c, a, b, t, m].find((r) => r.error)?.error;
     // Sem internet: não mexe nos dados da tela (o cache continua valendo)
     if (firstError && isNetworkError(firstError)) return false;
@@ -773,6 +800,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             .order('id'),
         ),
       ]);
+      if (activeUser.current !== userId) return null; // saiu ou trocou de conta enquanto buscava
       if (a.error || t.error) {
         fail(a.error ?? t.error);
         return null;

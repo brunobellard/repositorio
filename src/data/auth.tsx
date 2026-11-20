@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { LEGAL_INFO } from '@/constants/legal';
 import { setBiometricEnabled } from '@/lib/biometrics';
 import { friendlyError, supabase } from '@/lib/supabase';
+import { clearThemeCache } from '@/lib/theme-cache';
 import { webBaseUrl } from '@/lib/web';
 import { clearOfflineData, isNetworkError } from '@/services/offlineSync';
 
@@ -68,10 +69,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
 
     async signOut() {
-      // Apaga a cópia local dos dados e a fila offline: o aparelho pode ser de outra pessoa
       const uid = session?.user.id;
-      if (uid) await clearOfflineData(uid);
-      await supabase.auth.signOut();
+      if (uid) {
+        // Este aparelho para de receber os avisos desta conta (com internet; sem ela, segue sem travar)
+        await supabase
+          .from('profiles')
+          .update({ expo_push_token: null })
+          .eq('id', uid)
+          .then(
+            () => {},
+            () => {},
+          );
+        // Apaga a cópia local dos dados e a fila offline: o aparelho pode ser de outra pessoa
+        await clearOfflineData(uid);
+      }
+      // Preferências do aparelho que não devem passar para a próxima conta
+      await setBiometricEnabled(false).catch(() => {});
+      await clearThemeCache();
+      // 'local': sai deste aparelho na hora, mesmo sem internet (o padrão 'global' falha offline e mantém a sessão)
+      await supabase.auth.signOut({ scope: 'local' });
     },
 
     termsAccepted: !!session?.user.user_metadata?.terms_accepted_at,
@@ -112,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Conta apagada no servidor: limpa tudo o que ficou neste aparelho
       await clearOfflineData(uid);
       await setBiometricEnabled(false).catch(() => {});
+      await clearThemeCache();
       await supabase.auth.signOut({ scope: 'local' });
       return null;
     },

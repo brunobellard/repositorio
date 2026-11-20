@@ -23,7 +23,7 @@ export default function Login() {
   const [message, setMessage] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
   // Entrar com digital nas próximas aberturas: desligado até a pessoa escolher
-  const [useBiometric, setUseBiometric] = useState(biometric.enabled);
+  const [useBiometric, setUseBiometric] = useState(false);
   const scrollRef = useRef<ScrollViewInstance>(null);
   // Teclado aberto: rola até o campo tocado (e-mail e senha ficam no fim do formulário)
   const revealField = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
@@ -37,6 +37,7 @@ export default function Login() {
     if (!valid || busy) return;
     setBusy(true);
     setMessage(null);
+    biometric.beginPasswordLogin(); // a sessão que vai chegar foi aberta com a senha: não pede a digital
     const err = creating
       ? await signUp(email, password, businessName, ownerName)
       : await signIn(email, password);
