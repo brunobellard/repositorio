@@ -6,8 +6,7 @@
 export const LEGAL_INFO = {
   appName: 'Agenda Beleza',
   /** Razão social ou nome de quem oferece o app (controlador dos dados da conta) */
-  // CONFERIR antes de publicar nas lojas: a razão social precisa ser a mesma do cartão do CNPJ abaixo
-  company: 'Agenda Beleza Tecnologia Ltda.',
+  company: 'DataCore Intelligence',
   /** CNPJ ou CPF do responsável (deixe vazio para não exibir) */
   document: '68.947.841/0001-44',
   /** E-mail para suporte, privacidade e pedidos do titular (LGPD art. 18) */
