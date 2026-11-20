@@ -48,12 +48,10 @@ Deno.serve(async (req) => {
       await admin.storage.from('logos').remove(files.map((f) => `${user.id}/${f.name}`));
     }
 
-    // 2. Dados do estúdio, na ordem certa (ver purge_account_data na migração)
-    const { error: purgeError } = await admin.rpc('purge_account_data', { p_owner: user.id });
-    if (purgeError) throw purgeError;
-
-    // 3. A conta: apaga o login e, em cascata, o perfil
-    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+    // 2. Dados do estúdio e o login numa única operação do banco (tudo ou nada; ver
+    //    delete_account na migração). Antes eram duas etapas: se a segunda falhasse,
+    //    a conta ficava vazia mas continuava existindo.
+    const { error: deleteError } = await admin.rpc('delete_account', { p_owner: user.id });
     if (deleteError) throw deleteError;
 
     return json({ ok: true });

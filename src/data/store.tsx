@@ -1489,6 +1489,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const plan = effectivePlan(profile);
       const clientLimit = PLANS[plan].limits.clients;
       // No Free (10 clientes), no máximo 5 de exemplo: as outras vagas ficam para as clientes reais
+      // Já carregados antes (as clientes de exemplo já estão na lista): não duplica tudo de novo
+      const existing = new Set(clients.filter((c) => !c.removed).map((c) => c.name.trim().toLowerCase()));
+      if (mockClients.filter((c) => existing.has(c.name.toLowerCase())).length >= 2) {
+        notify('Exemplos já carregados', 'As clientes e os atendimentos de exemplo já estão no app.', 'info');
+        return false;
+      }
       const room = clientLimit === null ? mockClients.length : Math.max(0, Math.min(5, clientLimit - clients.filter((c) => !c.removed).length));
       const exampleClients = mockClients.slice(0, Math.min(mockClients.length, room));
       if (!exampleClients.length) {
@@ -1521,22 +1527,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await supabase.from('profiles').update({ payment_fees: exampleFees }).eq('id', userId!);
       }
       const clientIdMap = new Map(exampleClients.map((c, i) => [c.id, newClients[i].id as string]));
+      const newClientIds = newClients.map((c) => c.id as string);
       const serviceIdByName = new Map(services.map((s) => [s.name, s.id]));
+      const activeServiceIds = services.filter((s) => s.active).map((s) => s.id);
       const mockTx = new Map(mockTransactions.filter((t) => t.appointmentId).map((t) => [t.appointmentId, t]));
 
-      for (const a of mockAppointments) {
-        const serviceIds = a.services.map((s) => serviceIdByName.get(s.name)).filter(Boolean) as string[];
-        if (!serviceIds.length || !clientIdMap.has(a.clientId)) continue;
+      for (const [i, a] of mockAppointments.entries()) {
+        // Os serviços cadastrados no primeiro acesso costumam ter outros nomes que os de exemplo,
+        // e no Free só algumas clientes de exemplo são criadas: antes quase nenhum atendimento
+        // era criado. Agora usa os serviços e as clientes que existem, em rodízio.
+        const byName = [
+          ...new Set(a.services.map((s) => serviceIdByName.get(s.name)).filter((x): x is string => !!x)),
+        ];
+        const serviceIds = byName.length
+          ? byName
+          : activeServiceIds.length
+            ? [activeServiceIds[i % activeServiceIds.length]]
+            : [];
+        if (!serviceIds.length) break; // nenhum serviço ativo: não dá para criar atendimentos
         if (apptBudget <= 0) break;
-        apptBudget--;
+        const clientId = clientIdMap.get(a.clientId) ?? newClientIds[i % newClientIds.length];
         const { data: appt, error: e } = await supabase.rpc('create_appointment', {
-          p_client_id: clientIdMap.get(a.clientId),
+          p_client_id: clientId,
           p_starts_at: a.startsAt,
           p_service_ids: serviceIds,
           p_notes: a.notes ?? null,
           p_status: a.status,
         });
         if (e || !appt) continue; // ex: horário já ocupado por agendamento real
+        apptBudget--; // só conta o que foi criado de verdade
         const tx = mockTx.get(a.id);
         if (a.status === 'concluido' && tx) {
           await supabase.from('transactions').insert({

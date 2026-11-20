@@ -53,6 +53,32 @@ export function friendlyError(error: { code?: string; message?: string } | null 
       return 'Senha fraca: use pelo menos 6 caracteres.';
     case 'email_not_confirmed':
       return 'Confirme seu e-mail antes de entrar.';
+    case 'email_exists':
+      return 'Já existe uma conta com este e-mail.';
+    case 'same_password':
+      return 'A nova senha precisa ser diferente da atual.';
+    case 'email_address_invalid':
+    case 'validation_failed':
+      return 'Confira o e-mail digitado.';
+    case 'over_email_send_rate_limit':
+      return 'Muitos e-mails enviados em pouco tempo. Espere alguns minutos e tente de novo.';
+    case 'over_request_rate_limit':
+      return 'Muitas tentativas em pouco tempo. Espere alguns minutos e tente de novo.';
+    case 'signup_disabled':
+      return 'Novos cadastros estão pausados no momento.';
+    case 'user_banned':
+      return 'Esta conta está bloqueada. Fale com o suporte.';
+    case 'otp_expired':
+      return 'O link expirou. Peça um novo e-mail.';
+    case 'session_expired':
+    case 'session_not_found':
+    case 'refresh_token_not_found':
+    case 'refresh_token_already_used':
+      return 'Sua sessão expirou. Entre de novo.';
+  }
+  // Outros erros de login vêm em inglês do Supabase: mostra um texto em português
+  if ((error as { name?: string }).name?.startsWith('Auth')) {
+    return 'Não foi possível concluir agora. Tente de novo em instantes.';
   }
   return error.message ?? 'Erro desconhecido';
 }

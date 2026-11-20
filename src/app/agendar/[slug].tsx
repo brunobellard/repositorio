@@ -32,6 +32,8 @@ import type { BusinessHours, Profile } from '@/types';
 
 /** Janela de agendamento (o banco aceita até 90 dias) */
 const DAYS_AHEAD = 60;
+/** Máximo de serviços num agendamento pelo link (o banco recusa mais que isso) */
+const MAX_SERVICES = 6;
 /** Antecedência mínima (o banco exige 30 min) */
 const MIN_NOTICE_MIN = 60;
 
@@ -95,18 +97,39 @@ const isoDate = (d: Date) =>
  * Horários ocupados (agendamentos, folgas e bloqueios) dos próximos dias.
  * A função do banco devolve só início e fim — nenhum dado de outras clientes.
  */
-async function fetchBusySlots(slug: string): Promise<Busy[]> {
+async function fetchBusySlots(slug: string): Promise<Busy[] | null> {
   // Um dia de folga para cada lado: quem abre o link pode estar em outro fuso
   const from = addDays(startOfDay(new Date()), -1);
-  const { data } = await supabase.rpc('get_public_busy_slots', {
+  const { data, error } = await supabase.rpc('get_public_busy_slots', {
     p_slug: slug,
     p_start_date: isoDate(from),
     p_end_date: isoDate(addDays(from, DAYS_AHEAD + 2)),
   });
+  // Falhou (ex: sem internet): null, para a tela não mostrar todos os horários como livres
+  if (error) return null;
   return ((data as { start_time: string; end_time: string }[]) ?? []).map((b) => ({
     start: new Date(b.start_time).getTime(),
     end: new Date(b.end_time).getTime(),
   }));
+}
+
+/**
+ * Mensagem para a cliente. As regras do link (horário ocupado, limite de pedidos, WhatsApp
+ * inválido...) já vêm do banco em português e são mostradas como estão; qualquer outro erro
+ * (técnico, em inglês, sem internet) vira um texto simples.
+ */
+function bookingError(e: { code?: string; message?: string }): string {
+  if (/network request failed|failed to fetch|fetch failed|networkerror|load failed/i.test(e.message ?? '')) {
+    return 'Sem conexão com a internet. Confira sua conexão e tente de novo.';
+  }
+  // raise exception do banco sem código próprio = P0001 (mensagens escritas para a cliente)
+  // Limite do plano do estúdio: código interno, não é texto para a cliente
+  if (/PLAN_LIMIT/.test(e.message ?? '')) {
+    return 'O estúdio não está recebendo agendamentos pelo link agora. Fale com o estúdio pelo WhatsApp.';
+  }
+  if (e.code === 'P0001' && e.message) return e.message;
+  if (e.code === '23P01') return 'Esse horário acabou de ser ocupado. Escolha outro.';
+  return 'Não foi possível agendar agora. Tente de novo ou fale com o estúdio pelo WhatsApp.';
 }
 
 interface Booked {
@@ -179,6 +202,9 @@ export default function AgendarOnline() {
   const [studio, setStudio] = useState<PublicStudio | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState<Busy[]>([]);
+  // Não deu para saber os horários ocupados: nenhum horário aparece como livre até carregar
+  const [busyFailed, setBusyFailed] = useState(false);
+  const [busyLoading, setBusyLoading] = useState(false);
   const [step, setStep] = useState<Step>('services');
   // Atendimento a domicílio: local escolhido, bairro e endereço
   const [locationType, setLocationType] = useState<'fixed' | 'home_service'>('fixed');
@@ -205,7 +231,11 @@ export default function AgendarOnline() {
 
   // Recarrega os horários ocupados (ex: depois de alguém ocupar o horário escolhido)
   async function loadBusy() {
-    setBusy(await fetchBusySlots(slug));
+    setBusyLoading(true);
+    const slots = await fetchBusySlots(slug);
+    setBusyLoading(false);
+    setBusyFailed(!slots);
+    if (slots) setBusy(slots);
   }
 
   useEffect(() => {
@@ -219,7 +249,9 @@ export default function AgendarOnline() {
       }
       setStudio(data as PublicStudio);
       const slots = await fetchBusySlots(slug);
-      if (!cancelled) setBusy(slots);
+      if (cancelled) return;
+      setBusyFailed(!slots);
+      if (slots) setBusy(slots);
     })();
     return () => {
       cancelled = true;
@@ -331,7 +363,7 @@ export default function AgendarOnline() {
 
   function freeSlots(d: Date): number[] {
     const h = hoursForDay(d, hours);
-    if (!h.isOpen || !duration) return [];
+    if (!h.isOpen || !duration || busyFailed) return [];
     // Domicílio: só os dias da semana em que o estúdio atende o bairro escolhido
     if (home && (!area || !area.allowed_days.includes(d.getDay()))) return [];
     // Folgas e bloqueios vêm como horários ocupados: um dia de folga fica sem horários livres
@@ -351,13 +383,16 @@ export default function AgendarOnline() {
 
   function dayState(d: Date): 'past' | 'closed' | 'full' | 'open' {
     if (d < today || d > lastDay) return 'past';
+    if (busyFailed) return 'full';
     if (!hoursForDay(d, hours).isOpen) return 'closed';
     if (home && area && !area.allowed_days.includes(d.getDay())) return 'closed';
     return freeSlots(d).length ? 'open' : 'full';
   }
 
   const toggleService = (id: string) => {
-    setServiceIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+    setServiceIds((ids) =>
+      ids.includes(id) ? ids.filter((x) => x !== id) : ids.length >= MAX_SERVICES ? ids : [...ids, id],
+    );
     setTime(null);
   };
 
@@ -382,9 +417,9 @@ export default function AgendarOnline() {
     });
     setSending(false);
     if (e) {
-      setError(e.message || 'Não foi possível agendar. Tente outro horário.');
+      setError(bookingError(e));
       // O horário pode ter sido ocupado: atualiza a disponibilidade
-      if (/ocupad|indispon/i.test(e.message ?? '')) loadBusy();
+      if (/ocupad|indispon/i.test(e.message ?? '') || e.code === '23P01') loadBusy();
       return;
     }
     setBooked(data as Booked);
@@ -459,6 +494,11 @@ export default function AgendarOnline() {
             </View>
           </View>
         ))}
+        {serviceIds.length >= MAX_SERVICES ? (
+          <Text className="mb-3 text-center text-[13px] text-muted">
+            Dá para escolher até {MAX_SERVICES} serviços por agendamento. Para mais, fale com o estúdio.
+          </Text>
+        ) : null}
         {!services.length ? (
           <Text className="text-center text-[14px] text-muted">Nenhum serviço disponível para agendamento online.</Text>
         ) : null}
@@ -592,6 +632,18 @@ export default function AgendarOnline() {
           current={stepIndex('date')}
           onBack={() => setStep(needsLocal ? 'local' : 'services')}
         />
+        {busyFailed ? (
+          <View className="mb-3 rounded-2xl bg-[#F8E9EA] px-4 py-3">
+            <Text className="text-[13px] text-[#B2474F]">
+              Não foi possível carregar os horários livres. Confira sua internet e tente de novo.
+            </Text>
+            <Pressable onPress={loadBusy} disabled={busyLoading} hitSlop={8} className="mt-2 self-start">
+              <Text className="text-[13px] font-semibold text-[#B2474F]">
+                {busyLoading ? 'Carregando…' : 'Tentar de novo'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
         <View className="rounded-card border border-line bg-surface p-4">
           <View className="mb-2 flex-row items-center justify-between">
             <Pressable

@@ -86,6 +86,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: { data: { business_name: businessName.trim(), owner_name: ownerName.trim() } },
       });
       if (error) return friendlyError(error);
+      // E-mail já cadastrado: com a confirmação de e-mail ligada, o Supabase não dá erro (para
+      // não revelar quem tem conta) e devolve um usuário sem identidades. Antes o app dizia
+      // "Conta criada!" e nenhum e-mail chegava.
+      if (!data.session && data.user && !data.user.identities?.length) {
+        return 'Já existe uma conta com este e-mail. Entre com sua senha ou use "Esqueci minha senha".';
+      }
       if (!data.session) {
         return 'Conta criada! Confirme o e-mail que enviamos e depois entre com sua senha.';
       }

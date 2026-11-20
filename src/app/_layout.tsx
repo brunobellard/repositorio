@@ -96,13 +96,20 @@ function PushSetup({ active }: { active: boolean }) {
       return;
     }
     if (!profile.pushNotificationsEnabled) return;
-    if (registeredFor.current === profile.id) return;
+    // Já registrado nesta abertura e o token continua salvo: nada a fazer. Se o token sumiu
+    // (saiu da conta em outro aparelho, plano voltou a ter push), registra de novo; antes
+    // só voltava a receber avisos depois de fechar e abrir o app.
+    if (registeredFor.current === profile.id && profile.expoPushToken) return;
     registeredFor.current = profile.id;
     registerForPushAsync()
       .then((r) => {
         if (r.ok && r.token !== profile.expoPushToken) updateProfile({ expoPushToken: r.token });
+        // Falha passageira (ex: sem internet): tenta de novo na próxima vez que o perfil mudar
+        if (!r.ok && r.reason === 'error') registeredFor.current = null;
       })
-      .catch(() => {}); // falha de push nunca deve atrapalhar o uso do app
+      .catch(() => {
+        registeredFor.current = null; // falha de push nunca deve atrapalhar o uso do app
+      });
   }, [active, hasPush, profile.id, profile.pushNotificationsEnabled, profile.expoPushToken, updateProfile]);
 
   return null;
