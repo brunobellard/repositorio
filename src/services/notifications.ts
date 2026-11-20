@@ -8,6 +8,7 @@
 //
 // Importante: no Android, o Expo Go NÃO recebe push remoto desde o SDK 53.
 // Para testar o push de verdade é preciso um "development build" (eas build).
+import { isRunningInExpoGo } from 'expo';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -43,11 +44,12 @@ export type PushRegistration =
   | { ok: false; reason: 'web' | 'simulator' | 'denied' | 'expo-go-android' | 'no-project' | 'error'; message: string };
 
 
-/** No Expo Go do Android o push remoto não existe (SDK 53+): nem tenta registrar. */
-export const pushUnsupportedHere = isExpoGoAndroid();
-function isExpoGoAndroid() {
-  return Platform.OS === 'android' && Constants.executionEnvironment === 'storeClient';
-}
+/**
+ * No Expo Go do Android não há push (SDK 53+) e o módulo de canais falha: nem tenta registrar.
+ * isRunningInExpoGo() é a forma oficial; executionEnvironment 'storeClient' também vale
+ * para builds de desenvolvimento, então não serve para distinguir.
+ */
+export const pushUnsupportedHere = Platform.OS === 'android' && isRunningInExpoGo();
 
 /**
  * Pede permissão e devolve o ExpoPushToken deste aparelho.
@@ -101,7 +103,13 @@ export async function registerForPushAsync(): Promise<PushRegistration> {
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
     return { ok: true, token: data };
   } catch (e) {
-    return { ok: false, reason: 'error', message: e instanceof Error ? e.message : 'Erro ao configurar notificações.' };
+    // Mensagem técnica fica só no log; a tela mostra um texto claro
+    console.warn('[push] falha ao registrar', e);
+    return {
+      ok: false,
+      reason: 'error',
+      message: 'Não foi possível ativar as notificações neste aparelho. Feche e abra o app e tente de novo.',
+    };
   }
 }
 

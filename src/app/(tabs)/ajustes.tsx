@@ -80,17 +80,16 @@ export default function AjustesScreen() {
       // Garante um token atualizado antes do teste
       const r = await registerForPushAsync();
       if (r.ok && r.token !== profile.expoPushToken) await updateProfile({ expoPushToken: r.token });
-      if (!r.ok && r.reason !== 'expo-go-android') {
-        notify('Não foi possível testar', r.message);
+      if (!r.ok) {
+        notify(
+          r.reason === 'expo-go-android' ? 'Notificações indisponíveis no Expo Go' : 'Não foi possível testar',
+          r.message,
+          'info',
+        );
         return;
       }
-      const via = await sendTestNotificationAsync(r.ok ? r.token : undefined);
-      notify(
-        'Notificação enviada',
-        via === 'push'
-          ? 'Enviada pelo serviço de push da Expo. Ela deve aparecer em alguns segundos.'
-          : 'Notificação local exibida. No Expo Go (Android) o push remoto não funciona; use a versão de desenvolvimento do app.',
-      );
+      await sendTestNotificationAsync(r.token);
+      notify('Notificação enviada', 'Enviada pelo serviço de push da Expo. Ela deve aparecer em alguns segundos.');
     } catch (e) {
       notify('Falha no envio', e instanceof Error ? e.message : undefined);
     } finally {
