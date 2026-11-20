@@ -1,11 +1,23 @@
-# CT-E2E-02 Novo agendamento com cliente nova (a partir da Agenda, já logado)
+# CT-E2E-02 Novo agendamento com cliente nova, até salvar (conta de teste, já logado ou não)
+# Usa a semana que vem (terça-feira, dia útil no expediente da conta de teste) e o 1º horário livre.
+# Cria a cliente "QA Maestro" e um agendamento: apague-os depois pela ficha da cliente.
 appId: host.exp.exponent
 ---
 - runFlow:
     when:
       visible: "Entrar"
     file: 01-login.yaml
-- tapOn: "+ Novo agendamento"
+- extendedWaitUntil:
+    visible: "Agenda"
+    timeout: 30000
+# Agenda: próxima semana > terça-feira (o novo agendamento abre já nesse dia)
+- tapOn: "Próximo período"
+- tapOn: "terça-feira, .*"
+- tapOn: "Novo agendamento"
+- extendedWaitUntil:
+    visible: "Nova cliente"
+    timeout: 15000
+# Cliente nova pelo atalho do formulário
 - tapOn: "Nova cliente"
 - tapOn: "Nome da cliente"
 - inputText: "QA Maestro"
@@ -15,9 +27,19 @@ appId: host.exp.exponent
 - tapOn: "Salvar"
 - assertVisible: "QA Maestro"
 - takeScreenshot: ct-e2e-02-cliente-escolhida
-# Serviço, dia e horário dependem do catálogo da conta de teste: escolha o primeiro de cada
+# Serviço da massa de dados (docs/qa/massa-de-dados.md)
+- tapOn: "QA Manicure.*"
+# Primeiro horário livre (os ocupados ficam desabilitados)
 - scrollUntilVisible:
-    element: "Salvar agendamento"
+    element: "(?i)repetir agendamento.*"
     direction: DOWN
-    optional: true
+- tapOn:
+    text: "\\d\\d:\\d\\d"
+    enabled: true
+    below: "(?i)hor[aá]rio.*"
 - takeScreenshot: ct-e2e-02-formulario
+- tapOn: "Agendar"
+- extendedWaitUntil:
+    visible: "Agendamento salvo"
+    timeout: 15000
+- takeScreenshot: ct-e2e-02-salvo

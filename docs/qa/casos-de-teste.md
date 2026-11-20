@@ -7,8 +7,8 @@
 ## 1. Conta e acesso
 | ID | Cenário | Passos | Resultado esperado | Pri | Tipo | Status |
 |---|---|---|---|---|---|---|
-| CT-CON-01 | Entrar com dados corretos | Login > e-mail e senha da conta de teste > Entrar | Abre a Agenda | P1 | E2E | ⬜ |
-| CT-CON-02 | Senha errada | Senha incorreta > Entrar | "E-mail ou senha incorretos." | P1 | E2E | ✅ (celular, 20/11) |
+| CT-CON-01 | Entrar com dados corretos | Login > e-mail e senha da conta de teste > Entrar | Abre a Agenda | P1 | E2E | ✅ (Maestro 01, Android, 20/11) |
+| CT-CON-02 | Senha errada | Senha incorreta > Entrar | "E-mail ou senha incorretos." | P1 | E2E | ✅ (celular e Maestro 03, 20/11) |
 | CT-CON-03 | Botão desabilitado com dados incompletos | Sem "@" no e-mail ou senha < 6 | "Entrar" desabilitado | P2 | M (web) | ✅ |
 | CT-CON-11 | E-mail com formato inválido | `ana@` ou `ana@exemplo` | Entrar/Enviar link desabilitados (BUG-004) | P2 | U (CT-FMT-06) + M (web) | ✅ |
 | CT-CON-12 | Leitor de tela no login | Ativar TalkBack/VoiceOver | Anuncia "E-mail", "Senha", "Entrar, botão" (BUG-003) | P3 | M | ✅ (web e celular) |
@@ -36,6 +36,7 @@
 | CT-API-02 | Banco calcula total e "ocupado até" | total = preço; busy_until ≥ fim | P1 | API | ✅ (CI) |
 | CT-API-03 | Banco recusa sobreposição | Erro 23P01 | P1 | API | ✅ (CI) |
 | CT-AGE-11 | Toque duplo em "Salvar" | Só um agendamento criado | P1 | M | ✅ (celular, 20/11) |
+| CT-E2E-02 | Novo agendamento com cliente nova (Maestro 02): cliente pelo atalho, serviço, 1º horário livre, Agendar | "Agendamento salvo" | P1 | E2E | ✅ (Android, 20/11) |
 | CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ⬜ |
 | CT-AGE-13 | Editar só as observações de sessão de série | Sessão não vira exceção da série | P2 | M | ⬜ |
 

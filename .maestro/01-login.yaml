@@ -1,16 +1,28 @@
 # CT-E2E-01 Login com a conta de teste
 appId: host.exp.exponent
 ---
-- openLink: ${APP_URL}
-- extendedWaitUntil:
-    visible: "Entrar"
-    timeout: 30000
+# Abre logado ou na tela de login: espera um dos dois e, se estiver logado, sai.
+# A 1ª montagem do app no Expo Go pode demorar ou falhar ("Failed to download"): tenta de novo.
+- retry:
+    maxRetries: 2
+    commands:
+      - openLink: ${APP_URL}
+      - extendedWaitUntil:
+          visible: "Entrar|Agenda"
+          timeout: 90000
+- runFlow:
+    when:
+      visible: "Agenda"
+    file: comum/sair.yaml
 - tapOn: "voce@email.com"
 - inputText: ${QA_EMAIL}
 - tapOn: "Mínimo 6 caracteres"
 - inputText: ${QA_PASSWORD}
 - hideKeyboard
-- tapOn: "Entrar"
+# Há a aba "Entrar" no topo e o botão "Entrar" embaixo: toca no botão (abaixo de "Esqueci minha senha")
+- tapOn:
+    text: "Entrar"
+    below: "Esqueci minha senha"
 - extendedWaitUntil:
     visible: "Agenda"
     timeout: 30000

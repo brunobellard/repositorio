@@ -1,0 +1,15 @@
+# Subfluxo: sai da conta (Ajustes > Sair > confirmar). Usado quando o app abre já logado.
+appId: host.exp.exponent
+---
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "Sair"
+    direction: DOWN
+- tapOn: "Sair"
+# Alerta nativo "Sair da conta?": o botão de confirmar fica à direita de "Voltar"
+- tapOn:
+    text: "(?i)sair"
+    rightOf: "(?i)voltar"
+- extendedWaitUntil:
+    visible: "Entrar"
+    timeout: 15000
