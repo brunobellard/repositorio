@@ -15,7 +15,9 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Obtido:** "Agenda Beleza Tecnologia Ltda. (CPF/CNPJ **00.000.000/0001-00**)" e contato **contato@agendabeleza.example** (domínio que não recebe e-mail).
 **Evidência:** [bug-001-termos-cnpj.png](evidencias/bug-001-termos-cnpj.png)
 **Correção sugerida:** preencher `LEGAL_INFO` com os dados reais (ou deixar `document` vazio para não exibir) e um e-mail que funcione.
-**Status:** aberto — depende de você informar os dados.
+**Correção (20/11/2026):** CNPJ real (68.947.841/0001-44) e e-mail de contato provisório em `LEGAL_INFO`; data de atualização dos textos: 20 de novembro de 2026. Conferido localmente em /termos e /privacidade.
+**Antes de publicar nas lojas:** (1) trocar o e-mail provisório pelo de contato definitivo; (2) confirmar que a razão social "Agenda Beleza Tecnologia Ltda." é a mesma do cartão do CNPJ.
+**Status:** corrigido parcialmente · e-mail provisório e razão social a confirmar.
 
 ---
 
