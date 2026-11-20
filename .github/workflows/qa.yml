@@ -16,8 +16,8 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -40,10 +40,15 @@ jobs:
       QA_TEST_PASSWORD: ${{ secrets.QA_TEST_PASSWORD }}
       QA_STUDIO_SLUG: ${{ secrets.QA_STUDIO_SLUG }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run test:api -- --ci
+      # Sem segredos, os testes de API são todos pulados e o job fica verde sem testar nada: avisa no resumo
+      - name: Avisar se faltam segredos
+        if: env.QA_TEST_EMAIL == '' || env.QA_TEST_PASSWORD == '' || env.QA_STUDIO_SLUG == '' || env.EXPO_PUBLIC_SUPABASE_URL == ''
+        run: |
+          echo "::warning title=Testes de API incompletos::Faltam segredos do GitHub (EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, QA_TEST_EMAIL, QA_TEST_PASSWORD, QA_STUDIO_SLUG). Os testes que dependem deles foram pulados."

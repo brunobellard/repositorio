@@ -133,9 +133,14 @@ d('regras de negócio (conta de teste)', () => {
     expect((await db.rpc('create_offline_appointment', { p_appointment: appointment, p_services: services })).error).toBeNull();
     apptIds.push(id);
     expect((await db.rpc('create_offline_appointment', { p_appointment: appointment, p_services: services })).error).toBeNull();
-    const { data } = await db.from('appointments').select('id, appointment_services(service_id)').eq('id', id);
-    expect(data).toHaveLength(1);
-    expect(data![0].appointment_services).toHaveLength(1);
+    // Consultas separadas: appointment_services tem duas chaves para appointments (simples e "mesmo dono"),
+    // e o select aninhado fica ambíguo no PostgREST
+    const appts = await db.from('appointments').select('id').eq('id', id);
+    expect(appts.error).toBeNull();
+    expect(appts.data).toHaveLength(1);
+    const items = await db.from('appointment_services').select('service_id').eq('appointment_id', id);
+    expect(items.error).toBeNull();
+    expect(items.data).toHaveLength(1);
   });
 
   it('CT-API-07 fila offline recusa agendamento sem serviço', async () => {
