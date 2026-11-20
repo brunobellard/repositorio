@@ -33,11 +33,21 @@ interface BiometricLock {
 const Ctx = createContext<BiometricLock | null>(null);
 
 export function BiometricLockProvider({ children }: { children: ReactNode }) {
-  const { session, signOut } = useAuth();
+  const { session, signOut, loading: authLoading } = useAuth();
   const [ready, setReady] = useState(false);
   const [support, setSupport] = useState<BiometricSupport>({ available: false, label: 'digital', icon: 'finger-print' });
   const [enabled, setEnabled] = useState(false);
   const [locked, setLocked] = useState(false);
+
+  // Entrou (com senha) ou saiu durante o uso: nada de pedir a digital agora.
+  // A trava da abertura vale só para quem já estava logado quando o app abriu.
+  // (null enquanto a sessão salva ainda está sendo lida, para não confundir a abertura com um login)
+  const hasSession = authLoading ? null : !!session;
+  const [prevHasSession, setPrevHasSession] = useState<boolean | null>(hasSession);
+  if (hasSession !== prevHasSession) {
+    setPrevHasSession(hasSession);
+    if (prevHasSession !== null) setLocked(false);
+  }
   const backgroundAt = useRef<number | null>(null);
 
   // Ao abrir o app: se a biometria estiver ativa, começa bloqueado.
