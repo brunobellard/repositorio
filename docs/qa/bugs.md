@@ -92,3 +92,78 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Reteste:** depois da migração, CT-SEG-11 deve passar nas 5 funções e a VAL-21 não deve mostrar nenhuma linha "PROBLEMA".
 **Reteste em produção (20/11/2026):** migração aplicada no SQL Editor. CT-SEG-11 passou nas 5 funções ("permission denied for function"); `npm run test:api` com 26 passando e nenhuma falha. VAL-21: 3 linhas, só as funções do link público ("ok"), nenhuma "PROBLEMA".
 **Status:** fechado · corrigido e conferido em produção.
+
+---
+
+## BUG-006 · Alta · "Carregar dados de exemplo" põe CNPJ, razão social e endereço fictícios no link público e no comprovante
+**Onde:** Ajustes > Carregar dados de exemplo — `src/data/store.tsx` (`loadExampleData`, usa `exampleStudio` de `src/data/mock.ts`)
+**Passos:**
+1. Conta com "Dados do estúdio" sem razão social, CPF/CNPJ, endereço e Instagram.
+2. Ajustes > Carregar dados de exemplo > confirmar.
+3. Abrir Ajustes > Dados do estúdio; abrir o link público `/agendar/<slug>`; enviar um comprovante.
+
+**Esperado:** os exemplos criam só clientes, agendamentos e despesas, como diz a confirmação ("Serão criadas 12 clientes, agendamentos desta semana e algumas despesas…"). Dados do estúdio continuam vazios.
+**Obtido:** os campos vazios recebem "Ana Lima Beleza e Estética LTDA", CNPJ 12.345.678/0001-90, "Rua Haddock Lobo, 595 – Cerqueira César – São Paulo/SP" e "@studioanalima". O link público mostra esse endereço e Instagram para as clientes, e o comprovante (`recibo.tsx`) mostra a razão social e o CNPJ fictícios. A confirmação não avisa, e não há como remover os exemplos depois.
+**Impacto:** uma profissional que testou com exemplos e começou a usar de verdade sem preencher esses campos manda clientes reais para um endereço inexistente e emite comprovantes com CNPJ de outra empresa.
+**Evidência:** conta de teste em 20/11/2026 — link público `/agendar/qa-estudio` exibindo o endereço e o Instagram de exemplo; Dados do estúdio com o CNPJ de exemplo. (Sem prints: a tela de Ajustes mostra o e-mail da conta.)
+**Correção sugerida:** não preencher dados do estúdio nos exemplos (ou só nome/telefone de demonstração, nunca CNPJ e endereço); citar na confirmação tudo o que será criado; oferecer "Remover dados de exemplo".
+**Status:** aberto · correção para a sessão principal.
+
+---
+
+## BUG-007 · Média · Atendimento futuro pode ser marcado como concluído, e a receita entra com a data de hoje
+**Onde:** detalhe do agendamento — `src/app/agendamento/[id].tsx` (`onStatus`) e `complete_appointment` no banco
+**Passos:**
+1. Criar agendamento para daqui a 3 dias (ex.: QA Ana, 23/11 13:00, Alongamento em gel R$ 160).
+2. Abrir o agendamento > Status > Concluído > Pix.
+3. Abrir Financeiro.
+
+**Esperado:** aviso ("Este atendimento é só em 23/11. Concluir mesmo assim?") ou bloqueio até o horário do atendimento.
+**Obtido:** conclui sem aviso; a receita "Alongamento em gel 20/11 13:27 · Pix + R$ 160,00" entra hoje e soma no "Faturamento do dia" (R$ 470 → R$ 630) de um serviço não feito. O mesmo aconteceu no teste R5 do roteiro: sessão de pacote de 21/11 concluída em 20/11. A cliente também fica sem "última visita" na lista, porque o concluído está no futuro.
+**Observação:** desfazer a conclusão funciona e tira a receita (conferido).
+**Correção sugerida:** confirmar antes de concluir um atendimento que ainda não começou (app) e, se fizer sentido, recusar no banco com mensagem clara.
+**Status:** aberto · correção para a sessão principal.
+
+---
+
+## BUG-008 · Média · Cadastro de cliente aceita WhatsApp incompleto
+**Onde:** Clientes > Nova cliente — `src/app/clientes/nova.tsx` (`canSave` não confere o telefone)
+**Passos:** Nome "QA Telefone Curto", WhatsApp `119` > Cadastrar cliente.
+**Esperado:** "Cadastrar" desabilitado ou aviso "confira o WhatsApp" até ter 10 ou 11 dígitos (o link público já exige isso).
+**Obtido:** cadastra com WhatsApp "119"; a ficha mostra o botão WhatsApp, que abre conversa com um número inexistente (lembretes e comprovantes não chegam).
+**Evidência:** teste na conta de teste em 20/11/2026; cliente apagada em seguida.
+**Correção sugerida:** validar 10–11 dígitos quando preenchido (mesma regra do link) e mostrar "WhatsApp — confira o número" no rótulo, como já é feito com e-mail e data.
+**Status:** aberto · correção para a sessão principal.
+
+---
+
+## BUG-009 · Baixa · Acessibilidade: nomes técnicos ou de exemplo em mais três lugares
+**Onde:**
+- Botão de voltar do cabeçalho (ex.: Nova cliente): lido como **"(tabs), back"** (nome técnico, em inglês).
+- Link público, etapa "Seus dados": campos lidos pelo exemplo — `textbox "(11) 90000-0000"` e `textbox "Ex: quero fazer francesinha"` — em vez de "WhatsApp" e "Observação".
+- Nova cliente: anotações técnicas lidas pelo exemplo ("Ex: alergia a cola…").
+
+**Esperado:** "Voltar, botão"; campos anunciados pelo rótulo (mesma correção do BUG-003).
+**Evidência:** árvore de acessibilidade em produção, 20/11/2026.
+**Status:** aberto · correção para a sessão principal.
+
+---
+
+## BUG-010 · Baixa · Dados de exemplo criam atendimentos com o estúdio fechado
+**Onde:** `loadExampleData` / `mockAppointments`
+**Passos:** carregar dados de exemplo; ver a agenda.
+**Obtido:** atendimentos no domingo (dia fechado: "Estúdio fechado") e às 08:30, antes da abertura (09:00), dentro da faixa "FECHADO".
+**Esperado:** exemplos dentro do expediente, para não parecer que o app deixa agendar com o estúdio fechado.
+**Status:** aberto · baixa prioridade.
+
+---
+
+## Melhorias anotadas no exploratório (20/11/2026, sem bug)
+- `/termos` e `/privacidade` abertos direto pelo link não têm botão para ir ao app (proposital no código; um link "Entrar no app" no rodapé evita o beco sem saída).
+- Nova cliente: com nome de 1 letra o botão fica desabilitado sem dizer por quê (exige 2 letras).
+- Agenda: atendimentos de 45 min ou menos não mostram valor nem status no cartão (só a cor da barra).
+- Ajustes na web: "Avisar agendamentos online · Ativo, aguardando registro do aparelho" — no navegador o push nunca registra; o texto pode confundir.
+- Depois de salvar um agendamento em outro dia, a agenda volta para hoje em vez de mostrar o dia do agendamento.
+
+**Funcionou bem:** conflitos de horário e duração, dia fechado com "Agendar fora do expediente", folga, salvar/cancelar agendamento, desfazer conclusão (receita sai do Financeiro), lucro líquido com taxas, busca sem acento e por telefone, validação de e-mail e data na ficha, validação do link público (nome só com espaços e WhatsApp com 9 dígitos recusados). Nenhum erro no console.
+**Limitação do ambiente:** o navegador embutido do app de testes bloqueia `window.confirm` (responde "não" sem mostrar). No Chrome e no celular a confirmação aparece normalmente; para testar no navegador embutido foi preciso simular o "OK".
