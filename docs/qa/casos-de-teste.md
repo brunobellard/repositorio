@@ -2,7 +2,7 @@
 
 **Tipo:** U = unitário automatizado · API = automatizado no Supabase · E2E = Maestro · M = manual (roteiro) · SQL = validação de dados
 **Prioridade:** P1 = bloqueia versão · P2 = importante · P3 = desejável
-**Status (20/11/2026):** ✅ passou · ⏭️ automatizado, aguardando conta de teste · ⬜ não executado · ❌ falhou (ver bugs.md)
+**Status (20/11/2026):** ✅ passou · ✅ (CI) passou no GitHub Actions com a conta de teste · ⏭️ automatizado, aguardando conta de teste · ⬜ não executado · ❌ falhou (ver bugs.md)
 
 ## 1. Conta e acesso
 | ID | Cenário | Passos | Resultado esperado | Pri | Tipo | Status |
@@ -33,8 +33,8 @@
 | CT-AGE-08 | Editar o próprio horário | Não conflita com ele mesmo | P2 | U | ✅ |
 | CT-AGE-09 | Domicílio: deslocamento gravado | Usa o busy_until do banco, não o atual | P1 | U | ✅ |
 | CT-AGE-10 | Domicílio novo reserva deslocamento | "Horário ocupado" se o seguinte começa no deslocamento | P2 | U | ✅ |
-| CT-API-02 | Banco calcula total e "ocupado até" | total = preço; busy_until ≥ fim | P1 | API | ⏭️ |
-| CT-API-03 | Banco recusa sobreposição | Erro 23P01 | P1 | API | ⏭️ |
+| CT-API-02 | Banco calcula total e "ocupado até" | total = preço; busy_until ≥ fim | P1 | API | ✅ (CI) |
+| CT-API-03 | Banco recusa sobreposição | Erro 23P01 | P1 | API | ✅ (CI) |
 | CT-AGE-11 | Toque duplo em "Salvar" | Só um agendamento criado | P1 | M | ⬜ |
 | CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ⬜ |
 | CT-AGE-13 | Editar só as observações de sessão de série | Sessão não vira exceção da série | P2 | M | ⬜ |
@@ -64,8 +64,8 @@
 | CT-PAC-06..08 | Saldo de créditos | Desconta usadas e agendadas; nunca negativo | P1 | U | ✅ |
 | CT-PAC-09/10 | Pacote utilizável | Só mesma cliente/serviço, ativo, válido, com crédito | P1 | U | ✅ |
 | CT-PAC-11..14 | Valor a receber | Pacote cobre 1 sessão; extras e deslocamento cobrados | P1 | U | ✅ |
-| CT-API-04 | Concluir lança receita única | 1 receita, valor do serviço | P1 | API | ⏭️ |
-| CT-API-05 | Excluir pacote em uso / livre | Em uso: recusa; livre: sai com a receita | P1 | API | ⏭️ |
+| CT-API-04 | Concluir lança receita única | 1 receita, valor do serviço | P1 | API | ✅ (CI) |
+| CT-API-05 | Excluir pacote em uso / livre | Em uso: recusa; livre: sai com a receita | P1 | API | ✅ (CI) |
 | CT-PAC-15 | Tirar serviço do pacote ao editar sessão | Pergunta "Tirar do pacote?"; crédito volta | P2 | M | ⬜ |
 | CT-PAC-16 | Comprovante reenviado depois | "Restam" = saldo na data do atendimento | P3 | M | ⬜ |
 | CT-FIN-01 | Exportar planilha | Despesas com líquido negativo; soma = lucro | P2 | M | ⬜ |
@@ -80,8 +80,8 @@
 | CT-CLI-04 | Sumida há mais de 12 meses | Entra (resumo do banco) | P1 | U | ✅ |
 | CT-CLI-05 | Atendimento recente vence o resumo | Não entra | P2 | U | ✅ |
 | CT-CLI-06 | Mensagem com variáveis | Troca {nome}, {dias}; mantém desconhecidas | P2 | U | ✅ |
-| CT-API-08 | Apagar dados (LGPD) | "Cliente removida", sem contato, histórico mantido | P1 | API | ⏭️ |
-| CT-API-09 | Excluir cliente com histórico direto | Banco recusa (23503); app oferece "Apagar dados" | P1 | API | ⏭️ |
+| CT-API-08 | Apagar dados (LGPD) | "Cliente removida", sem contato, histórico mantido | P1 | API | ✅ (CI) |
+| CT-API-09 | Excluir cliente com histórico direto | Banco recusa (23503); app oferece "Apagar dados" | P1 | API | ✅ (CI) |
 | CT-CLI-07 | Ficha com histórico parcial | Cartões "(12 meses)"; "ver histórico completo" volta a "Total gasto" | P2 | M | ⬜ |
 | CT-CLI-08 | Busca sem acento | "acento cao" encontra "QA Acento Ção" | P3 | U + M | ✅ (U) |
 
@@ -91,10 +91,10 @@
 | CT-LNK-01 | Estúdio inexistente | Sem dados; tela "Link não encontrado" | P1 | API + M | ✅ |
 | CT-LNK-02 | Horários de estúdio inexistente | Lista vazia | P2 | API | ✅ |
 | CT-LNK-03 | Reserva em estúdio inexistente | "Estúdio não encontrado" | P2 | API | ✅ |
-| CT-LNK-04 | Estúdio real informa link liberado | `booking_enabled` booleano | P2 | API | ⏭️ (precisa QA_STUDIO_SLUG) |
-| CT-LNK-05 | Período enorme de horários | Sem erro; limitado a ~95 dias | P1 | API | ⏭️ |
-| CT-LNK-06 | Nome curto | Recusado antes de gravar | P2 | API | ⏭️ |
-| CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ⏭️ |
+| CT-LNK-04 | Estúdio real informa link liberado | `booking_enabled` booleano | P2 | API | ✅ (CI) |
+| CT-LNK-05 | Período enorme de horários | Sem erro; limitado a ~95 dias | P1 | API | ✅ (CI) |
+| CT-LNK-06 | Nome curto | Recusado antes de gravar | P2 | API | ✅ (CI) |
+| CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ✅ (CI) |
 | CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ⬜ |
 | CT-LNK-09 | Mensagens para a cliente | Português, sem código técnico | P2 | M | ⬜ |
 | CT-LNK-10 | Layout no celular (375 px) | Sem rolagem lateral | P2 | M (web) | ✅ |
@@ -113,8 +113,8 @@
 |---|---|---|---|---|---|
 | CT-OFF-01 | Criar agendamento em modo avião | "Salvo no aparelho"; sincroniza ao voltar | P1 | M | ⬜ |
 | CT-OFF-02 | Wi-Fi sem internet | Vai para a fila em vez de perder | P1 | M | ⬜ |
-| CT-API-06 | Fila envia agendamento + serviços juntos, sem duplicar | 1 agendamento com serviço | P1 | API | ⏭️ |
-| CT-API-07 | Fila sem serviço | Recusado | P2 | API | ⏭️ |
+| CT-API-06 | Fila envia agendamento + serviços juntos, sem duplicar | 1 agendamento com serviço | P1 | API | ✅ (CI) |
+| CT-API-07 | Fila sem serviço | Recusado | P2 | API | ✅ (CI) |
 | CT-OFF-03 | Item recusado na sincronização | Aviso e some da tela | P2 | M | ⬜ |
 
 ## 9. Segurança e permissões
@@ -125,7 +125,7 @@
 | CT-SEG-03 | Registro de IPs do link | Inacessível | P1 | API | ✅ |
 | CT-SEG-04/05 | Excluir conta / limpar dados sem login | Recusado | P1 | API | ✅ |
 | CT-SEG-06..09 | Resumo, pacote, anonimizar, fila offline sem login | Nada visível / recusado | P1 | API | ✅ |
-| CT-API-01 | Logado só vê os próprios dados | Todas as linhas com owner_id próprio | P1 | API | ⏭️ |
+| CT-API-01 | Logado só vê os próprios dados | Todas as linhas com owner_id próprio | P1 | API | ✅ (CI) |
 | SQL VAL-01 | Resumo das 19 regras de dados (VAL-02..20) | 0 problemas em todas | P1 | SQL | ✅ (20/11) |
 | SQL VAL-20, 22 | RLS ligada; funções de servidor fechadas | 0 tabelas sem RLS; false nas três funções | P1 | SQL | ✅ (20/11) |
 | SQL VAL-21 | Funções executáveis sem login | Só as 3 do link público; nenhuma "PROBLEMA" | P1 | SQL | ✅ (20/11, após BUG-005) |
