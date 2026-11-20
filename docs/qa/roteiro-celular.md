@@ -17,6 +17,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11) Novo agendamento: dias e horários dizem "selecionado"; horário ocupado diz "indisponível".
 - [x] ✅ (20/11) Janelas que sobem de baixo (opções de série, excluir conta): cada botão é lido separadamente.
 - [x] ✅ (20/11) Primeiro acesso: aceite dos Termos lido como caixa de seleção marcada/desmarcada.
+- [ ] 🔁 Botão de voltar do cabeçalho (ex.: Nova cliente) lido como "Voltar" (BUG-009).
 
 ## B. Agenda
 - [x] ✅ (20/11) 🔁 CT-AGE-11 Novo agendamento → tocar duas vezes rápido em Salvar → só 1 criado.
@@ -52,4 +53,5 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 ## G. Planos (conta Free separada)
 - [ ] CT-PLA-06 Cadastrar a 11ª cliente → aviso de upgrade.
 - [ ] Apagar dados de uma cliente com histórico → consegue cadastrar outra (removidas não contam).
+- [ ] Conta nova com Dados do estúdio vazios → Carregar dados de exemplo → Dados do estúdio continuam vazios e o link público não mostra endereço (BUG-006); nenhum exemplo no domingo nem fora do expediente (BUG-010).
 - [ ] Carregar dados de exemplo duas vezes → 2ª vez: "Exemplos já carregados".

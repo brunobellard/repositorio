@@ -107,7 +107,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Impacto:** uma profissional que testou com exemplos e começou a usar de verdade sem preencher esses campos manda clientes reais para um endereço inexistente e emite comprovantes com CNPJ de outra empresa.
 **Evidência:** conta de teste em 20/11/2026 — link público `/agendar/qa-estudio` exibindo o endereço e o Instagram de exemplo; Dados do estúdio com o CNPJ de exemplo. (Sem prints: a tela de Ajustes mostra o e-mail da conta.)
 **Correção sugerida:** não preencher dados do estúdio nos exemplos (ou só nome/telefone de demonstração, nunca CNPJ e endereço); citar na confirmação tudo o que será criado; oferecer "Remover dados de exemplo".
-**Status:** aberto · correção para a sessão principal.
+**Correção (commit dbebce4):** `loadExampleData` não grava mais dados do estúdio (`exampleStudio` removido); a confirmação cita folgas e taxas e diz que os dados do estúdio não são alterados. Não implementado: "Remover dados de exemplo" (melhoria futura). Dados já gravados na conta de teste limpos pelo responsável com SQL.
+**Reteste em produção (20/11/2026):** confirmação publicada com o texto novo; Dados do estúdio da conta de teste vazios; link público `/agendar/qa-estudio` sem endereço nem Instagram de exemplo. A carga ponta a ponta numa conta nova fica junto com o BUG-010.
+**Status:** corrigido · conferido em produção (falta a carga numa conta nova).
 
 ---
 
@@ -122,7 +124,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Obtido:** conclui sem aviso; a receita "Alongamento em gel 20/11 13:27 · Pix + R$ 160,00" entra hoje e soma no "Faturamento do dia" (R$ 470 → R$ 630) de um serviço não feito. O mesmo aconteceu no teste R5 do roteiro: sessão de pacote de 21/11 concluída em 20/11. A cliente também fica sem "última visita" na lista, porque o concluído está no futuro.
 **Observação:** desfazer a conclusão funciona e tira a receita (conferido).
 **Correção sugerida:** confirmar antes de concluir um atendimento que ainda não começou (app) e, se fizer sentido, recusar no banco com mensagem clara.
-**Status:** aberto · correção para a sessão principal.
+**Correção (commit dbebce4):** concluir antes do horário pede confirmação ("Concluir mesmo assim"); o banco continua aceitando (fila offline e conclusão antecipada intencional).
+**Reteste em produção (20/11/2026):** atendimento de 23/11 13:00 → Concluído mostra "Concluir antes do horário? Este atendimento está marcado para seg, 23 de novembro às 13:00. Ao concluir agora, a receita entra no Financeiro com a data de hoje." Respondendo não: nada muda. Respondendo sim: abre a forma de pagamento (nada lançado antes da escolha). Agendamento de teste cancelado em seguida.
+**Status:** fechado · conferido em produção.
 
 ---
 
@@ -133,7 +137,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Obtido:** cadastra com WhatsApp "119"; a ficha mostra o botão WhatsApp, que abre conversa com um número inexistente (lembretes e comprovantes não chegam).
 **Evidência:** teste na conta de teste em 20/11/2026; cliente apagada em seguida.
 **Correção sugerida:** validar 10–11 dígitos quando preenchido (mesma regra do link) e mostrar "WhatsApp — confira o número" no rótulo, como já é feito com e-mail e data.
-**Status:** aberto · correção para a sessão principal.
+**Correção (commit dbebce4):** WhatsApp preenchido precisa ter 10 ou 11 dígitos.
+**Reteste em produção (20/11/2026):** com `119` e com 9 dígitos o rótulo vira "WhatsApp — confira o número (DDD + número)" e "Cadastrar cliente" fica desabilitado; com 10 dígitos habilita; vazio continua permitido.
+**Status:** fechado · conferido em produção.
 
 ---
 
@@ -145,7 +151,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 
 **Esperado:** "Voltar, botão"; campos anunciados pelo rótulo (mesma correção do BUG-003).
 **Evidência:** árvore de acessibilidade em produção, 20/11/2026.
-**Status:** aberto · correção para a sessão principal.
+**Correção (commit dbebce4):** botão voltar do cabeçalho com nome "Voltar"; link público com rótulos; anotações técnicas com rótulo.
+**Reteste em produção (20/11/2026):** árvore de acessibilidade — Nova cliente: `button "Voltar"` (e volta para Clientes), `textbox "Anotações técnicas (opcional)"`; link público "Seus dados": `textbox "Nome completo"`, `textbox "WhatsApp"`, `textbox "Observação (opcional)"`.
+**Status:** fechado · conferido na web (no celular, conferir o "Voltar" no próximo roteiro A2).
 
 ---
 
@@ -154,7 +162,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Passos:** carregar dados de exemplo; ver a agenda.
 **Obtido:** atendimentos no domingo (dia fechado: "Estúdio fechado") e às 08:30, antes da abertura (09:00), dentro da faixa "FECHADO".
 **Esperado:** exemplos dentro do expediente, para não parecer que o app deixa agendar com o estúdio fechado.
-**Status:** aberto · baixa prioridade.
+**Correção (commit dbebce4):** exemplos às 08:30 passaram para 09:00 e todo exemplo fora do expediente ou em folga é pulado (`fitsHours` em `loadExampleData`); a série de cílios procura um dia em que 14:00 caiba.
+**Reteste (20/11/2026):** conferido no código. A carga ponta a ponta precisa de uma conta sem exemplos (a de teste já tem): fazer junto com a conta Free da seção G do roteiro.
+**Status:** corrigido · falta reteste ponta a ponta numa conta nova.
 
 ---
 
