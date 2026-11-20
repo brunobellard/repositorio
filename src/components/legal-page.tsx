@@ -55,8 +55,9 @@ export function LegalPage({ doc, current }: { doc: LegalDocument; current: 'term
   const insets = useSafeAreaInsets();
   const { from } = useLocalSearchParams<{ from?: string }>();
   // Aberta de dentro do app: sempre há como voltar. Visitante direto no site: não há para onde voltar.
-  const canLeave = Platform.OS !== 'web' || from === 'app';
   const { session } = useAuth();
+  // Logado no site: sempre há para onde ir (agenda ou primeiro acesso); nunca fica preso aqui (BUG-011)
+  const canLeave = Platform.OS !== 'web' || from === 'app' || !!session;
   const { profile } = useStore();
   // Sem tela anterior (ex: aberta por um link): vai para a tela certa de quem está usando
   const home = !session ? '/login' : profile.onboardingCompleted === false ? '/onboarding' : '/';

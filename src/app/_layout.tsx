@@ -153,6 +153,8 @@ function AppStack() {
   // Conta nova: passa pelos 3 passos iniciais antes de ver a agenda
   // (=== false: perfis antigos no cache, sem o campo, não caem no onboarding)
   const needsOnboarding = loggedIn && !loadingData && profile.onboardingCompleted === false;
+  // Tela certa para quem cai numa rota bloqueada
+  const home = !loggedIn ? '/login' : needsOnboarding ? '/onboarding' : '/';
   // Espera a sessão. Logado sem dados no aparelho (ex: conta recém-criada), espera também os dados:
   // senão a agenda pisca antes de o app saber que falta o primeiro acesso.
   // Com dados no aparelho, loadingData já é false: abre na hora (cache local + skeletons).
@@ -163,13 +165,15 @@ function AppStack() {
     <>
     <PushSetup active={loggedIn && !loadingData && !isPublic} />
     <Stack screenOptions={STACK_OPTIONS}>
-      <Stack.Protected guard={!loggedIn}>
+      {/* redirectTo explícito: sem ele, o roteador escolhe a primeira rota liberada pela ordem dos arquivos,
+          e na web uma conta nova caía em /termos em vez do primeiro acesso (BUG-011) */}
+      <Stack.Protected guard={!loggedIn} redirectTo={home}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={needsOnboarding}>
+      <Stack.Protected guard={needsOnboarding} redirectTo={home}>
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={loggedIn && !needsOnboarding}>
+      <Stack.Protected guard={loggedIn && !needsOnboarding} redirectTo={home}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="agendamento/novo" options={{ presentation: 'modal', title: 'Novo agendamento' }} />
         <Stack.Screen name="agendamento/[id]" options={{ presentation: 'modal', title: 'Agendamento' }} />

@@ -93,7 +93,7 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
                 onPress={confirm}
               />
             </View>
-            <Pressable accessibilityRole="button" onPress={close} disabled={busy} className="mt-1 items-center py-3">
+            <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={close} disabled={busy} className="mt-1 items-center py-3">
               <Text className="text-[15px] font-medium text-muted">Cancelar</Text>
             </Pressable>
           </Pressable>

@@ -218,7 +218,7 @@ export default function DadosEstudio() {
         <SectionLabel>Modelo de atendimento</SectionLabel>
         <ServiceModePicker value={form.serviceMode} onChange={(serviceMode) => set({ serviceMode })} />
         {form.serviceMode !== 'fixed' ? (
-          <Pressable accessibilityRole="button"
+          <Pressable accessibilityRole="button" accessibilityLabel="Regiões e taxas de deslocamento"
             onPress={() => router.push('/ajustes/regioes')}
             className="mt-2 flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
             <Ionicons name="map-outline" size={18} color={colors.primaryDark} />
@@ -293,7 +293,7 @@ export default function DadosEstudio() {
         {/* Agendamento online */}
         <SectionLabel>Agendamento online</SectionLabel>
         {!access.hasPublicLink ? (
-          <Pressable accessibilityRole="button"
+          <Pressable accessibilityRole="button" accessibilityLabel="Link de agendamento online, disponível a partir do plano Intermediário"
             onPress={() => openUpgrade('publicLink')}
             className="flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
             <Ionicons name="link-outline" size={18} color={colors.muted} />
@@ -366,7 +366,7 @@ export default function DadosEstudio() {
           <Text className="mb-3 mt-1 text-[12px] leading-4 text-muted">
             Excluir a conta apaga para sempre todos os dados do estúdio.
           </Text>
-          <Pressable accessibilityRole="button"
+          <Pressable accessibilityRole="button" accessibilityLabel="Excluir minha conta"
             onPress={() => setDeleting(true)}
             className="flex-row items-center self-start rounded-2xl border border-[#E5C4C7] px-4 py-2.5 active:opacity-60">
             <Ionicons name="trash-outline" size={16} color="#B2474F" />

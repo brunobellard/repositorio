@@ -7,7 +7,9 @@ import { KeyboardView } from '@/components/keyboard-view';
 import { ServiceModePicker } from '@/components/service-mode-picker';
 import { TermsStep } from '@/components/terms-step';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
+import { effectivePlan, PLANS } from '@/constants/plans';
 import { SPECIALTIES } from '@/constants/specialties';
+import { notify } from '@/lib/confirm';
 import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
@@ -96,9 +98,19 @@ function OnboardingSteps() {
             ? validCustom.map((c) => ({ ...c, name: c.name.trim(), category: customName.trim() }))
             : [];
         if (toCreate.length && services.length === 0) {
-          for (const s of toCreate) {
+          // No Free cabem só alguns serviços ativos: cria os que cabem e avisa (antes travava no 4º; BUG-012)
+          const limit = PLANS[effectivePlan(profile)].limits.activeServices;
+          const fits = limit === null ? toCreate : toCreate.slice(0, limit);
+          for (const s of fits) {
             const ok = await saveService({ ...s, active: true });
             if (!ok) return;
+          }
+          if (fits.length < toCreate.length) {
+            notify(
+              `${fits.length} serviços cadastrados`,
+              `O plano ${PLANS[effectivePlan(profile)].name} permite ${limit} serviços ativos. Você pode trocar ou ajustar em Ajustes > Serviços e preços.`,
+              'info',
+            );
           }
         }
         setStep(2);
