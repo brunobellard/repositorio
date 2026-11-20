@@ -23,6 +23,11 @@ interface BiometricLock {
   /** Pede a digital e, se confirmar, ativa a entrada por biometria */
   enable: () => Promise<boolean>;
   disable: () => Promise<void>;
+  /**
+   * Guarda a escolha feita na tela de login/cadastro, sem pedir a digital agora.
+   * Ela passa a ser pedida na próxima abertura do app (ou ao voltar do segundo plano).
+   */
+  setPreference: (on: boolean) => Promise<void>;
 }
 
 const Ctx = createContext<BiometricLock | null>(null);
@@ -73,10 +78,20 @@ export function BiometricLockProvider({ children }: { children: ReactNode }) {
     setLocked(false);
   }, []);
 
+  const setPreference = useCallback(
+    async (on: boolean) => {
+      if (on && !support.available) return;
+      await setBiometricEnabled(on);
+      setEnabled(on);
+      setLocked(false); // nesta sessão a pessoa acabou de entrar com a senha: não pede agora
+    },
+    [support],
+  );
+
   // Estável, para o leitor abrir só uma vez quando a tela de bloqueio aparece
   const unlock = useCallback(() => setLocked(false), []);
 
-  const value: BiometricLock ={ ready, support, enabled, enable, disable };
+  const value: BiometricLock = { ready, support, enabled, enable, disable, setPreference };
   const showLock = ready && locked && !!session;
 
   return (

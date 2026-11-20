@@ -4,10 +4,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardView } from '@/components/keyboard-view';
 import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
-import { Button, Field, Segmented } from '@/components/ui';
+import { Button, Field, Segmented, Toggle } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
-import { confirmAction } from '@/lib/confirm';
 import { takeNextLoginMode } from '@/lib/login-mode';
 
 export default function Login() {
@@ -23,6 +22,8 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
+  // Entrar com digital nas próximas aberturas: desligado até a pessoa escolher
+  const [useBiometric, setUseBiometric] = useState(biometric.enabled);
   const scrollRef = useRef<ScrollViewInstance>(null);
   // Teclado aberto: rola até o campo tocado (e-mail e senha ficam no fim do formulário)
   const revealField = () => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
@@ -41,15 +42,8 @@ export default function Login() {
       : await signIn(email, password);
     setBusy(false);
     if (err) return setMessage(err);
-    // Primeiro acesso com senha neste aparelho: oferece entrar com digital nas próximas vezes
-    if (biometric.support.available && !biometric.enabled) {
-      confirmAction(
-        `Entrar com ${biometric.support.label}?`,
-        `Nas próximas vezes você abre o app com sua ${biometric.support.label}, sem digitar a senha.`,
-        () => biometric.enable(),
-        'Ativar',
-      );
-    }
+    // Entra direto, sem pedir a digital agora; a escolha vale a partir da próxima abertura do app
+    if (biometric.support.available) await biometric.setPreference(useBiometric);
   }
 
   return (
@@ -108,6 +102,17 @@ export default function Login() {
             onFocus={revealField}
           />
         </View>
+
+        {/* Só em aparelhos com digital ou rosto cadastrado (no site não aparece) */}
+        {biometric.support.available ? (
+          <View className="mb-3 flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3">
+            <View className="mr-3 flex-1">
+              <Text className="text-[14px] font-medium text-ink">Entrar com {biometric.support.label}</Text>
+              <Text className="text-[12px] text-muted">Nas próximas vezes que abrir o app, sem digitar a senha</Text>
+            </View>
+            <Toggle value={useBiometric} onChange={setUseBiometric} />
+          </View>
+        ) : null}
 
         {!creating ? (
           <Pressable onPress={() => setForgot(true)} className="-mt-1 mb-3 self-end py-1 active:opacity-60">
