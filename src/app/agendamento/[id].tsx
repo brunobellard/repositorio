@@ -27,6 +27,8 @@ import type { AppointmentStatus, PaymentMethod } from '@/types';
 
 const STATUSES: AppointmentStatus[] = ['pendente', 'confirmado', 'concluido', 'cancelado'];
 const METHODS: PaymentMethod[] = ['pix', 'credito', 'debito', 'dinheiro'];
+/** Chamado só no toque (fora da renderização): o horário ainda não chegou? */
+const notStartedYet = (start: Date) => start.getTime() > Date.now();
 
 export default function AgendamentoDetalhe() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -89,11 +91,19 @@ export default function AgendamentoDetalhe() {
     if (s === 'concluido') {
       if (appt!.status === 'concluido') return;
       // Pacote cobre tudo: conclui direto e dá baixa no crédito. Sobrou valor: pergunta a forma de pagamento
-      if (appt!.clientPackageId && due === 0) {
-        finish();
+      const proceed = () => (appt!.clientPackageId && due === 0 ? finish() : setAskPayment(true));
+      // Atendimento que ainda não começou: confirma antes (a receita entra no Financeiro com a data de hoje)
+      if (notStartedYet(start)) {
+        const when = `${formatDayTitle(start).toLowerCase()} às ${formatTime(start)}`;
+        confirmAction(
+          'Concluir antes do horário?',
+          `Este atendimento está marcado para ${when}. Ao concluir agora, ${appt!.clientPackageId && due === 0 ? 'a sessão do pacote é descontada' : 'a receita entra no Financeiro'} com a data de hoje.`,
+          proceed,
+          'Concluir mesmo assim',
+        );
         return;
       }
-      setAskPayment(true);
+      proceed();
       return;
     }
     setAskPayment(false);

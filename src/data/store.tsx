@@ -10,14 +10,14 @@ import {
   clientTemplates,
   defaultTemplates,
   exampleFees,
-  exampleStudio,
   exampleTimeOffs,
   mockAppointments,
   mockClients,
   mockTransactions,
 } from '@/data/mock';
 import { notify } from '@/lib/confirm';
-import { addDays, atMinutes, startOfDay } from '@/lib/dates';
+import { addDays, atMinutes, minutesOfDay, startOfDay } from '@/lib/dates';
+import { hoursForDay, isWithinHours, timeOffOn } from '@/lib/hours';
 import { activeFees, amountDue, feeFor } from '@/lib/packages';
 import {
   describeOp,
@@ -1531,6 +1531,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const serviceIdByName = new Map(services.map((s) => [s.name, s.id]));
       const activeServiceIds = services.filter((s) => s.active).map((s) => s.id);
       const mockTx = new Map(mockTransactions.filter((t) => t.appointmentId).map((t) => [t.appointmentId, t]));
+      // Exemplos só dentro do expediente e fora das folgas (BUG-010): sem atendimento com o estúdio fechado
+      const exampleOffs = exampleTimeOffs().map((b, i) => ({ ...b, id: `ex-${i}` }));
+      const durationOf = (ids: string[]) => ids.reduce((t, id) => t + (services.find((s) => s.id === id)?.durationMin ?? 60), 0);
+      const fitsHours = (start: Date, durationMin: number) =>
+        !timeOffOn(start, [...blocks, ...exampleOffs]) &&
+        isWithinHours(hoursForDay(start, businessHours), minutesOfDay(start), minutesOfDay(start) + durationMin);
 
       for (const [i, a] of mockAppointments.entries()) {
         // Os serviços cadastrados no primeiro acesso costumam ter outros nomes que os de exemplo,
@@ -1546,6 +1552,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             : [];
         if (!serviceIds.length) break; // nenhum serviço ativo: não dá para criar atendimentos
         if (apptBudget <= 0) break;
+        if (!fitsHours(new Date(a.startsAt), durationOf(serviceIds))) continue;
         const clientId = clientIdMap.get(a.clientId) ?? newClientIds[i % newClientIds.length];
         const { data: appt, error: e } = await supabase.rpc('create_appointment', {
           p_client_id: clientId,
@@ -1586,7 +1593,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const lashes = serviceIdByName.get('Manutenção de cílios');
       const firstClient = newClients[1]?.id;
       if (lashes && firstClient && planHas(plan, 'recurrence')) {
-        const first = atMinutes(addDays(startOfDay(new Date()), 3), 14 * 60);
+        // A série cai sempre no mesmo dia da semana: procura, a partir de daqui a 3 dias, um dia em que 14:00 caiba no expediente
+        const lashesMin = durationOf([lashes]);
+        let first = atMinutes(addDays(startOfDay(new Date()), 3), 14 * 60);
+        for (let d = 4; d <= 9 && !fitsHours(first, lashesMin); d++) {
+          first = atMinutes(addDays(startOfDay(new Date()), d), 14 * 60);
+        }
         const series = generateOccurrences(first, {
           freq: 'triweekly',
           interval: 3,
@@ -1624,16 +1636,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         exampleTimeOffs().map((b) => ({ starts_at: b.startsAt, ends_at: b.endsAt, all_day: true, reason: b.reason })),
       );
 
-      // Completa só os dados do estúdio que ainda estão vazios
-      const blanks = Object.fromEntries(
-        Object.entries(exampleStudio).filter(([k]) => !profile[k as keyof Profile]),
-      ) as Partial<Profile>;
-      if (Object.keys(blanks).length) {
-        const row = Object.fromEntries(
-          Object.entries(blanks).map(([k, v]) => [PROFILE_COLUMNS[k as keyof Profile]!, v]),
-        );
-        await supabase.from('profiles').update(row).eq('id', userId!); // ignora erro se a migração não rodou
-      }
+      // Dados do estúdio (razão social, CNPJ, endereço, Instagram) nunca são preenchidos com exemplos:
+      // aparecem no link público e no comprovante das clientes reais (BUG-006)
       await reload();
       return true;
     },

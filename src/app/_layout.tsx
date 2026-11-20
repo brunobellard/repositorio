@@ -1,10 +1,11 @@
 import '@/global.css';
 
-import { DefaultTheme, Stack, ThemeProvider, useSegments } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { DefaultTheme, router, Stack, ThemeProvider, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, type ColorValue, Platform, Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ToastHost } from '@/components/toast';
@@ -34,6 +35,29 @@ const theme = {
     text: colors.ink,
     border: colors.line,
   },
+};
+
+/** Voltar do cabeçalho na web: o padrão é lido como "(tabs), back" (BUG-009) */
+function WebBackButton({ tintColor, canGoBack }: { tintColor?: ColorValue; canGoBack?: boolean }) {
+  if (!canGoBack) return null;
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      hitSlop={8}
+      className="px-3 py-2">
+      <Ionicons name="chevron-back" size={24} color={typeof tintColor === 'string' ? tintColor : colors.ink} />
+    </Pressable>
+  );
+}
+
+const STACK_OPTIONS = {
+  headerShadowVisible: false,
+  headerTintColor: colors.ink,
+  // No celular, o texto/leitura do botão de voltar vira "Voltar" em vez do nome da rota anterior
+  headerBackTitle: 'Voltar',
+  ...(Platform.OS === 'web' ? { headerLeft: WebBackButton } : null),
 };
 
 function Loading({ text }: { text?: string }) {
@@ -138,7 +162,7 @@ function AppStack() {
   return (
     <>
     <PushSetup active={loggedIn && !loadingData && !isPublic} />
-    <Stack screenOptions={{ headerShadowVisible: false, headerTintColor: colors.ink }}>
+    <Stack screenOptions={STACK_OPTIONS}>
       <Stack.Protected guard={!loggedIn}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>

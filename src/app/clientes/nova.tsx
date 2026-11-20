@@ -9,7 +9,7 @@ import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { closeModal, notify } from '@/lib/confirm';
-import { maskPhone, onlyDigits } from '@/lib/format';
+import { isValidEmail, maskPhone, onlyDigits } from '@/lib/format';
 import { requireFeature } from '@/lib/upgrade';
 import { colors } from '@/theme/colors';
 
@@ -54,8 +54,11 @@ export default function NovaCliente() {
 
   const birthIso = birth ? birthToIso(birth) : null;
   const birthOk = !birth || !!birthIso;
-  const emailOk = !email || /^\S+@\S+\.\S+$/.test(email.trim());
-  const canSave = name.trim().length >= 2 && birthOk && emailOk && !saving;
+  const emailOk = !email || isValidEmail(email);
+  // Mesma regra do link público: DDD + número (10 ou 11 dígitos), se preenchido
+  const phoneDigits = onlyDigits(phone).length;
+  const phoneOk = phoneDigits === 0 || phoneDigits === 10 || phoneDigits === 11;
+  const canSave = name.trim().length >= 2 && phoneOk && birthOk && emailOk && !saving;
 
   async function save() {
     if (!canSave) return;
@@ -96,7 +99,7 @@ export default function NovaCliente() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         <Field label="Nome completo" value={name} onChangeText={setName} placeholder="Ex: Maria Silva" autoFocus />
         <Field
-          label="WhatsApp"
+          label={phoneOk ? 'WhatsApp' : 'WhatsApp — confira o número (DDD + número)'}
           value={phone}
           onChangeText={(t) => setPhone(maskPhone(t))}
           placeholder="(11) 90000-0000"
@@ -134,6 +137,7 @@ export default function NovaCliente() {
           placeholder="Ex: alergia a cola, formato de unha preferido, nº da henna…"
           placeholderTextColor={colors.muted}
           multiline
+          accessibilityLabel="Anotações técnicas (opcional)"
           className="min-h-[90px] rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
           style={{ textAlignVertical: 'top' }}
         />

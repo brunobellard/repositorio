@@ -779,6 +779,7 @@ export default function AgendarOnline() {
           value={name}
           onChangeText={setName}
           placeholder="Seu nome"
+          accessibilityLabel="Nome completo"
           placeholderTextColor={colors.muted}
           autoComplete="name"
           className="mb-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
@@ -788,6 +789,7 @@ export default function AgendarOnline() {
           value={phone}
           onChangeText={(t) => setPhone(maskPhone(t))}
           placeholder="(11) 90000-0000"
+          accessibilityLabel="WhatsApp"
           placeholderTextColor={colors.muted}
           keyboardType="phone-pad"
           autoComplete="tel"
@@ -801,6 +803,7 @@ export default function AgendarOnline() {
                 value={street}
                 onChangeText={setStreet}
                 placeholder="Rua / avenida"
+                accessibilityLabel="Rua ou avenida"
                 placeholderTextColor={colors.muted}
                 autoComplete="street-address"
                 className="flex-1 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
@@ -809,6 +812,7 @@ export default function AgendarOnline() {
                 value={number}
                 onChangeText={setNumber}
                 placeholder="Nº"
+                accessibilityLabel="Número"
                 placeholderTextColor={colors.muted}
                 className="w-20 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
               />
@@ -817,6 +821,7 @@ export default function AgendarOnline() {
               value={complement}
               onChangeText={setComplement}
               placeholder="Complemento / ponto de referência (opcional)"
+              accessibilityLabel="Complemento ou ponto de referência (opcional)"
               placeholderTextColor={colors.muted}
               className="mb-1 rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
             />
@@ -828,6 +833,7 @@ export default function AgendarOnline() {
           value={notes}
           onChangeText={setNotes}
           placeholder="Ex: quero fazer francesinha"
+          accessibilityLabel="Observação (opcional)"
           placeholderTextColor={colors.muted}
           multiline
           maxLength={500}

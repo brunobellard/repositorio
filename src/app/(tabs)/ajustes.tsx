@@ -52,6 +52,11 @@ function Row({
   );
 }
 
+const EXAMPLE_EXTRAS =
+  ' Se as taxas da maquininha estiverem zeradas, entram taxas típicas (dá para mudar depois).' +
+  ' Os dados do estúdio (razão social, CNPJ, endereço) não são alterados.' +
+  ' Os exemplos ficam na conta até você apagá-los.';
+
 export default function AjustesScreen() {
   const { profile, services, clients, businessHours, loadExampleData, updateProfile, serviceAreas, pendingSync } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
@@ -101,8 +106,8 @@ export default function AjustesScreen() {
     confirmAction(
       'Carregar dados de exemplo?',
       access.limits.clients === null
-        ? 'Serão criadas 12 clientes, agendamentos desta semana e algumas despesas, para você testar o app.'
-        : `No plano ${access.plan.name}, serão criadas até 5 clientes, alguns agendamentos e despesas, para você testar o app sem gastar os limites do plano.`,
+        ? `Serão criadas 12 clientes, agendamentos desta semana, algumas despesas e folgas, para você testar o app.${EXAMPLE_EXTRAS}`
+        : `No plano ${access.plan.name}, serão criadas até 5 clientes, alguns agendamentos, despesas e folgas, para você testar o app sem gastar os limites do plano.${EXAMPLE_EXTRAS}`,
       async () => {
         setLoadingExample(true);
         const ok = await loadExampleData();

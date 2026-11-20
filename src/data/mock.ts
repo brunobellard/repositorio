@@ -77,11 +77,11 @@ const seeds: Seed[] = [
   [-4, '13:00', 'c11', ['s7'], 'cancelado'],
   [-3, '11:00', 'c12', ['s9'], 'concluido'],
   [-3, '16:00', 'c3', ['s3', 's6'], 'concluido'],
-  [-2, '08:30', 'c6', ['s12'], 'concluido'],
+  [-2, '09:00', 'c6', ['s12'], 'concluido'],
   [-2, '14:30', 'c7', ['s8'], 'concluido'],
   [-1, '10:00', 'c8', ['s1'], 'concluido'],
   [-1, '15:00', 'c10', ['s10'], 'concluido'],
-  [0, '08:30', 'c3', ['s3'], 'concluido'],
+  [0, '09:00', 'c3', ['s3'], 'concluido'],
   [0, '10:00', 'c1', ['s1', 's7'], 'confirmado'],
   [0, '13:30', 'c4', ['s10'], 'confirmado'],
   [0, '16:00', 'c7', ['s8'], 'pendente'],
@@ -229,20 +229,6 @@ export const defaultBusinessHours: BusinessHours[] = [0, 1, 2, 3, 4, 5, 6].map((
       ? { dayOfWeek: 6, isOpen: true, openTime: '09:00', closeTime: '15:00' }
       : { dayOfWeek: d, isOpen: true, openTime: '09:00', closeTime: '19:00', breakStart: '12:00', breakEnd: '13:00' },
 );
-
-/** Preenche só o que estiver vazio no cadastro do estúdio. */
-export const exampleStudio: Partial<Profile> = {
-  tradeName: 'Ana Lima Beleza e Estética LTDA',
-  document: '12345678000190',
-  phone: '11987650000',
-  instagram: 'studioanalima',
-  addressZip: '01414001',
-  addressStreet: 'Rua Haddock Lobo',
-  addressNumber: '595',
-  addressDistrict: 'Cerqueira César',
-  addressCity: 'São Paulo',
-  addressState: 'SP',
-};
 
 /** Folgas e feriados de exemplo (dias inteiros, podendo ser período). */
 export function exampleTimeOffs(): Omit<ScheduleBlock, 'id'>[] {
