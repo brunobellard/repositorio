@@ -69,7 +69,7 @@
 | CT-PAC-15 | Tirar serviço do pacote ao editar sessão | Pergunta "Tirar do pacote?"; crédito volta | P2 | M | ⬜ |
 | CT-PAC-16 | Comprovante reenviado depois | "Restam" = saldo na data do atendimento | P3 | M | ⬜ |
 | CT-FIN-01 | Exportar planilha | Despesas com líquido negativo; soma = lucro | P2 | M | ⬜ |
-| SQL VAL-02..04, 09..13 | Consistência de pacotes e receitas | 0 problemas | P1 | SQL | ⬜ |
+| SQL VAL-02..04, 09..13 | Consistência de pacotes e receitas | 0 problemas | P1 | SQL | ✅ (VAL-01, 20/11) |
 
 ## 5. Clientes
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
@@ -126,5 +126,8 @@
 | CT-SEG-04/05 | Excluir conta / limpar dados sem login | Recusado | P1 | API | ✅ |
 | CT-SEG-06..09 | Resumo, pacote, anonimizar, fila offline sem login | Nada visível / recusado | P1 | API | ✅ |
 | CT-API-01 | Logado só vê os próprios dados | Todas as linhas com owner_id próprio | P1 | API | ⏭️ |
-| SQL VAL-20..22 | RLS ligada e funções restritas | 0 tabelas sem RLS; funções de servidor fechadas | P1 | SQL | ⬜ |
+| SQL VAL-01 | Resumo das 19 regras de dados (VAL-02..20) | 0 problemas em todas | P1 | SQL | ✅ (20/11) |
+| SQL VAL-20, 22 | RLS ligada; funções de servidor fechadas | 0 tabelas sem RLS; false nas três funções | P1 | SQL | ✅ (20/11) |
+| SQL VAL-21 | Funções executáveis sem login | Só as 3 do link público; nenhuma "PROBLEMA" | P1 | SQL | ❌ BUG-005 |
+| CT-SEG-11 | Funções do app logado sem login | "permission denied for function" (resumo, excluir pacote, fila offline, anonimizar) | P1 | API | ❌ BUG-005 (3 de 4) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

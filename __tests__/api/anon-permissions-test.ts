@@ -63,6 +63,20 @@ d('sem login: funções restritas', () => {
     });
     expect(error).not.toBeNull();
   });
+
+  // BUG-005: funções do app logado devem ser recusadas por permissão (42501) antes de rodar,
+  // não só "não achar nada" por causa do RLS.
+  for (const [fn, args] of [
+    ['client_history_summary', {}],
+    ['delete_package', { p_package_id: FAKE_ID }],
+    ['create_offline_appointment', { p_appointment: {}, p_services: [] }],
+    ['anonymize_client', { p_client_id: FAKE_ID }],
+  ] as const) {
+    it(`CT-SEG-11 sem permissão para executar ${fn}`, async () => {
+      const { error } = await db.rpc(fn, args);
+      expect(error?.message).toMatch(/permission denied for function/);
+    });
+  }
 });
 
 d('link público', () => {

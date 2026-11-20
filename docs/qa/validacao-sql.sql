@@ -113,12 +113,23 @@ with r as (
 )
 select * from r order by regra;
 
--- VAL-21 Funções que qualquer pessoa (anon) pode executar. Esperado: só as do link público
--- (public_studio, get_public_busy_slots, create_public_booking) e funções internas de gatilho/planos.
-select p.proname
+-- VAL-21 Funções que qualquer pessoa (anon, sem login) pode executar.
+-- Esperado: só as 3 do link público com veredito "ok"; nenhuma linha "PROBLEMA".
+-- Funções de gatilho ("gatilho") não podem ser chamadas diretamente: aceitáveis, mas o ideal é revogar.
+-- Ignora funções de extensões (ex.: btree_gist, gbt_* e *_dist), que são internas do Postgres.
+select p.proname as funcao,
+       pg_get_function_identity_arguments(p.oid) as argumentos,
+       p.prosecdef as roda_como_dono,
+       case
+         when p.proname in ('public_studio', 'get_public_busy_slots', 'create_public_booking') then 'ok (link público)'
+         when p.prorettype = 'trigger'::regtype then 'gatilho (aceitável)'
+         else 'PROBLEMA'
+       end as veredito
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
- order by 1;
+   and not exists (select 1 from pg_depend d
+                    where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+ order by veredito, 1;
 
 -- VAL-22 Funções restritas ao servidor. Esperado: false nas duas colunas para as três linhas.
 select f as funcao,

@@ -65,3 +65,26 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Correção:** `isValidEmail` em `src/lib/format.ts`, usado no login, no cadastro e em "Esqueci minha senha".
 **Reteste:** teste automático CT-FMT-06; na tela, "Enviar link" fica desabilitado com `ana@exemplo` e habilita com `ana@exemplo.com`.
 **Status:** corrigido · publicado.
+
+---
+
+## BUG-005 · Média · Três funções do app logado podem ser executadas sem login
+**Onde:** Supabase — migração `20261203000000_historico_antigo_e_fila_offline.sql` (`client_history_summary`, `delete_package`, `create_offline_appointment`)
+**Passos:**
+1. SQL Editor: rodar a VAL-21 de `docs/qa/validacao-sql.sql`.
+2. Ou, sem login (chave pública), chamar `rpc('create_offline_appointment', { p_appointment: {}, p_services: [] })`.
+
+**Esperado:** recusa por permissão antes de rodar ("permission denied for function"), como já acontece com `anonymize_client`, `delete_account` e `purge_account_data`.
+**Obtido:** a VAL-21 lista as três com veredito "PROBLEMA". Sem login, as funções começam a rodar: `create_offline_appointment` devolve a validação interna "Escolha pelo menos um serviço."; as outras duas só param em "permission denied for table appointments / client_packages".
+**Impacto hoje:** nenhum dado exposto nem alterado. As três são `security invoker` e quem não está logado não tem acesso às tabelas (e o RLS ainda filtra por dono). Falta uma das camadas de proteção: se um dia uma tabela voltar a ser liberada ou uma função virar `security definer`, ficam abertas.
+**Causa:** a migração dá `grant execute ... to authenticated`, mas não faz `revoke ... from anon, public` (o padrão do Postgres libera para todos). As migrações anteriores fazem o revoke em cada função.
+**Evidência:** resultado da VAL-21 em 20/11/2026 (só nomes de funções, sem dados de clientes) e o teste automático CT-SEG-11 (`npm run test:api -- -t CT-SEG-11`): 3 falhando, `anonymize_client` passando.
+**Correção sugerida (sessão principal, nova migração):**
+```sql
+revoke execute on function public.client_history_summary() from public, anon;
+revoke execute on function public.delete_package(uuid) from public, anon;
+revoke execute on function public.create_offline_appointment(jsonb, jsonb) from public, anon;
+```
+**Observação:** a VAL-21 também listava ~100 funções `gbt_*` e `*_dist` da extensão `btree_gist` (usada para impedir horários sobrepostos). Elas são internas do Postgres e foram retiradas da consulta. Como a lista colada estava cortada, a VAL-21 corrigida deve ser rodada de novo para ver a lista completa.
+**Reteste:** depois da migração, CT-SEG-11 deve passar nas 4 funções e a VAL-21 não deve mostrar nenhuma linha "PROBLEMA".
+**Status:** aberto · correção para a sessão principal.
