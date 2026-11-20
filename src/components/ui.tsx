@@ -74,6 +74,9 @@ export function Chip({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={sublabel ? `${label}, ${sublabel}` : label}
+      accessibilityState={{ selected: !!selected }}
       className={`mb-2 mr-2 rounded-full border px-4 py-2 ${
         selected ? 'border-primary bg-primary-soft' : 'border-line bg-surface'
       }`}>
@@ -93,11 +96,14 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View className="flex-row rounded-full bg-line/70 p-1">
+    <View accessibilityRole="tablist" className="flex-row rounded-full bg-line/70 p-1">
       {options.map((o) => (
         <Pressable
           key={o.value}
           onPress={() => onChange(o.value)}
+          accessibilityRole="tab"
+          accessibilityLabel={o.label}
+          accessibilityState={{ selected: value === o.value }}
           className={`flex-1 items-center rounded-full px-3 py-1.5 ${value === o.value ? 'bg-surface' : ''}`}>
           <Text className={`text-[13px] font-semibold ${value === o.value ? 'text-ink' : 'text-muted'}`}>
             {o.label}
@@ -134,6 +140,9 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
       className={`flex-row items-center justify-center rounded-2xl px-4 py-3.5 active:opacity-80 ${styles.box} ${disabled ? 'opacity-40' : ''}`}>
       {loading ? (
         <ActivityIndicator size="small" color={styles.icon} style={{ marginRight: 8 }} />
@@ -162,6 +171,8 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
     <View className="mb-3">
       <Text className="mb-1.5 text-[13px] font-medium text-muted">{label}</Text>
       <TextInput
+        // Leitor de tela anuncia o nome do campo ("E-mail"), não o exemplo do placeholder
+        accessibilityLabel={label}
         placeholderTextColor={colors.muted}
         className="rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
         {...props}
@@ -175,6 +186,7 @@ export function SearchBar(props: TextInputProps) {
     <View className="mx-5 mb-3 flex-row items-center rounded-2xl border border-line bg-surface px-3">
       <Ionicons name="search" size={18} color={colors.muted} />
       <TextInput
+        accessibilityLabel={props.placeholder ?? 'Buscar'}
         placeholderTextColor={colors.muted}
         className="flex-1 px-2 py-3 text-[15px] text-ink"
         {...props}
@@ -183,10 +195,21 @@ export function SearchBar(props: TextInputProps) {
   );
 }
 
-export function Fab({ onPress, icon = 'add' }: { onPress: () => void; icon?: IconName }) {
+export function Fab({
+  onPress,
+  icon = 'add',
+  label = 'Adicionar',
+}: {
+  onPress: () => void;
+  icon?: IconName;
+  /** O que o botão faz, para o leitor de tela (o botão só tem ícone) */
+  label?: string;
+}) {
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-primary active:opacity-80"
       style={{
         shadowColor: colors.primaryDark,
@@ -231,6 +254,7 @@ export function EmptyState({
       {actionLabel && onAction ? (
         <Pressable
           onPress={onAction}
+          accessibilityRole="button"
           className="mt-4 flex-row items-center rounded-full bg-primary px-4 py-2.5 active:opacity-80">
           <Text className="text-[14px] font-semibold text-on-primary">{actionLabel}</Text>
         </Pressable>

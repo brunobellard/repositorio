@@ -7,6 +7,7 @@ import { ForgotPasswordSheet } from '@/components/forgot-password-sheet';
 import { Button, Field, Segmented, Toggle } from '@/components/ui';
 import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
+import { isValidEmail } from '@/lib/format';
 import { takeNextLoginMode } from '@/lib/login-mode';
 
 export default function Login() {
@@ -31,7 +32,7 @@ export default function Login() {
   const creating = mode === 'criar';
   // Termos de Uso e Privacidade: aceitos uma única vez, no primeiro acesso (onboarding)
   const valid =
-    email.includes('@') && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim()));
+    isValidEmail(email) && password.length >= 6 && (!creating || (businessName.trim() && ownerName.trim()));
 
   async function submit() {
     if (!valid || busy) return;
@@ -116,13 +117,18 @@ export default function Login() {
         ) : null}
 
         {!creating ? (
-          <Pressable onPress={() => setForgot(true)} className="-mt-1 mb-3 self-end py-1 active:opacity-60">
+          <Pressable
+            onPress={() => setForgot(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Esqueci minha senha"
+            className="-mt-1 mb-3 self-end py-1 active:opacity-60">
             <Text className="text-[13px] font-medium text-primary-dark">Esqueci minha senha</Text>
           </Pressable>
         ) : null}
 
         {message ? (
-          <View className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
+          // Leitor de tela lê o aviso assim que ele aparece (ex: senha errada)
+          <View accessibilityLiveRegion="polite" accessibilityRole="alert" className="mb-3 rounded-2xl bg-primary-soft px-4 py-3">
             <Text className="text-[13px] text-primary-dark">{message}</Text>
           </View>
         ) : null}
@@ -130,7 +136,11 @@ export default function Login() {
         <Button title={busy ? 'Aguarde…' : creating ? 'Criar conta' : 'Entrar'} onPress={submit} disabled={!valid || busy} />
 
         {!creating ? (
-          <Pressable onPress={() => setMode('criar')} className="mt-5 items-center">
+          <Pressable
+            onPress={() => setMode('criar')}
+            accessibilityRole="button"
+            accessibilityLabel="Ainda não tem conta? Criar conta"
+            className="mt-5 items-center">
             <Text className="text-[14px] text-muted">
               Ainda não tem conta? <Text className="font-semibold text-primary-dark">Criar conta</Text>
             </Text>

@@ -22,7 +22,7 @@ import { colors } from '@/theme/colors';
 SplashScreen.preventAutoHideAsync();
 
 /** Rotas abertas a qualquer pessoa, com ou sem login */
-const PUBLIC_ROUTES = ['agendar', 'termos', 'privacidade', 'redefinir-senha'];
+const PUBLIC_ROUTES = ['agendar', 'termos', 'privacidade', 'redefinir-senha', '+not-found', '_sitemap'];
 
 const theme = {
   ...DefaultTheme,
@@ -172,6 +172,8 @@ function AppStack() {
       <Stack.Screen name="termos" options={{ headerShown: false, title: 'Termos de Uso' }} />
       <Stack.Screen name="privacidade" options={{ headerShown: false, title: 'Política de Privacidade' }} />
       <Stack.Screen name="redefinir-senha" options={{ headerShown: false, title: 'Redefinir senha' }} />
+      <Stack.Screen name="+not-found" options={{ headerShown: false, title: 'Página não encontrada' }} />
+      <Stack.Screen name="_sitemap" options={{ headerShown: false, title: 'Página não encontrada' }} />
     </Stack>
     {loggedIn && !isPublic ? <UpgradeHost /> : null}
     </>

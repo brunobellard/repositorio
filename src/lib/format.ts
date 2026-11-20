@@ -26,6 +26,9 @@ export function normalize(s: string): string {
 
 export const onlyDigits = (s: string | undefined) => (s ?? '').replace(/\D/g, '');
 
+/** E-mail com formato válido: nome@dominio.ext (sem espaços; extensão com 2+ letras). */
+export const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(s.trim());
+
 /** Máscara progressiva de telefone, para usar enquanto digita. */
 export function maskPhone(input: string): string {
   const d = onlyDigits(input).slice(0, 11);

@@ -10,6 +10,8 @@
 | CT-CON-01 | Entrar com dados corretos | Login > e-mail e senha da conta de teste > Entrar | Abre a Agenda | P1 | E2E | ⬜ |
 | CT-CON-02 | Senha errada | Senha incorreta > Entrar | "E-mail ou senha incorretos." | P1 | E2E | ⬜ |
 | CT-CON-03 | Botão desabilitado com dados incompletos | Sem "@" no e-mail ou senha < 6 | "Entrar" desabilitado | P2 | M (web) | ✅ |
+| CT-CON-11 | E-mail com formato inválido | `ana@` ou `ana@exemplo` | Entrar/Enviar link desabilitados (BUG-004) | P2 | U (CT-FMT-06) + M (web) | ✅ |
+| CT-CON-12 | Leitor de tela no login | Ativar TalkBack/VoiceOver | Anuncia "E-mail", "Senha", "Entrar, botão" (BUG-003) | P3 | M | ✅ (web) |
 | CT-CON-04 | Cadastro com e-mail já existente | Criar conta com e-mail da conta de teste | "Já existe uma conta com este e-mail…" (não "Conta criada!") | P1 | M | ⬜ |
 | CT-CON-05 | Esqueci a senha sem e-mail | Abrir "Esqueci minha senha" com campo vazio | "Enviar link" desabilitado | P3 | M (web) | ✅ |
 | CT-CON-06 | Link de nova senha inválido | Abrir /redefinir-senha sem token | "Link inválido ou expirado" | P2 | M (web) | ✅ |
@@ -125,4 +127,4 @@
 | CT-SEG-06..09 | Resumo, pacote, anonimizar, fila offline sem login | Nada visível / recusado | P1 | API | ✅ |
 | CT-API-01 | Logado só vê os próprios dados | Todas as linhas com owner_id próprio | P1 | API | ⏭️ |
 | SQL VAL-20..22 | RLS ligada e funções restritas | 0 tabelas sem RLS; funções de servidor fechadas | P1 | SQL | ⬜ |
-| CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ❌ BUG-002 |
+| CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

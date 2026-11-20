@@ -191,6 +191,7 @@ export default function AgendaScreen() {
       )}
 
       <Fab
+        label="Novo agendamento"
         onPress={() =>
           router.push({ pathname: '/agendamento/novo', params: { date: selected.toISOString() } })
         }

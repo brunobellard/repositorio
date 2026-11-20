@@ -3,7 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import { effectivePlan, LIMIT_TO_FEATURE, planHas } from '@/constants/plans';
 import { isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
-import { formatPhone, maskBRL, maskDocument, maskPhone, normalize } from '@/lib/format';
+import { formatPhone, isValidEmail, maskBRL, maskDocument, maskPhone, normalize } from '@/lib/format';
 import { clientsToRecall, fillClientMessage } from '@/lib/recall';
 import { zonedInstant, zonedParts } from '@/lib/timezone';
 import type { Profile } from '@/types';
@@ -91,6 +91,11 @@ describe('formatação e link', () => {
   it('CT-FMT-03 moeda digitada vira centavos', () => {
     expect(maskBRL('1234').value).toBe(12.34);
     expect(maskBRL('').value).toBe(0);
+  });
+
+  it('CT-FMT-06 e-mail precisa ter nome, domínio e extensão (BUG-004)', () => {
+    for (const ok of ['ana@exemplo.com', 'ana.souza+qa@estudio.com.br', '  ana@ex.io  ']) expect(isValidEmail(ok)).toBe(true);
+    for (const bad of ['ana@', 'ana@exemplo', '@exemplo.com', 'ana souza@ex.com', 'ana@ex.c', 'ana@ex.com.']) expect(isValidEmail(bad)).toBe(false);
   });
 
   it('CT-FMT-04 busca sem acento e sem maiúsculas', () => {

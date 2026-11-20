@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
 import { useAuth } from '@/data/auth';
+import { isValidEmail } from '@/lib/format';
 import { colors } from '@/theme/colors';
 
 /** "Esqueci minha senha": envia o e-mail com o link para criar uma nova senha. */
@@ -23,7 +24,7 @@ export function ForgotPasswordSheet({
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
-  const valid = /^\S+@\S+\.\S+$/.test(email.trim()) && !busy;
+  const valid = isValidEmail(email) && !busy;
 
   function close() {
     if (busy) return;
@@ -70,6 +71,7 @@ export function ForgotPasswordSheet({
                 </Text>
                 <Text className="mb-1.5 mt-4 text-[13px] font-medium text-muted">E-mail</Text>
                 <TextInput
+                  accessibilityLabel="E-mail"
                   value={email}
                   onChangeText={setEmail}
                   placeholder="voce@email.com"
@@ -95,7 +97,7 @@ export function ForgotPasswordSheet({
                     onPress={send}
                   />
                 </View>
-                <Pressable onPress={close} className="mt-1 items-center py-3">
+                <Pressable onPress={close} accessibilityRole="button" className="mt-1 items-center py-3">
                   <Text className="text-[15px] font-medium text-muted">Cancelar</Text>
                 </Pressable>
               </>

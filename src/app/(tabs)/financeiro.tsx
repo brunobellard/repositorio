@@ -184,7 +184,7 @@ export default function FinanceiroScreen() {
         </View>
       </ScrollView>
       )}
-      <Fab icon="remove" onPress={() => router.push('/financeiro/despesa')} />
+      <Fab icon="remove" label="Nova despesa" onPress={() => router.push('/financeiro/despesa')} />
     </Screen>
   );
 }

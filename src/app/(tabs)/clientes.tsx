@@ -276,7 +276,7 @@ export default function ClientesScreen() {
         }}
       />
       {/* Nova cliente: sempre à mão, como o "+" da Agenda */}
-      <Fab onPress={() => router.push('/clientes/nova')} />
+      <Fab label="Nova cliente" onPress={() => router.push('/clientes/nova')} />
     </Screen>
   );
 }
