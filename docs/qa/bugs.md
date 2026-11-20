@@ -87,5 +87,7 @@ revoke execute on function public.create_offline_appointment(jsonb, jsonb) from 
 revoke execute on function public.plan_rank(text) from public, anon;  -- usada só dentro de funções security definer e gatilhos
 ```
 **Observação:** a VAL-21 também listava ~100 funções `gbt_*` e `*_dist` da extensão `btree_gist` (usada para impedir horários sobrepostos). Elas são internas do Postgres e foram retiradas da consulta. A primeira lista veio cortada pelo limite de 100 linhas do SQL Editor; a VAL-21 corrigida (20/11/2026) mostrou a lista completa: 7 linhas.
+**Correção (20/11/2026):** migração `supabase/migrations/20261205000000_fechar_funcoes_sem_login.sql` com os 4 revokes (e grant para quem está logado). O app só chama as três funções com login (`src/data/store.tsx`); `plan_rank` é usada só dentro de funções security definer e por `payment_fee` (logado).
 **Reteste:** depois da migração, CT-SEG-11 deve passar nas 5 funções e a VAL-21 não deve mostrar nenhuma linha "PROBLEMA".
-**Status:** aberto · correção para a sessão principal.
+**Reteste em produção (20/11/2026):** migração aplicada no SQL Editor. CT-SEG-11 passou nas 5 funções ("permission denied for function"); `npm run test:api` com 26 passando e nenhuma falha. VAL-21: 3 linhas, só as funções do link público ("ok"), nenhuma "PROBLEMA".
+**Status:** fechado · corrigido e conferido em produção.
