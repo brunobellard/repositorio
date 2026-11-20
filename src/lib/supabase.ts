@@ -40,6 +40,11 @@ export function friendlyError(error: { code?: string; message?: string } | null 
       return 'Esse valor já está em uso (por exemplo, o link escolhido já pertence a outro estúdio).';
     case '23503':
       return 'Este registro está ligado a outros dados e não pode ser alterado.';
+    case '23514':
+      // Regra de valor do banco (ex: pacote com todas as sessões já usadas)
+      return /client_packages/.test(error.message ?? '')
+        ? 'O pacote já usou todas as sessões. Não dá para concluir mais uma sessão com ele.'
+        : 'Algum valor ficou fora do permitido. Confira os dados e tente de novo.';
     case 'invalid_credentials':
       return 'E-mail ou senha incorretos.';
     case 'user_already_exists':

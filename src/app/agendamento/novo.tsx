@@ -11,6 +11,7 @@ import { Avatar, Button, Chip, Field, SectionLabel, Segmented } from '@/componen
 import { useStore } from '@/data/store';
 import { closeModal, confirmAction, notify } from '@/lib/confirm';
 import {
+  busyEndMs,
   generateOccurrences,
   hasOpenSiblings,
   type RecurrenceRule,
@@ -100,6 +101,9 @@ export default function NovoAgendamento() {
   const [addressDraft, setAddressDraft] = useState<{ clientId?: string; address: string; neighborhood: string } | null>(
     null,
   );
+  // Trava imediata contra toque duplo no salvar (o estado `saving` só muda no próximo desenho da tela,
+  // e um segundo toque antes disso movia o horário duas vezes ou criava o agendamento em dobro)
+  const submitting = useRef(false);
   const dayStrip = useRef<ComponentRef<typeof ScrollView>>(null);
   const dayStripPositioned = useRef(false);
 
@@ -145,21 +149,23 @@ export default function NovoAgendamento() {
     : dayHours.isOpen
       ? [hmToMinutes(dayHours.openTime), hmToMinutes(dayHours.closeTime)]
       : [0, 0];
+  // Minutos contados a partir da meia-noite do dia escolhido (podem ser negativos ou passar de 24h):
+  // um atendimento ou bloqueio que atravessa a meia-noite ocupa o fim de um dia e o começo do outro
+  const dayStartMs = day.getTime();
+  const nextDayMs = addDays(day, 1).getTime();
+  const toDayMin = (ms: number) => (ms - dayStartMs) / 60_000;
   const busy = [
     ...appointments
-      .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id && isSameDay(new Date(a.startsAt), day))
-      // Atendimento em domicílio ocupa também o deslocamento depois dele
-      .map((a) => [
-        minutesOfDay(new Date(a.startsAt)),
-        minutesOfDay(new Date(a.endsAt)) + (a.locationType === 'home_service' ? buffer : 0),
-      ]),
+      .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id)
+      // Atendimento em domicílio ocupa também o deslocamento depois dele (o gravado quando foi marcado)
+      .map((a) => [toDayMin(new Date(a.startsAt).getTime()), toDayMin(busyEndMs(a, buffer))])
+      .filter(([s, e]) => s < 24 * 60 && e > 0),
     ...blocks
-      .filter((b) => {
-        const s = day.getTime();
-        return new Date(b.startsAt).getTime() < s + 86_400_000 && new Date(b.endsAt).getTime() > s;
-      })
+      .filter((b) => new Date(b.startsAt).getTime() < nextDayMs && new Date(b.endsAt).getTime() > dayStartMs)
       .filter((b) => !(ignoreHours && b.allDay))
-      .map((b) => (b.allDay ? [0, 24 * 60] : [minutesOfDay(new Date(b.startsAt)), minutesOfDay(new Date(b.endsAt))])),
+      .map((b) =>
+        b.allDay ? [0, 24 * 60] : [toDayMin(new Date(b.startsAt).getTime()), toDayMin(new Date(b.endsAt).getTime())],
+      ),
   ];
   const need = Math.max(duration, slot);
   const now = new Date();
@@ -226,24 +232,32 @@ export default function NovoAgendamento() {
   /** Cria as sessões informadas (todas ou só as livres, depois do aviso de conflito). */
   async function create(dates: Date[]) {
     setConflicts(null);
+    if (!dates.length || submitting.current) return;
+    submitting.current = true;
     setSaving(true);
-    const created = await addAppointment({
-      clientId: client!.id,
-      startsAt: dates[0].toISOString(),
-      serviceIds,
-      notes: notes.trim() || undefined,
-      occurrences: dates.map((d) => d.toISOString()),
-      clientPackageId: chosenPackage?.id,
-      recurrenceRule: dates.length > 1 && firstStart ? toRRule(firstStart, rule) : null,
-      ...(home
-        ? {
-            locationType: 'home_service' as const,
-            serviceAddress: [address.trim(), neighborhood.trim()].filter(Boolean).join(' – '),
-            travelFee,
-          }
-        : {}),
-    });
-    setSaving(false);
+    let created = 0;
+    try {
+      created = await addAppointment({
+        clientId: client!.id,
+        startsAt: dates[0].toISOString(),
+        serviceIds,
+        notes: notes.trim() || undefined,
+        occurrences: dates.map((d) => d.toISOString()),
+        clientPackageId: chosenPackage?.id,
+        recurrenceRule: dates.length > 1 && firstStart ? toRRule(firstStart, rule) : null,
+        ...(home
+          ? {
+              locationType: 'home_service' as const,
+              serviceAddress: [address.trim(), neighborhood.trim()].filter(Boolean).join(' – '),
+              travelFee,
+            }
+          : {}),
+      });
+    } finally {
+      setSaving(false);
+      // Deu certo: a tela fecha; continua travado para um toque atrasado não criar de novo
+      if (!created) submitting.current = false;
+    }
     if (!created) return;
     // Guarda o endereço na ficha da cliente quando mudou
     if (home && client && (address.trim() !== (client.address ?? '') || neighborhood.trim() !== (client.neighborhood ?? ''))) {
@@ -296,23 +310,37 @@ export default function NovoAgendamento() {
         return;
       }
     }
+    const notesChanged = notes.trim() !== (editing.notes ?? '');
+    // Nada mudou: só fecha
+    if (!shiftMs && !servicesChanged && !notesChanged) {
+      closeModal();
+      return;
+    }
+    if (submitting.current) return;
+    submitting.current = true;
     setSaving(true);
-    const ok = await updateAppointments(
-      editing.id,
-      targets,
-      {
-        shiftMs,
-        serviceIds: servicesChanged ? serviceIds : undefined,
-        notes: notes.trim() !== (editing.notes ?? '') ? notes.trim() : undefined,
-      },
-      scope,
-    );
-    setSaving(false);
+    let ok = false;
+    try {
+      ok = await updateAppointments(
+        editing.id,
+        targets,
+        {
+          shiftMs,
+          serviceIds: servicesChanged ? serviceIds : undefined,
+          notes: notesChanged ? notes.trim() : undefined,
+        },
+        scope,
+      );
+    } finally {
+      setSaving(false);
+      // Deu certo: a tela fecha; continua travado para um toque atrasado não mover de novo
+      if (!ok) submitting.current = false;
+    }
     if (ok) closeModal();
   }
 
   async function save() {
-    if (!canSave || !firstStart) return;
+    if (!canSave || !firstStart || submitting.current) return;
     // Plano caiu para o Free com mais serviços ativos do que o limite: escolher quais ficam
     const servicesChanged = !editing || serviceIds.join() !== editServiceIds.join();
     if (servicesChanged && access.servicesOverLimit > 0) {

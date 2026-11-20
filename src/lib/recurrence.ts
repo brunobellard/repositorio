@@ -92,7 +92,8 @@ export function generateOccurrences(start: Date, rule: RecurrenceRule): Date[] {
     dates.push(d);
     if (i > 400) break;
   }
-  return dates;
+  // "Até" antes do primeiro dia: fica só o agendamento escolhido (nunca uma série vazia)
+  return dates.length ? dates : [start];
 }
 
 /** Regra no formato iCalendar, ex: FREQ=WEEKLY;INTERVAL=2;COUNT=6 */
@@ -192,6 +193,16 @@ export interface AvailabilityContext {
   home?: boolean;
 }
 
+/**
+ * Até quando um atendimento já marcado ocupa a agenda (em ms): o "ocupado até" gravado pelo banco,
+ * que guarda o deslocamento da época em que foi marcado. Sem ele (feito offline, ainda não
+ * sincronizado), usa o deslocamento atual.
+ */
+export function busyEndMs(a: Appointment, travelBufferMin: number): number {
+  if (a.busyUntil) return new Date(a.busyUntil).getTime();
+  return new Date(a.endsAt).getTime() + (a.locationType === 'home_service' ? travelBufferMin * 60_000 : 0);
+}
+
 /** Motivo pelo qual o horário não está livre, ou null se estiver. */
 export function slotConflict(start: Date, durationMin: number, ctx: AvailabilityContext): string | null {
   const end = new Date(start.getTime() + durationMin * 60_000);
@@ -216,7 +227,7 @@ export function slotConflict(start: Date, durationMin: number, ctx: Availability
       a.status !== 'cancelado' &&
       !ctx.ignoreIds?.includes(a.id) &&
       new Date(a.startsAt).getTime() < endWithTravel &&
-      new Date(a.endsAt).getTime() + (a.locationType === 'home_service' ? buffer : 0) > start.getTime(),
+      busyEndMs(a, ctx.travelBufferMin ?? 0) > start.getTime(),
   );
   if (clash) return 'Horário ocupado';
   return null;

@@ -147,6 +147,7 @@ const toAppointment = (r: any): Appointment => ({
   locationType: r.location_type === 'home_service' ? 'home_service' : 'fixed',
   serviceAddress: r.service_address ?? undefined,
   travelFee: Number(r.travel_fee ?? 0),
+  busyUntil: r.busy_until ? new Date(r.busy_until).toISOString() : undefined,
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),
@@ -1155,16 +1156,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
 
     async updateAppointments(editedId, ids, { shiftMs, serviceIds, notes }, scope) {
-      const { error } = await supabase.rpc('update_appointments', {
-        p_ids: ids,
-        p_shift: `${Math.round(shiftMs / 1000)} seconds`,
-        p_service_ids: serviceIds ?? null,
-        // Só esta sessão mudou: ela passa a ser uma exceção da série
-        p_mark_exception: scope === 'one' && !!appointments.find((a) => a.id === editedId)?.recurrenceGroupId,
-        // "Este e os próximos" vira uma série própria, separada das sessões anteriores
-        p_new_group: scope === 'following',
-      });
-      if (error) return fail(error);
+      // Horário ou serviços mudaram (só as observações não contam: não tiram a sessão do padrão da série)
+      if (shiftMs || serviceIds) {
+        const { error } = await supabase.rpc('update_appointments', {
+          p_ids: ids,
+          p_shift: `${Math.round(shiftMs / 1000)} seconds`,
+          p_service_ids: serviceIds ?? null,
+          // Só esta sessão mudou: ela passa a ser uma exceção da série
+          p_mark_exception: scope === 'one' && !!appointments.find((a) => a.id === editedId)?.recurrenceGroupId,
+          // "Este e os próximos" vira uma série própria, separada das sessões anteriores
+          p_new_group: scope === 'following',
+        });
+        if (error) return fail(error);
+      }
       if (notes !== undefined) {
         const { error: e } = await supabase.from('appointments').update({ notes: notes || null }).eq('id', editedId);
         if (e) return fail(e);
@@ -1198,7 +1202,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return;
       }
       // Se estava concluído e voltou, remove a receita lançada automaticamente
-      if (transactions.some((t) => t.appointmentId === id)) {
+      // (mesmo que ela seja antiga e não esteja carregada na tela)
+      if (prev.find((a) => a.id === id)?.status === 'concluido' || transactions.some((t) => t.appointmentId === id)) {
         await supabase.from('transactions').delete().eq('appointment_id', id);
         setTransactions((list) => list.filter((t) => t.appointmentId !== id));
       }

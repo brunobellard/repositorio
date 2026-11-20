@@ -129,6 +129,11 @@ export interface Appointment {
   serviceAddress?: string;
   /** Taxa de deslocamento (já somada em totalPrice) */
   travelFee: number;
+  /**
+   * "Ocupado até", gravado pelo banco: fim + deslocamento usado quando o atendimento foi marcado.
+   * Mudar o deslocamento em Ajustes não altera os já marcados. Vazio enquanto não sincronizou.
+   */
+  busyUntil?: string;
 }
 
 export interface ScheduleBlock {

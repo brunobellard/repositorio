@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, Text, View } from 'react-native';
 
 import { StatusPill } from '@/components/ui';
-import { formatTime, hmToMinutes, isSameDay, minutesOfDay } from '@/lib/dates';
+import { formatTime, hmToMinutes, isSameDay, minutesOfDay, startOfDay } from '@/lib/dates';
+import { busyEndMs } from '@/lib/recurrence';
 import { formatBRL } from '@/lib/format';
 import { colors, statusInfo } from '@/theme/colors';
 import { workRanges } from '@/lib/hours';
@@ -66,14 +67,22 @@ export function DayTimeline({
   onPressSlot,
   travelBufferMinutes = 0,
 }: Props) {
+  // Minutos dentro deste dia (0 a 24h): o que começa na véspera ou termina depois da meia-noite
+  // fica cortado na borda do dia, em vez de virar uma altura negativa
+  const dayStartMs = startOfDay(day).getTime();
+  const mins = (iso: string) => Math.max(0, Math.min(24 * 60, (new Date(iso).getTime() - dayStartMs) / 60_000));
+  // Deslocamento gravado em cada atendimento a domicílio (o da época em que foi marcado)
+  const travelOf = (a: Appointment) =>
+    a.locationType === 'home_service' && a.status !== 'cancelado'
+      ? Math.max(0, (busyEndMs(a, travelBufferMinutes) - new Date(a.endsAt).getTime()) / 60_000)
+      : 0;
   // Expande o expediente se houver agendamento fora dele
   const open = !closed && hours.isOpen;
   let startMin = open ? Math.floor(hmToMinutes(hours.openTime) / 60) * 60 : fallbackRange[0];
   let endMin = open ? Math.ceil(hmToMinutes(hours.closeTime) / 60) * 60 : fallbackRange[1];
   for (const a of appointments) {
-    startMin = Math.min(startMin, Math.floor(minutesOfDay(new Date(a.startsAt)) / 60) * 60);
-    const extra = a.locationType === 'home_service' && a.status !== 'cancelado' ? travelBufferMinutes : 0;
-    endMin = Math.max(endMin, Math.ceil((minutesOfDay(new Date(a.endsAt)) + extra) / 60) * 60);
+    startMin = Math.min(startMin, Math.floor(mins(a.startsAt) / 60) * 60);
+    endMin = Math.max(endMin, Math.min(24 * 60, Math.ceil((mins(a.endsAt) + travelOf(a)) / 60) * 60));
   }
   const hourMarks: number[] = [];
   for (let m = startMin; m < endMin; m += 60) hourMarks.push(m);
@@ -137,8 +146,8 @@ export function DayTimeline({
 
       {/* Bloqueios */}
       {timedBlocks.map((b) => {
-        const top = y(minutesOfDay(new Date(b.startsAt)));
-        const h = y(minutesOfDay(new Date(b.endsAt))) - top;
+        const top = y(mins(b.startsAt));
+        const h = y(mins(b.endsAt)) - top;
         return (
           <Pressable
             key={b.id}
@@ -154,34 +163,31 @@ export function DayTimeline({
       })}
 
       {/* Deslocamento depois dos atendimentos em domicílio */}
-      {travelBufferMinutes > 0
-        ? appointments
-            .filter((a) => a.locationType === 'home_service' && a.status !== 'cancelado')
-            .map((a) => {
-              const from = minutesOfDay(new Date(a.endsAt));
-              const top = y(from);
-              const h = y(from + travelBufferMinutes) - top;
-              return (
-                <View
-                  key={`travel-${a.id}`}
-                  pointerEvents="none"
-                  style={{ position: 'absolute', top: top + 1, height: h - 2, left: LABEL_WIDTH, right: 0 }}
-                  className="mx-0.5 flex-row items-center rounded-xl border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-3">
-                  <Ionicons name="car-outline" size={14} color={colors.muted} />
-                  {h >= 18 ? (
-                    <Text className="ml-1.5 text-[12px] font-medium text-muted">
-                      Deslocamento · {travelBufferMinutes} min
-                    </Text>
-                  ) : null}
-                </View>
-              );
-            })
-        : null}
+      {appointments
+        .filter((a) => travelOf(a) > 0 && mins(a.endsAt) < 24 * 60)
+        .map((a) => {
+          const travel = Math.round(travelOf(a));
+          const from = mins(a.endsAt);
+          const top = y(from);
+          const h = y(Math.min(24 * 60, from + travel)) - top;
+          return (
+            <View
+              key={`travel-${a.id}`}
+              pointerEvents="none"
+              style={{ position: 'absolute', top: top + 1, height: h - 2, left: LABEL_WIDTH, right: 0 }}
+              className="mx-0.5 flex-row items-center rounded-xl border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-3">
+              <Ionicons name="car-outline" size={14} color={colors.muted} />
+              {h >= 18 ? (
+                <Text className="ml-1.5 text-[12px] font-medium text-muted">Deslocamento · {travel} min</Text>
+              ) : null}
+            </View>
+          );
+        })}
 
       {/* Agendamentos */}
       {laidOut.map(({ item: a, col, cols }) => {
-        const top = y(minutesOfDay(new Date(a.startsAt)));
-        const h = Math.max(y(minutesOfDay(new Date(a.endsAt))) - top, 34);
+        const top = y(mins(a.startsAt));
+        const h = Math.max(y(mins(a.endsAt)) - top, 34);
         const client = clientsById.get(a.clientId);
         const st = statusInfo[a.status];
         const compact = h < 60;

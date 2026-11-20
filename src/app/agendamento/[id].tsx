@@ -18,7 +18,7 @@ import { EMAIL_SENDING_ENABLED } from '@/constants/plans';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
-import { amountDue, packageCovered } from '@/lib/packages';
+import { amountDue, availableCredits, packageCovered } from '@/lib/packages';
 import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
 import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
@@ -78,6 +78,14 @@ export default function AgendamentoDetalhe() {
 
   function onStatus(s: AppointmentStatus) {
     if (completing) return;
+    // Reativar ou concluir uma sessão de pacote cancelada: só se o pacote ainda tiver sessão livre
+    if (appt!.status === 'cancelado' && s !== 'cancelado' && pkg && availableCredits(pkg, appointments) < 1) {
+      notify(
+        'Pacote sem sessões livres',
+        `Todas as sessões de "${pkg.name}" já foram usadas ou estão agendadas. Para atender, crie um novo agendamento sem o pacote ou aumente as sessões do pacote.`,
+      );
+      return;
+    }
     if (s === 'concluido') {
       if (appt!.status === 'concluido') return;
       // Pacote cobre tudo: conclui direto e dá baixa no crédito. Sobrou valor: pergunta a forma de pagamento
@@ -121,10 +129,17 @@ export default function AgendamentoDetalhe() {
   async function cancelSeries(scope: SeriesScope) {
     setAskCancelScope(false);
     if (scope === 'one') return setAppointmentStatus(appt!.id, 'cancelado');
-    const ids = seriesTargets(appt!, appointments, scope);
-    const ok = await cancelAppointments(ids);
-    if (ok) notify('Sessões canceladas', `${ids.length} ${ids.length === 1 ? 'sessão cancelada' : 'sessões canceladas'}.`);
+    // Sessão concluída (desfazendo a conclusão): a série em lote não mexe em concluídas, então
+    // esta é cancelada à parte (tira a receita e devolve o crédito), junto com as próximas
+    const self = appt!.status === 'concluido';
+    if (self) await setAppointmentStatus(appt!.id, 'cancelado');
+    const ids = seriesTargets(appt!, appointments, scope).filter((x) => x !== appt!.id || !self);
+    const ok = ids.length ? await cancelAppointments(ids) : true;
+    const total = ids.length + (self ? 1 : 0);
+    if (ok) notify('Sessões canceladas', `${total} ${total === 1 ? 'sessão cancelada' : 'sessões canceladas'}.`);
   }
+  // Na escolha "este e os próximos"/"todos", conta também a sessão concluída que está sendo desfeita
+  const selfExtra = appt.status === 'concluido' ? 1 : 0;
 
   const editable = appt.status !== 'concluido' && appt.status !== 'cancelado';
   const repeatLabel = describeRRule(appt.recurrenceRule, start);
@@ -363,8 +378,8 @@ export default function AgendamentoDetalhe() {
         action="cancelar"
         counts={{
           one: 1,
-          following: seriesTargets(appt, appointments, 'following').length,
-          all: seriesTargets(appt, appointments, 'all').length,
+          following: seriesTargets(appt, appointments, 'following').length + selfExtra,
+          all: seriesTargets(appt, appointments, 'all').length + selfExtra,
         }}
         onChoose={cancelSeries}
         onClose={() => setAskCancelScope(false)}
