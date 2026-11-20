@@ -46,7 +46,8 @@ export function usePlanAccess() {
     limits,
     has,
 
-    canAddClient: (currentCount = clients.length, adding = 1) =>
+    // Clientes removidas (dados apagados, só histórico) não contam no limite
+    canAddClient: (currentCount = clients.filter((c) => !c.removed).length, adding = 1) =>
       limits.clients === null || currentCount + adding <= limits.clients,
     canAddAppointmentThisMonth: (currentCount = appointmentsInMonth(), adding = 1) =>
       limits.appointmentsPerMonth === null || currentCount + adding <= limits.appointmentsPerMonth,

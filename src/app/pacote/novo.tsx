@@ -56,6 +56,7 @@ export default function VenderPacote() {
   const q = normalize(query);
   const qDigits = onlyDigits(query);
   const matches = clients
+    .filter((c) => !c.removed)
     .filter((c) => !q || normalize(c.name).includes(q) || (qDigits && c.whatsapp?.includes(qDigits)))
     .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, q ? 20 : 6);

@@ -127,6 +127,7 @@ export default function NovoAgendamento() {
   const q = normalize(query);
   const qDigits = query.replace(/\D/g, '');
   const matches = clients
+    .filter((c) => !c.removed)
     .filter((c) => !q || normalize(c.name).includes(q) || (qDigits && c.whatsapp?.includes(qDigits)))
     .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, q ? 20 : 8);
@@ -358,8 +359,22 @@ export default function NovoAgendamento() {
       const changedTimeOrServices =
         firstStart.getTime() !== editStart!.getTime() || serviceIds.join() !== editServiceIds.join();
       // Em série, pergunta se vale só para esta sessão ou para as próximas também
-      if (changedTimeOrServices && hasOpenSiblings(editing, appointments)) setAskScope(true);
-      else await applyEdit('one');
+      const proceed = () => {
+        if (changedTimeOrServices && hasOpenSiblings(editing, appointments)) setAskScope(true);
+        else applyEdit('one');
+      };
+      // Tirou o serviço do pacote: a sessão deixa de usar o pacote e passa a ser cobrada
+      const editPkg = packages.find((p) => p.id === editing.clientPackageId);
+      if (editPkg && !serviceIds.includes(editPkg.serviceId)) {
+        confirmAction(
+          'Tirar do pacote?',
+          `Sem o serviço do pacote "${editPkg.name}", esta sessão deixa de usar o pacote: o crédito volta para o saldo e o valor dos serviços será cobrado ao concluir.`,
+          proceed,
+          'Tirar do pacote',
+        );
+        return;
+      }
+      proceed();
       return;
     }
     // Limites do plano (o banco confere de novo ao gravar)

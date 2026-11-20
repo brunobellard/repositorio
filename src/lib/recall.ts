@@ -26,6 +26,7 @@ export function clientsToRecall(
   const nowIso = now.toISOString();
   const result: RecallInfo[] = [];
   for (const client of clients) {
+    if (client.removed) continue; // removida: só histórico, não se chama de volta
     const mine = appointments.filter((a) => a.clientId === client.id);
     const hasFuture = mine.some(
       (a) => a.startsAt >= nowIso && (a.status === 'pendente' || a.status === 'confirmado'),

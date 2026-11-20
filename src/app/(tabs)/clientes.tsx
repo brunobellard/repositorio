@@ -53,7 +53,9 @@ function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?:
 }
 
 export default function ClientesScreen() {
-  const { clients, appointments, profile, templates, loading, refresh } = useStore();
+  const { clients: allClients, appointments, profile, templates, loading, refresh } = useStore();
+  // Clientes removidas (só histórico) não aparecem na lista, na contagem nem no retorno
+  const clients = allClients.filter((c) => !c.removed);
   const access = usePlanAccess();
   const { refreshing, onRefresh } = usePullToRefresh(refresh);
   const refreshControl = (

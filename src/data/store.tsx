@@ -130,6 +130,7 @@ const toClient = (r: any): Client => ({
   technicalNotes: r.technical_notes ?? undefined,
   address: r.address ?? undefined,
   neighborhood: r.neighborhood ?? undefined,
+  removed: !!r.removed_at,
 });
 const toAppointment = (r: any): Appointment => ({
   id: r.id,
@@ -1379,29 +1380,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setPackages((list) => list.filter((p) => p.clientId !== id));
         return 'deleted';
       }
-      // Com histórico: apaga os dados pessoais (LGPD) e mantém atendimentos e valores
-      const { data, error } = await supabase
-        .from('clients')
-        .update({
-          name: 'Cliente removida',
-          whatsapp: null,
-          email: null,
-          birth_date: null,
-          technical_notes: null,
-          address: null,
-          neighborhood: null,
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      // Com histórico: apaga os dados pessoais (LGPD) e mantém atendimentos e valores.
+      // O banco faz tudo de uma vez: ficha, endereço dos atendimentos e nome na venda do pacote.
+      const { data, error } = await supabase.rpc('anonymize_client', { p_client_id: id });
       if (error) {
         fail(error);
         return false;
       }
-      // Endereço do atendimento a domicílio também é dado pessoal
-      await supabase.from('appointments').update({ service_address: null }).eq('client_id', id).not('service_address', 'is', null);
       setClients((list) => list.map((c) => (c.id === id ? toClient(data) : c)).sort((a, b) => a.name.localeCompare(b.name)));
       setAppointments((list) => list.map((a) => (a.clientId === id ? { ...a, serviceAddress: undefined } : a)));
+      const pkgIds = new Set(packages.filter((p) => p.clientId === id).map((p) => p.id));
+      setTransactions((list) =>
+        list.map((t) => {
+          const pkg = t.clientPackageId && pkgIds.has(t.clientPackageId) ? packages.find((p) => p.id === t.clientPackageId) : undefined;
+          return pkg ? { ...t, description: `${pkg.name} — Cliente removida` } : t;
+        }),
+      );
       return 'anonymized';
     },
 
@@ -1446,7 +1440,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const plan = effectivePlan(profile);
       const clientLimit = PLANS[plan].limits.clients;
       // No Free (10 clientes), no máximo 5 de exemplo: as outras vagas ficam para as clientes reais
-      const room = clientLimit === null ? mockClients.length : Math.max(0, Math.min(5, clientLimit - clients.length));
+      const room = clientLimit === null ? mockClients.length : Math.max(0, Math.min(5, clientLimit - clients.filter((c) => !c.removed).length));
       const exampleClients = mockClients.slice(0, Math.min(mockClients.length, room));
       if (!exampleClients.length) {
         notify('Sem espaço para exemplos', `O plano ${PLANS[plan].name} já está no limite de clientes.`, 'info');

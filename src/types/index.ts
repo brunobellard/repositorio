@@ -96,6 +96,11 @@ export interface Client {
   /** Endereço para atendimento a domicílio (rua, número, complemento) */
   address?: string;
   neighborhood?: string;
+  /**
+   * Excluída com histórico: dados pessoais apagados, continua só para a agenda e o Financeiro
+   * mostrarem os atendimentos antigos. Não aparece nas listas nem conta no limite do plano.
+   */
+  removed?: boolean;
 }
 
 export interface AppointmentService {

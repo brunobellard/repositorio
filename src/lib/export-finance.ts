@@ -91,7 +91,8 @@ function buildRows(d: FinanceData, p: Period): Row[] {
         method: t.paymentMethod,
         gross: t.grossAmount,
         fee: income ? t.feeAmount : 0,
-        net: income ? t.netAmount : t.grossAmount,
+        // Saída entra negativa no líquido: somar a coluna dá o lucro do período
+        net: income ? t.netAmount : -t.grossAmount,
       };
     });
 }
@@ -240,7 +241,7 @@ function financeHtml(d: FinanceData, p: Period): string {
         <td>${r.method ? paymentLabels[r.method] : ''}</td>
         <td class="r ${r.income ? 'in' : 'out'}">${r.income ? '+' : '−'} ${formatBRL(r.gross)}</td>
         <td class="r">${r.fee ? formatBRL(r.fee) : ''}</td>
-        <td class="r">${formatBRL(r.net)}</td>
+        <td class="r ${r.income ? '' : 'out'}">${r.income ? '' : '− '}${formatBRL(Math.abs(r.net))}</td>
       </tr>`,
         )
         .join('')}

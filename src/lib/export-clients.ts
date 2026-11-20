@@ -17,7 +17,8 @@ export interface ClientsData {
 
 /** Clientes que entram no arquivo conforme o filtro. */
 export function clientsForExport(d: ClientsData, filter: ClientFilter): Client[] {
-  if (filter === 'todas') return [...d.clients].sort((a, b) => a.name.localeCompare(b.name));
+  // Removidas não têm dados pessoais: ficam fora da exportação
+  if (filter === 'todas') return d.clients.filter((c) => !c.removed).sort((a, b) => a.name.localeCompare(b.name));
   // Inativas = mesma regra de "Para chamar de volta": sem visita há mais de N dias e sem horário marcado
   return clientsToRecall(d.clients, d.appointments, d.recallDays).map((r) => r.client);
 }

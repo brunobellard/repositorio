@@ -53,7 +53,13 @@ export default function Comprovante() {
   const start = new Date(appt.startsAt);
   const income = transactions.find((t) => t.appointmentId === appt.id);
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
-  const remaining = pkg ? pkg.totalSessions - pkg.usedSessions : 0;
+  // Saldo na data deste atendimento (não o de hoje): devolve as sessões do pacote concluídas depois dele
+  const usedLater = pkg
+    ? appointments.filter(
+        (a) => a.clientPackageId === pkg.id && a.status === 'concluido' && a.id !== appt.id && a.startsAt > appt.startsAt,
+      ).length
+    : 0;
+  const remaining = pkg ? Math.min(pkg.totalSessions, pkg.totalSessions - pkg.usedSessions + usedLater) : 0;
   const method = income?.paymentMethod;
   // Pacote paga uma sessão do serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
   const due = amountDue(appt, packages);
