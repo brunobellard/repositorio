@@ -10,6 +10,12 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [ ] 🔁 CT-CON-07 Sair → entrar com outra conta → nada da conta anterior (nome do estúdio, clientes, cor).
 - [ ] 🔁 CT-CON-08 Ficar mais de 1 hora sem abrir, ligar o modo avião, abrir → abre com os dados salvos (não pede login).
 
+## A2. Acessibilidade (TalkBack/VoiceOver ligado)
+- [ ] Agenda: botão "+" lido como "Novo agendamento"; dias lidos por extenso; horário vazio lido como "Agendar às 09:00".
+- [ ] Novo agendamento: dias e horários dizem "selecionado"; horário ocupado diz "indisponível".
+- [ ] Janelas que sobem de baixo (opções de série, excluir conta): cada botão é lido separadamente.
+- [ ] Primeiro acesso: aceite dos Termos lido como caixa de seleção marcada/desmarcada.
+
 ## B. Agenda
 - [ ] 🔁 CT-AGE-11 Novo agendamento → tocar duas vezes rápido em Salvar → só 1 criado.
 - [ ] Série semanal com "até" antes do primeiro dia → salva sessão única, sem travar em "Salvando…".

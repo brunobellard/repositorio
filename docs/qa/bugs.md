@@ -48,7 +48,8 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Correção (2ª parte):** os 97 botões restantes, em 28 arquivos, ganharam papel e nome: agenda (dias, horários, atendimentos, horários livres "Agendar às 09:00"), novo agendamento, ficha da cliente, ajustes, pacotes, primeiro acesso e link público (serviços, bairro, dias com data por extenso, horários, "Mês anterior/Próximo mês", "Voltar"). Itens escolhidos informam "selecionado"; o aceite dos Termos é uma caixa de seleção.
 **Achado durante a correção:** o fundo escuro das janelas de baixo (Sheet, "Esqueci minha senha", excluir conta, bairro) era um único botão que engolia todo o conteúdo para o leitor de tela; agora o fundo e o painel não são agrupados e cada campo/botão é lido separadamente.
 **Reteste em produção (20/11/2026):** mesma árvore de acessibilidade no login publicado.
-**Status:** corrigido (todas as telas) · 1ª parte conferida em produção; 2ª parte conferida localmente, aguardando deploy.
+**Reteste em produção (20/11/2026, 2ª parte):** janela "Esqueci minha senha" lida item a item (`textbox "E-mail"`, `button "Enviar link"`, botão "Cancelar"), sem o fundo agrupando o conteúdo; nenhum erro no console. Telas com login: conferir no celular com TalkBack/VoiceOver (roteiro-celular.md).
+**Status:** corrigido · publicado e conferido nas telas públicas.
 
 ---
 
