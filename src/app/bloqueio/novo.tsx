@@ -93,7 +93,7 @@ export default function NovoBloqueio() {
         {days.map((d) => {
           const sel = isSameDay(d, day);
           return (
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityLabel={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} accessibilityState={{ selected: !!sel }}
               key={d.toDateString()}
               onPress={() => setDay(d)}
               className={`mr-2 w-14 items-center rounded-2xl border py-2 ${sel ? 'border-primary bg-primary' : 'border-line bg-surface'}`}>

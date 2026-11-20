@@ -33,7 +33,7 @@ function Row({
   onPress?: () => void;
 }) {
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       onPress={() =>
         onPress
           ? onPress()
@@ -129,7 +129,7 @@ export default function AjustesScreen() {
         </Card>
 
         {/* Plano atual */}
-        <Pressable
+        <Pressable accessibilityRole="button"
           onPress={() => router.push('/ajustes/assinatura')}
           className="mt-3 flex-row items-center rounded-card border border-primary/40 bg-primary-soft px-4 py-3 active:opacity-80">
           <Ionicons name="sparkles" size={18} color={colors.primaryDark} />
@@ -228,7 +228,7 @@ export default function AjustesScreen() {
             />
           </View>
           {access.hasPush && profile.pushNotificationsEnabled ? (
-            <Pressable onPress={testPush} disabled={testing} className="border-t border-line py-3 active:opacity-60">
+            <Pressable accessibilityRole="button" onPress={testPush} disabled={testing} className="border-t border-line py-3 active:opacity-60">
               <Text className="text-[14px] font-medium text-primary-dark">
                 {testing ? 'Enviando…' : 'Enviar notificação de teste'}
               </Text>

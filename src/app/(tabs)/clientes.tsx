@@ -22,7 +22,7 @@ type Filter = 'todas' | 'retorno' | 'aniversario';
 
 function FilterChip({ label, count, active, onPress }: { label: string; count?: number; active: boolean; onPress: () => void }) {
   return (
-    <Pressable
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(active) }}
       onPress={onPress}
       className={`mr-2 flex-row items-center rounded-full border px-3.5 py-1.5 ${
         active ? 'border-primary bg-primary' : 'border-line bg-surface'
@@ -40,7 +40,7 @@ function FilterChip({ label, count, active, onPress }: { label: string; count?: 
 /** Botão discreto de WhatsApp dentro do card */
 function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable
+    <Pressable accessibilityRole="button" accessibilityLabel="Enviar mensagem no WhatsApp"
       onPress={onPress}
       disabled={disabled}
       hitSlop={6}
@@ -66,7 +66,7 @@ export default function ClientesScreen() {
   const [exporting, setExporting] = useState(false);
 
   const exportButton = (
-    <Pressable
+    <Pressable accessibilityRole="button"
       onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
       accessibilityLabel="Exportar base de clientes"
       className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
@@ -165,7 +165,7 @@ export default function ClientesScreen() {
             />
           }
           renderItem={({ item: r, index }) => (
-            <Pressable onPress={() => open(r.client.id)} className={rowClass(index, list.length)}>
+            <Pressable accessibilityRole="button" onPress={() => open(r.client.id)} className={rowClass(index, list.length)}>
               <Avatar name={r.client.name} />
               <View className="ml-3 flex-1">
                 <Text className="text-[15px] font-semibold text-ink">{r.client.name}</Text>
@@ -207,7 +207,7 @@ export default function ClientesScreen() {
           ListHeaderComponent={header}
           ListEmptyComponent={<EmptyState icon="gift-outline" text="Nenhuma aniversariante este mês" />}
           renderItem={({ item: b, index }) => (
-            <Pressable onPress={() => open(b.client.id)} className={rowClass(index, list.length)}>
+            <Pressable accessibilityRole="button" onPress={() => open(b.client.id)} className={rowClass(index, list.length)}>
               <View
                 className={`h-10 w-10 items-center justify-center rounded-full ${
                   b.isToday ? 'bg-primary' : 'bg-primary-soft'
@@ -261,7 +261,7 @@ export default function ClientesScreen() {
         renderItem={({ item: c, index }) => {
           const last = lastVisit(c.id);
           return (
-            <Pressable onPress={() => open(c.id)} className={rowClass(index, list.length)}>
+            <Pressable accessibilityRole="button" onPress={() => open(c.id)} className={rowClass(index, list.length)}>
               <Avatar name={c.name} />
               <View className="ml-3 flex-1">
                 <Text className="text-[15px] font-semibold text-ink">{c.name}</Text>

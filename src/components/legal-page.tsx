@@ -78,7 +78,7 @@ export function LegalPage({ doc, current }: { doc: LegalDocument; current: 'term
         <View className="w-full max-w-[760px] self-center">
           <View className="mb-6 flex-row items-center">
             {canLeave ? (
-              <Pressable onPress={leave} hitSlop={10} className="-ml-1 mr-2 p-1 active:opacity-60">
+              <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={leave} hitSlop={10} className="-ml-1 mr-2 p-1 active:opacity-60">
                 <Ionicons name="chevron-back" size={24} color={colors.ink} />
               </Pressable>
             ) : null}

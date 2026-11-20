@@ -87,7 +87,7 @@ export default function VenderPacote() {
         {/* Cliente */}
         <SectionLabel>Cliente</SectionLabel>
         {client ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => !params.clientId && setClientId(undefined)}
             className="flex-row items-center rounded-card border border-primary bg-primary-soft p-3">
             <Avatar name={client.name} />
@@ -111,7 +111,7 @@ export default function VenderPacote() {
             </View>
             <View className="overflow-hidden rounded-card border border-line bg-surface">
               {matches.map((c, i) => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={c.id}
                   onPress={() => setClientId(c.id)}
                   className={`flex-row items-center px-3 py-2.5 active:bg-bg ${i ? 'border-t border-line' : ''}`}>

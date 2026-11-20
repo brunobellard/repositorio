@@ -54,7 +54,7 @@ export function RecurrencePicker({
 
   if (locked) {
     return (
-      <Pressable
+      <Pressable accessibilityRole="button"
         onPress={onLockedPress}
         className="flex-row items-center rounded-card border border-line bg-surface px-4 py-3 active:opacity-70">
         <Ionicons name="repeat" size={18} color={colors.muted} />
@@ -69,7 +69,7 @@ export function RecurrencePicker({
 
   return (
     <View className="overflow-hidden rounded-card border border-line bg-surface">
-      <Pressable onPress={() => setOpen(!open)} className="flex-row items-center px-4 py-3 active:opacity-70">
+      <Pressable accessibilityRole="button" onPress={() => setOpen(!open)} className="flex-row items-center px-4 py-3 active:opacity-70">
         <Ionicons name="repeat" size={18} color={repeats ? colors.primaryDark : colors.muted} />
         <View className="ml-3 flex-1">
           <Text className={`text-[15px] ${repeats ? 'font-medium text-ink' : 'text-muted'}`}>

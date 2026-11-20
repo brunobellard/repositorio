@@ -141,7 +141,7 @@ export default function DadosEstudio() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {/* Logo */}
         <View className="items-center">
-          <Pressable onPress={pickLogo} disabled={uploading} className="active:opacity-70">
+          <Pressable accessibilityRole="button" accessibilityLabel="Escolher logo do estúdio" onPress={pickLogo} disabled={uploading} className="active:opacity-70">
             <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border border-line bg-primary-soft">
               {profile.logoUrl ? (
                 <Image source={{ uri: profile.logoUrl }} style={{ width: 96, height: 96 }} contentFit="cover" />
@@ -218,7 +218,7 @@ export default function DadosEstudio() {
         <SectionLabel>Modelo de atendimento</SectionLabel>
         <ServiceModePicker value={form.serviceMode} onChange={(serviceMode) => set({ serviceMode })} />
         {form.serviceMode !== 'fixed' ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => router.push('/ajustes/regioes')}
             className="mt-2 flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
             <Ionicons name="map-outline" size={18} color={colors.primaryDark} />
@@ -293,7 +293,7 @@ export default function DadosEstudio() {
         {/* Agendamento online */}
         <SectionLabel>Agendamento online</SectionLabel>
         {!access.hasPublicLink ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => openUpgrade('publicLink')}
             className="flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
             <Ionicons name="link-outline" size={18} color={colors.muted} />
@@ -366,7 +366,7 @@ export default function DadosEstudio() {
           <Text className="mb-3 mt-1 text-[12px] leading-4 text-muted">
             Excluir a conta apaga para sempre todos os dados do estúdio.
           </Text>
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => setDeleting(true)}
             className="flex-row items-center self-start rounded-2xl border border-[#E5C4C7] px-4 py-2.5 active:opacity-60">
             <Ionicons name="trash-outline" size={16} color="#B2474F" />

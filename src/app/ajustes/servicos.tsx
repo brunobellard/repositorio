@@ -52,7 +52,7 @@ export default function ServicosScreen() {
                 .map((s, i) => (
                   <View key={s.id} className={`flex-row items-center pr-4 ${i ? 'border-t border-line' : ''}`}>
                     {/* Tocar no nome edita; o interruptor fica fora, para não abrir a edição */}
-                    <Pressable
+                    <Pressable accessibilityRole="button"
                       onPress={() => router.push({ pathname: '/ajustes/servico', params: { id: s.id } })}
                       className="flex-1 flex-row items-center py-3 pl-4 active:opacity-60">
                       <View className="mr-3 h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />

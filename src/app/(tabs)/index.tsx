@@ -100,7 +100,7 @@ export default function AgendaScreen() {
         subtitle={profile.businessName}
         title="Agenda"
         right={
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => {
               setSelected(startOfDay(new Date()));
             }}
@@ -133,7 +133,7 @@ export default function AgendaScreen() {
               {active.length} {active.length === 1 ? 'atendimento' : 'atendimentos'} · {formatBRL(expected)} previsto
             </Text>
           </View>
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() =>
               router.push({ pathname: '/bloqueio/novo', params: { date: selected.toISOString() } })
             }
@@ -144,7 +144,7 @@ export default function AgendaScreen() {
         </View>
 
         {allDayBlock ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => onPressBlock(allDayBlock)}
             className="mx-4 mt-3 flex-row items-center rounded-card border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-4 py-3">
             <Ionicons name="moon-outline" size={18} color={colors.muted} />
@@ -154,7 +154,7 @@ export default function AgendaScreen() {
             </View>
           </Pressable>
         ) : !dayHours.isOpen ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => router.push('/ajustes/horarios')}
             className="mx-4 mt-3 flex-row items-center rounded-card border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-4 py-3">
             <Ionicons name="storefront-outline" size={18} color={colors.muted} />

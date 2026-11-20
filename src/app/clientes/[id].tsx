@@ -143,7 +143,7 @@ export default function FichaCliente() {
 
       <View className="mb-2 mt-5 flex-row items-center justify-between">
         <Text className="text-xs font-semibold uppercase tracking-wider text-muted">Pacotes</Text>
-        <Pressable
+        <Pressable accessibilityRole="button"
           onPress={() =>
             requireFeature(access.hasPackages, 'packages') &&
             router.push({ pathname: '/pacote/novo', params: { clientId: client.id } })
@@ -159,7 +159,7 @@ export default function FichaCliente() {
             const scheduled = scheduledSessions(p, appointments);
             const expired = isExpired(p);
             return (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={p.id}
                 onPress={() => router.push({ pathname: '/pacote/editar', params: { id: p.id } })}
                 className={`py-3 active:opacity-60 ${i ? 'border-t border-line' : ''}`}>
@@ -223,7 +223,7 @@ export default function FichaCliente() {
       {history.length ? (
         <Card className="py-1">
           {history.map((a, i) => (
-            <Pressable
+            <Pressable accessibilityRole="button"
               key={a.id}
               onPress={() => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}
               className={`flex-row items-center py-3 ${i ? 'border-t border-line' : ''}`}>
@@ -254,7 +254,7 @@ export default function FichaCliente() {
       )}
       {historyFrom ? (
         // O app abre com os últimos 12 meses; o restante vem quando pedido
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={loadingOlder}
           onPress={async () => {
             setLoadingOlder(true);

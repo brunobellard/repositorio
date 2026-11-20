@@ -45,8 +45,8 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-        <Pressable onPress={close} className="flex-1 justify-end bg-black/30">
-          <Pressable
+        <Pressable accessible={false} onPress={close} className="flex-1 justify-end bg-black/30">
+          <Pressable accessible={false}
             onPress={() => {}}
             className="rounded-t-3xl bg-surface px-5 pt-3"
             style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}>
@@ -93,7 +93,7 @@ export function DeleteAccountSheet({ visible, onClose }: { visible: boolean; onC
                 onPress={confirm}
               />
             </View>
-            <Pressable onPress={close} disabled={busy} className="mt-1 items-center py-3">
+            <Pressable accessibilityRole="button" onPress={close} disabled={busy} className="mt-1 items-center py-3">
               <Text className="text-[15px] font-medium text-muted">Cancelar</Text>
             </Pressable>
           </Pressable>

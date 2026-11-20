@@ -59,7 +59,7 @@ export default function Regioes() {
     <View className="flex-1 bg-bg">
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
         {!hasHomeService ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => openUpgrade('homeService')}
             className="mb-2 flex-row items-center rounded-2xl bg-primary-soft p-3 active:opacity-80">
             <Ionicons name="lock-closed" size={16} color={colors.primaryDark} />
@@ -98,7 +98,7 @@ export default function Regioes() {
         {serviceAreas.length ? (
           <View className="overflow-hidden rounded-card border border-line bg-surface">
             {serviceAreas.map((a, i) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={a.id}
                 onPress={() => edit({ ...a })}
                 className={`flex-row items-center px-4 py-3 active:bg-bg ${i ? 'border-t border-line' : ''}`}>
@@ -131,8 +131,8 @@ export default function Regioes() {
       {/* Formulário do bairro */}
       <Modal visible={!!draft} transparent animationType="fade" onRequestClose={() => setDraft(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-          <Pressable onPress={() => setDraft(null)} className="flex-1 justify-end bg-black/30">
-            <Pressable
+          <Pressable accessible={false} onPress={() => setDraft(null)} className="flex-1 justify-end bg-black/30">
+            <Pressable accessible={false}
               onPress={() => {}}
               className="rounded-t-3xl bg-surface px-5 pt-3"
               style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}>
@@ -162,7 +162,7 @@ export default function Regioes() {
                     {ALL_DAYS.map((d) => {
                       const on = draft.allowedDays.includes(d);
                       return (
-                        <Pressable
+                        <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                           key={d}
                           onPress={() => toggleDay(d)}
                           className={`flex-1 items-center rounded-xl border py-2.5 ${
@@ -186,11 +186,11 @@ export default function Regioes() {
                   ) : null}
                   <Button title={saving ? 'Salvando…' : 'Salvar bairro'} loading={saving} disabled={!canSave} onPress={save} />
                   {draft.id ? (
-                    <Pressable onPress={remove} className="mt-1 items-center py-3">
+                    <Pressable accessibilityRole="button" onPress={remove} className="mt-1 items-center py-3">
                       <Text className="text-[15px] font-medium text-[#B2474F]">Excluir bairro</Text>
                     </Pressable>
                   ) : (
-                    <Pressable onPress={() => setDraft(null)} className="mt-1 items-center py-3">
+                    <Pressable accessibilityRole="button" onPress={() => setDraft(null)} className="mt-1 items-center py-3">
                       <Text className="text-[15px] font-medium text-muted">Cancelar</Text>
                     </Pressable>
                   )}

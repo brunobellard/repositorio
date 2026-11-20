@@ -49,7 +49,7 @@ export function UpgradeHost() {
               router.push({ pathname: '/ajustes/assinatura', params: { plan: plan.tier } });
             }}
           />
-          <Pressable onPress={close} className="mt-1 items-center py-3">
+          <Pressable accessibilityRole="button" onPress={close} className="mt-1 items-center py-3">
             <Text className="text-[15px] font-medium text-muted">Agora não</Text>
           </Pressable>
         </View>

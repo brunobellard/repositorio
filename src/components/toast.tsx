@@ -70,7 +70,7 @@ export function ToastHost() {
         opacity: anim,
         transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }],
       }}>
-      <Pressable
+      <Pressable accessibilityRole="button"
         onPress={() => setItem(null)}
         className="flex-row items-center self-center rounded-2xl border border-line bg-surface px-4 py-3"
         style={{

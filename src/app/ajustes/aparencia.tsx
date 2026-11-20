@@ -125,7 +125,7 @@ export default function Aparencia() {
             const on = selected === p.hex;
             const locked = p.hex !== DEFAULT_THEME_COLOR && !access.hasThemes;
             return (
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                 key={p.hex}
                 onPress={() => pickPreset(p.hex)}
                 className={`flex-row items-center px-4 py-3 active:bg-bg ${i ? 'border-t border-line' : ''}`}
@@ -150,7 +150,7 @@ export default function Aparencia() {
         </View>
         <View className="h-2" />
         {!access.hasThemes ? (
-          <Pressable onPress={() => openUpgrade('themes')} className="mb-2 flex-row items-center active:opacity-70">
+          <Pressable accessibilityRole="button" onPress={() => openUpgrade('themes')} className="mb-2 flex-row items-center active:opacity-70">
             <Ionicons name="lock-closed" size={13} color={colors.primaryDark} />
             <Text className="ml-1.5 text-[12px] text-primary-dark">
               As 6 paletas estão disponíveis a partir do plano Básico.
@@ -188,7 +188,7 @@ export default function Aparencia() {
             </Text>
           </>
         ) : (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => openUpgrade('customTheme')}
             className="flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3 active:opacity-70">
             <Ionicons name="color-palette-outline" size={18} color={colors.muted} />
@@ -211,7 +211,7 @@ export default function Aparencia() {
       <View
         className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <Pressable
+        <Pressable accessibilityRole="button"
           onPress={save}
           disabled={!changed || saving}
           className="flex-row items-center justify-center rounded-2xl py-3.5 active:opacity-80"

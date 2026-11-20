@@ -402,7 +402,7 @@ export default function NovoAgendamento() {
         {/* 1. Cliente */}
         <SectionLabel>Cliente</SectionLabel>
         {client ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() => setClientId(undefined)}
             disabled={!!editing}
             className="flex-row items-center rounded-card border border-primary bg-primary-soft p-3">
@@ -452,7 +452,7 @@ export default function NovoAgendamento() {
             </View>
             <View className="overflow-hidden rounded-card border border-line bg-surface">
               {matches.map((c, i) => (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   key={c.id}
                   onPress={() => setClientId(c.id)}
                   className={`flex-row items-center px-3 py-2.5 active:bg-bg ${i ? 'border-t border-line' : ''}`}>
@@ -461,7 +461,7 @@ export default function NovoAgendamento() {
                   <Text className="text-xs text-muted">{formatPhone(c.whatsapp)}</Text>
                 </Pressable>
               ))}
-              <Pressable
+              <Pressable accessibilityRole="button"
                 onPress={() => setNewClient({ name: query, whatsapp: '' })}
                 className="flex-row items-center border-t border-line px-3 py-3 active:bg-bg">
                 <Ionicons name="person-add-outline" size={18} color={colors.primaryDark} />
@@ -563,7 +563,7 @@ export default function NovoAgendamento() {
           {days.map((d) => {
             const sel = isSameDay(d, day);
             return (
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} accessibilityState={{ selected: !!sel }}
                 key={d.toDateString()}
                 onPress={() => {
                   setDay(d);
@@ -593,7 +593,7 @@ export default function NovoAgendamento() {
                   ? 'Mostrando horários fora do expediente.'
                   : `${closedReason} Para atender mesmo assim, libere os horários.`}
               </Text>
-              <Pressable onPress={() => { setOverride(!override); setTime(null); }} className="mt-1 self-start py-1">
+              <Pressable accessibilityRole="button" onPress={() => { setOverride(!override); setTime(null); }} className="mt-1 self-start py-1">
                 <Text className="text-[13px] font-semibold text-[#8A6420] underline">
                   {override ? 'Voltar ao expediente normal' : 'Agendar fora do expediente'}
                 </Text>
@@ -606,7 +606,7 @@ export default function NovoAgendamento() {
             {slots.map((s) => {
               const sel = time === s.min && s.free;
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: !!sel, disabled: !s.free }}
                   key={s.min}
                   disabled={!s.free}
                   onPress={() => setTime(s.min)}
@@ -642,7 +642,7 @@ export default function NovoAgendamento() {
           const left = p.totalSessions - p.usedSessions;
           const credits = availableCredits(p, appointments);
           return (
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
               key={p.id}
               onPress={() => setPackageId(on ? null : p.id)}
               className={`mt-4 flex-row items-center rounded-card border px-4 py-3 ${

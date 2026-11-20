@@ -45,9 +45,10 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Evidência:** árvore de acessibilidade da página de login: `textbox "voce@email.com"`, botões como `generic`.
 **Correção:** papéis e nomes em `Button`, `Chip`, `Segmented` (abas), `Fab` ("Novo agendamento", "Nova cliente", "Nova despesa"), `EmptyState`, `Field` e `SearchBar`; links do login e da tela "Esqueci minha senha"; aviso de erro do login anunciado ao aparecer.
 **Reteste (local):** árvore do login agora mostra `tab "Entrar"`, `textbox "E-mail"`, `textbox "Senha"`, `button "Esqueci minha senha"`, `button "Entrar"`, `button "Ainda não tem conta? Criar conta"`.
-**Pendente:** botões feitos direto com `Pressable` em outras telas (agenda, ajustes, link público) ainda sem papel — revisar tela a tela.
+**Correção (2ª parte):** os 97 botões restantes, em 28 arquivos, ganharam papel e nome: agenda (dias, horários, atendimentos, horários livres "Agendar às 09:00"), novo agendamento, ficha da cliente, ajustes, pacotes, primeiro acesso e link público (serviços, bairro, dias com data por extenso, horários, "Mês anterior/Próximo mês", "Voltar"). Itens escolhidos informam "selecionado"; o aceite dos Termos é uma caixa de seleção.
+**Achado durante a correção:** o fundo escuro das janelas de baixo (Sheet, "Esqueci minha senha", excluir conta, bairro) era um único botão que engolia todo o conteúdo para o leitor de tela; agora o fundo e o painel não são agrupados e cada campo/botão é lido separadamente.
 **Reteste em produção (20/11/2026):** mesma árvore de acessibilidade no login publicado.
-**Status:** corrigido parcialmente (componentes compartilhados e login) · conferido em produção.
+**Status:** corrigido (todas as telas) · 1ª parte conferida em produção; 2ª parte conferida localmente, aguardando deploy.
 
 ---
 

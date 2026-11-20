@@ -138,7 +138,7 @@ function OnboardingSteps() {
         {/* Progresso */}
         <View className="mb-6 flex-row items-center">
           {step > 0 ? (
-            <Pressable onPress={() => setStep(step - 1)} disabled={busy} className="mr-3 py-1 active:opacity-60">
+            <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => setStep(step - 1)} disabled={busy} className="mr-3 py-1 active:opacity-60">
               <Ionicons name="chevron-back" size={22} color={colors.ink} />
             </Pressable>
           ) : null}
@@ -210,7 +210,7 @@ function OnboardingSteps() {
             {SPECIALTIES.map((s) => {
               const selected = s.id === specialtyId;
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(selected) }}
                   key={s.id}
                   onPress={() => setSpecialtyId(s.id)}
                   className={`mb-2.5 rounded-card border px-4 py-3.5 active:opacity-80 ${
@@ -241,7 +241,7 @@ function OnboardingSteps() {
               );
             })}
             {/* Outra especialidade: a pessoa escreve o nome e os próprios serviços */}
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(isOther) }}
               onPress={() => setSpecialtyId('other')}
               className={`mb-2.5 rounded-card border px-4 py-3.5 active:opacity-80 ${
                 isOther ? 'border-primary bg-primary-soft' : 'border-line bg-surface'
@@ -280,7 +280,7 @@ function OnboardingSteps() {
                         className="flex-1 rounded-xl border border-line bg-bg px-3 py-2.5 text-[15px] text-ink"
                       />
                       {customServices.length > 1 ? (
-                        <Pressable
+                        <Pressable accessibilityRole="button" accessibilityLabel="Remover serviço"
                           onPress={() => setCustomServices(customServices.filter((_, j) => j !== i))}
                           hitSlop={8}
                           className="ml-2 p-1 active:opacity-60">
@@ -313,7 +313,7 @@ function OnboardingSteps() {
                   </View>
                 ))}
                 {customServices.length < MAX_CUSTOM_SERVICES ? (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     onPress={() => setCustomServices([...customServices, EMPTY_SERVICE])}
                     className="flex-row items-center justify-center rounded-2xl border border-dashed border-primary py-3 active:opacity-70">
                     <Ionicons name="add" size={18} color={colors.primaryDark} />
@@ -332,7 +332,7 @@ function OnboardingSteps() {
                 Você já tem serviços cadastrados, então nenhum serviço novo será criado.
               </Text>
             ) : null}
-            <Pressable onPress={skipSpecialty} disabled={busy} className="mt-2 items-center py-2 active:opacity-60">
+            <Pressable accessibilityRole="button" onPress={skipSpecialty} disabled={busy} className="mt-2 items-center py-2 active:opacity-60">
               <Text className="text-[14px] text-muted">Prefiro cadastrar meus serviços depois</Text>
             </Pressable>
           </>
@@ -348,7 +348,7 @@ function OnboardingSteps() {
               {WEEKDAYS.map((label, d) => {
                 const on = days.includes(d);
                 return (
-                  <Pressable
+                  <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                     key={label}
                     onPress={() => setDays(on ? days.filter((x) => x !== d) : [...days, d].sort())}
                     className={`flex-1 items-center rounded-xl border py-2.5 ${

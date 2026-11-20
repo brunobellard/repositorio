@@ -173,7 +173,7 @@ export default function AgendamentoDetalhe() {
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
       {/* Cliente */}
-      <Pressable
+      <Pressable accessibilityRole="button"
         onPress={() => router.push({ pathname: '/clientes/[id]', params: { id: client.id } })}
         className="flex-row items-center">
         <Avatar name={client.name} size={52} />
@@ -245,7 +245,7 @@ export default function AgendamentoDetalhe() {
           <Text className="text-[15px] font-semibold text-ink">{formatBRL(due)}</Text>
         </View>
         {appt.locationType === 'home_service' ? (
-          <Pressable
+          <Pressable accessibilityRole="button"
             onPress={() =>
               appt.serviceAddress &&
               Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appt.serviceAddress)}`)
@@ -292,7 +292,7 @@ export default function AgendamentoDetalhe() {
           const info = statusInfo[s];
           const active = askPayment ? s === 'concluido' : appt.status === s;
           return (
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(active) }}
               key={s}
               onPress={() => onStatus(s)}
               style={{
@@ -318,7 +318,7 @@ export default function AgendamentoDetalhe() {
           </Text>
           <View className="flex-row flex-wrap gap-2">
             {METHODS.map((m) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={m}
                 disabled={!!completing}
                 onPress={() => finish(m)}

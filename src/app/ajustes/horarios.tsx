@@ -195,7 +195,7 @@ export default function HorariosScreen() {
         {/* A. Expediente semanal */}
         <View className="flex-row items-center justify-between">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted">Expediente semanal</Text>
-          <Pressable onPress={copyMonday} className="flex-row items-center py-1 active:opacity-60">
+          <Pressable accessibilityRole="button" onPress={copyMonday} className="flex-row items-center py-1 active:opacity-60">
             <Ionicons name="copy-outline" size={14} color={colors.primaryDark} />
             <Text className="ml-1 text-[13px] font-medium text-primary-dark">Copiar segunda p/ ter–sex</Text>
           </Pressable>
@@ -232,12 +232,12 @@ export default function HorariosScreen() {
                           onChange={(breakStart) => update(dow, { breakStart })}
                         />
                         <TimeBox label="Pausa · fim" value={d.breakEnd} onChange={(breakEnd) => update(dow, { breakEnd })} />
-                        <Pressable onPress={() => update(dow, { hasBreak: false })} hitSlop={8} className="pb-2.5">
+                        <Pressable accessibilityRole="button" accessibilityLabel="Remover intervalo" onPress={() => update(dow, { hasBreak: false })} hitSlop={8} className="pb-2.5">
                           <Ionicons name="close-circle" size={20} color={colors.muted} />
                         </Pressable>
                       </View>
                     ) : (
-                      <Pressable onPress={() => update(dow, { hasBreak: true })} className="mt-2 self-start py-1">
+                      <Pressable accessibilityRole="button" onPress={() => update(dow, { hasBreak: true })} className="mt-2 self-start py-1">
                         <Text className="text-[13px] font-medium text-primary-dark">+ Intervalo de almoço/pausa</Text>
                       </Pressable>
                     )}
@@ -312,7 +312,7 @@ export default function HorariosScreen() {
                   <Text className="text-[15px] font-medium text-ink">{b.reason ?? 'Folga'}</Text>
                   <Text className="text-xs text-muted">{describeOff(b.startsAt, b.endsAt)}</Text>
                 </View>
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityLabel="Remover folga"
                   hitSlop={8}
                   onPress={() =>
                     confirmAction('Remover folga?', `${b.reason ?? 'Folga'} será liberada na agenda.`, () =>

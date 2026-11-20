@@ -179,7 +179,7 @@ function StepHeader({ labels, current, onBack }: { labels: string[]; current: nu
   return (
     <View className="mb-4 flex-row items-center">
       {onBack ? (
-        <Pressable onPress={onBack} hitSlop={10} className="mr-2 p-1 active:opacity-60">
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={onBack} hitSlop={10} className="mr-2 p-1 active:opacity-60">
           <Ionicons name="chevron-back" size={20} color={colors.ink} />
         </Pressable>
       ) : null}
@@ -472,7 +472,7 @@ export default function AgendarOnline() {
                 .map((s, i) => {
                   const on = serviceIds.includes(s.id);
                   return (
-                    <Pressable
+                    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                       key={s.id}
                       onPress={() => toggleService(s.id)}
                       className={`flex-row items-center px-4 py-3.5 active:bg-bg ${i ? 'border-t border-line' : ''} ${
@@ -546,7 +546,7 @@ export default function AgendarOnline() {
             ).map((o) => {
               const on = locationType === o.v;
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                   key={o.v}
                   onPress={() => pickLocation(o.v)}
                   className={`mb-2 flex-row items-center rounded-card border px-4 py-3.5 active:opacity-80 ${
@@ -575,7 +575,7 @@ export default function AgendarOnline() {
                 {areas.map((a, i) => {
                   const on = areaId === a.id;
                   return (
-                    <Pressable
+                    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
                       key={a.id}
                       onPress={() => {
                         setAreaId(a.id);
@@ -601,7 +601,7 @@ export default function AgendarOnline() {
               <Text className="text-[14px] text-muted">Os bairros atendidos ainda não foram cadastrados.</Text>
             )}
             {digits ? (
-              <Pressable onPress={askWhatsapp} className="mt-3 items-center py-2 active:opacity-60">
+              <Pressable accessibilityRole="button" onPress={askWhatsapp} className="mt-3 items-center py-2 active:opacity-60">
                 <Text className="text-[13px] text-muted underline">Meu bairro não está na lista</Text>
               </Pressable>
             ) : null}
@@ -637,7 +637,7 @@ export default function AgendarOnline() {
             <Text className="text-[13px] text-[#B2474F]">
               Não foi possível carregar os horários livres. Confira sua internet e tente de novo.
             </Text>
-            <Pressable onPress={loadBusy} disabled={busyLoading} hitSlop={8} className="mt-2 self-start">
+            <Pressable accessibilityRole="button" onPress={loadBusy} disabled={busyLoading} hitSlop={8} className="mt-2 self-start">
               <Text className="text-[13px] font-semibold text-[#B2474F]">
                 {busyLoading ? 'Carregando…' : 'Tentar de novo'}
               </Text>
@@ -646,7 +646,7 @@ export default function AgendarOnline() {
         ) : null}
         <View className="rounded-card border border-line bg-surface p-4">
           <View className="mb-2 flex-row items-center justify-between">
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityLabel="Mês anterior"
               disabled={!canPrev}
               onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
               hitSlop={10}
@@ -656,7 +656,7 @@ export default function AgendarOnline() {
             <Text className="text-[15px] font-semibold text-ink">
               {MONTHS[month.getMonth()]} {month.getFullYear()}
             </Text>
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityLabel="Próximo mês"
               disabled={!canNext}
               onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
               hitSlop={10}
@@ -679,7 +679,7 @@ export default function AgendarOnline() {
               const state = other ? 'past' : dayState(d);
               const sel = day && isSameDay(d, day);
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityLabel={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} accessibilityState={{ selected: !!sel, disabled: state !== 'open' }}
                   key={d.toDateString()}
                   disabled={state !== 'open'}
                   onPress={() => {
@@ -724,7 +724,7 @@ export default function AgendarOnline() {
                 {slots.map((m) => {
                   const sel = time === m;
                   return (
-                    <Pressable
+                    <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(sel) }}
                       key={m}
                       onPress={() => setTime(m)}
                       className={`mb-2 mr-2 w-[74px] items-center rounded-xl border py-2.5 ${

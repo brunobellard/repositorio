@@ -42,13 +42,13 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
   return (
     <View className="mx-4 rounded-card border border-line bg-surface px-3 pb-3 pt-3">
       <View className="mb-3 flex-row items-center">
-        <Pressable onPress={() => shift(-1)} hitSlop={10} className="p-1">
+        <Pressable accessibilityRole="button" accessibilityLabel="Período anterior" onPress={() => shift(-1)} hitSlop={10} className="p-1">
           <Ionicons name="chevron-back" size={20} color={colors.ink} />
         </Pressable>
         <Text numberOfLines={1} className="ml-1 flex-1 text-[15px] font-semibold text-ink">
           {MONTHS[selected.getMonth()].slice(0, 3)} {selected.getFullYear()}
         </Text>
-        <Pressable onPress={() => shift(1)} hitSlop={10} className="mr-2 p-1">
+        <Pressable accessibilityRole="button" accessibilityLabel="Próximo período" onPress={() => shift(1)} hitSlop={10} className="mr-2 p-1">
           <Ionicons name="chevron-forward" size={20} color={colors.ink} />
         </Pressable>
         <View className="w-40">
@@ -82,7 +82,7 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
           const count = counts.get(key) ?? 0;
           const blocked = blockedDays.has(key);
           return (
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityLabel={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} accessibilityState={{ selected: !!isSel }}
               key={key}
               onPress={() => onSelect(d)}
               className="flex-1 items-center py-1">

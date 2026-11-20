@@ -75,14 +75,14 @@ export default function FinanceiroScreen() {
         subtitle="Resumo do mês"
         right={
           <View className="flex-row gap-2">
-            <Pressable
+            <Pressable accessibilityRole="button"
               onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
               accessibilityLabel="Exportar relatório"
               className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
               <Ionicons name="download-outline" size={14} color={colors.ink} />
               <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
             </Pressable>
-            <Pressable
+            <Pressable accessibilityRole="button"
               onPress={() => requireFeature(access.hasPackages, 'packages') && router.push('/pacote/novo')}
               accessibilityLabel="Vender pacote"
               className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
@@ -160,7 +160,7 @@ export default function FinanceiroScreen() {
                       {income ? '+' : '−'} {formatBRL(t.amount)}
                     </Text>
                     {!income ? (
-                      <Pressable
+                      <Pressable accessibilityRole="button"
                         onPress={() => removeExpense(t.id, t.description || t.category, t.amount)}
                         hitSlop={8}
                         accessibilityLabel="Excluir despesa"

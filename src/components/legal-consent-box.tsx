@@ -59,7 +59,7 @@ export function LegalConsentBox({ accepted, onChange }: { accepted: boolean; onC
         </ScrollView>
       </View>
 
-      <Pressable
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: accepted, disabled: !readAll }}
         onPress={() => readAll && onChange(!accepted)}
         disabled={!readAll}
         className={`mt-3 flex-row items-center ${readAll ? 'active:opacity-70' : 'opacity-50'}`}>

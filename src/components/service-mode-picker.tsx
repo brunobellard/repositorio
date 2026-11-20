@@ -25,7 +25,7 @@ export function ServiceModePicker({ value, onChange }: { value: ServiceMode; onC
         const on = m.value === value;
         const locked = m.value !== 'fixed' && !hasHomeService;
         return (
-          <Pressable
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(on) }}
             key={m.value}
             onPress={() => (locked ? openUpgrade('homeService') : onChange(m.value))}
             className={`flex-row items-center rounded-2xl border px-4 py-3 active:opacity-80 ${

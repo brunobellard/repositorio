@@ -117,8 +117,8 @@ export function DayTimeline({
             <View className="h-px flex-1 bg-line" />
           </View>
           <View style={{ position: 'absolute', left: LABEL_WIDTH, right: 0, top: 0, bottom: 0 }} className="flex-col">
-            <Pressable className="flex-1" onPress={() => onPressSlot(m)} />
-            <Pressable className="flex-1" onPress={() => onPressSlot(m + 30)} />
+            <Pressable accessibilityRole="button" accessibilityLabel={`Agendar às ${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`} className="flex-1" onPress={() => onPressSlot(m)} />
+            <Pressable accessibilityRole="button" accessibilityLabel={`Agendar às ${String(Math.floor((m + 30) / 60)).padStart(2, '0')}:${String((m + 30) % 60).padStart(2, '0')}`} className="flex-1" onPress={() => onPressSlot(m + 30)} />
           </View>
         </View>
       ))}
@@ -149,7 +149,7 @@ export function DayTimeline({
         const top = y(mins(b.startsAt));
         const h = y(mins(b.endsAt)) - top;
         return (
-          <Pressable
+          <Pressable accessibilityRole="button"
             key={b.id}
             onPress={() => onPressBlock(b)}
             style={{ position: 'absolute', top, height: h, left: LABEL_WIDTH, right: 0 }}
@@ -205,7 +205,7 @@ export function DayTimeline({
             pointerEvents="box-none">
             <View style={{ flexDirection: 'row', height: '100%' }} pointerEvents="box-none">
               <View style={{ flex: col }} pointerEvents="none" />
-              <Pressable
+              <Pressable accessibilityRole="button"
                 onPress={() => onPressAppointment(a)}
                 style={{ flex: 1, backgroundColor: cancelled ? '#FBFAFA' : colors.surface, opacity: cancelled ? 0.7 : 1 }}
                 className="mx-0.5 flex-row overflow-hidden rounded-xl border border-line active:opacity-70">

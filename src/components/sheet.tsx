@@ -24,9 +24,9 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable onPress={onClose} className="flex-1 justify-end bg-black/30">
+      <Pressable accessible={false} onPress={onClose} className="flex-1 justify-end bg-black/30">
         {/* Pressable interno impede que tocar no painel feche o modal */}
-        <Pressable
+        <Pressable accessible={false}
           onPress={() => {}}
           className="rounded-t-3xl bg-surface px-5 pt-3"
           style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}>
@@ -55,7 +55,7 @@ export function SheetOption({
 }) {
   const color = tone === 'danger' ? '#B2474F' : colors.ink;
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       onPress={onPress}
       className="mb-2 flex-row items-center rounded-2xl border border-line bg-bg px-4 py-3.5 active:opacity-70">
       <Ionicons name={icon} size={18} color={tone === 'danger' ? color : colors.primaryDark} />
@@ -108,7 +108,7 @@ export function SeriesScopeSheet({
         tone={tone}
         onPress={() => onChoose('all')}
       />
-      <Pressable onPress={onClose} className="mt-1 items-center py-3">
+      <Pressable accessibilityRole="button" onPress={onClose} className="mt-1 items-center py-3">
         <Text className="text-[15px] font-medium text-muted">Voltar</Text>
       </Pressable>
     </Sheet>

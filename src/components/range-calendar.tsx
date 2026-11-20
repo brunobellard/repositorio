@@ -37,13 +37,13 @@ export function RangeCalendar({
   return (
     <View>
       <View className="mb-2 flex-row items-center justify-between">
-        <Pressable onPress={() => shift(-1)} hitSlop={10} className="p-1">
+        <Pressable accessibilityRole="button" accessibilityLabel="Mês anterior" onPress={() => shift(-1)} hitSlop={10} className="p-1">
           <Ionicons name="chevron-back" size={18} color={colors.ink} />
         </Pressable>
         <Text className="text-[15px] font-semibold text-ink">
           {MONTHS[month.getMonth()]} {month.getFullYear()}
         </Text>
-        <Pressable onPress={() => shift(1)} hitSlop={10} className="p-1">
+        <Pressable accessibilityRole="button" accessibilityLabel="Próximo mês" onPress={() => shift(1)} hitSlop={10} className="p-1">
           <Ionicons name="chevron-forward" size={18} color={colors.ink} />
         </Pressable>
       </View>
@@ -62,7 +62,7 @@ export function RangeCalendar({
           const past = !allowPast && d < today;
           const edge = (start && isSameDay(d, start)) || (end && isSameDay(d, end));
           return (
-            <Pressable
+            <Pressable accessibilityRole="button" accessibilityLabel={d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} accessibilityState={{ disabled: past }}
               key={d.toDateString()}
               disabled={past}
               onPress={() => press(d)}

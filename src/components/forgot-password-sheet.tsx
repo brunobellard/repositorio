@@ -46,8 +46,8 @@ export function ForgotPasswordSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close} onShow={() => setEmail(initialEmail)}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-        <Pressable onPress={close} className="flex-1 justify-end bg-black/30">
-          <Pressable
+        <Pressable accessible={false} onPress={close} className="flex-1 justify-end bg-black/30">
+          <Pressable accessible={false}
             onPress={() => {}}
             className="rounded-t-3xl bg-surface px-5 pt-3"
             style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}>
