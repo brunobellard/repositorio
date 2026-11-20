@@ -8,15 +8,15 @@
 | ID | Cenário | Passos | Resultado esperado | Pri | Tipo | Status |
 |---|---|---|---|---|---|---|
 | CT-CON-01 | Entrar com dados corretos | Login > e-mail e senha da conta de teste > Entrar | Abre a Agenda | P1 | E2E | ⬜ |
-| CT-CON-02 | Senha errada | Senha incorreta > Entrar | "E-mail ou senha incorretos." | P1 | E2E | ⬜ |
+| CT-CON-02 | Senha errada | Senha incorreta > Entrar | "E-mail ou senha incorretos." | P1 | E2E | ✅ (celular, 20/11) |
 | CT-CON-03 | Botão desabilitado com dados incompletos | Sem "@" no e-mail ou senha < 6 | "Entrar" desabilitado | P2 | M (web) | ✅ |
 | CT-CON-11 | E-mail com formato inválido | `ana@` ou `ana@exemplo` | Entrar/Enviar link desabilitados (BUG-004) | P2 | U (CT-FMT-06) + M (web) | ✅ |
-| CT-CON-12 | Leitor de tela no login | Ativar TalkBack/VoiceOver | Anuncia "E-mail", "Senha", "Entrar, botão" (BUG-003) | P3 | M | ✅ (web) |
-| CT-CON-04 | Cadastro com e-mail já existente | Criar conta com e-mail da conta de teste | "Já existe uma conta com este e-mail…" (não "Conta criada!") | P1 | M | ⬜ |
+| CT-CON-12 | Leitor de tela no login | Ativar TalkBack/VoiceOver | Anuncia "E-mail", "Senha", "Entrar, botão" (BUG-003) | P3 | M | ✅ (web e celular) |
+| CT-CON-04 | Cadastro com e-mail já existente | Criar conta com e-mail da conta de teste | "Já existe uma conta com este e-mail…" (não "Conta criada!") | P1 | M | ✅ (celular, 20/11) |
 | CT-CON-05 | Esqueci a senha sem e-mail | Abrir "Esqueci minha senha" com campo vazio | "Enviar link" desabilitado | P3 | M (web) | ✅ |
 | CT-CON-06 | Link de nova senha inválido | Abrir /redefinir-senha sem token | "Link inválido ou expirado" | P2 | M (web) | ✅ |
-| CT-CON-07 | Sair da conta apaga o cache | Sair > entrar com outra conta | Nada da conta anterior aparece | P1 | M | ⬜ |
-| CT-CON-08 | Abrir sem internet com login vencido | Ficar > 1 h sem abrir; modo avião; abrir | Abre com os dados salvos (não cai no login) | P1 | M | ⬜ |
+| CT-CON-07 | Sair da conta apaga o cache | Sair > entrar com outra conta | Nada da conta anterior aparece | P1 | M | ✅ (celular, 20/11) |
+| CT-CON-08 | Abrir sem internet com login vencido | Ficar > 1 h sem abrir; modo avião; abrir | Abre com os dados salvos (não cai no login) | P1 | M | ✅ (celular, 20/11) |
 | CT-CON-09 | Excluir conta | Ajustes > Excluir conta (conta descartável) | Sai do app; login e dados somem (VAL-17/18 = 0) | P1 | M + SQL | ⬜ |
 | CT-CON-10 | Digital escolhida no login | Ligar "Entrar com digital" > fechar e abrir | Pede a digital só na próxima abertura | P2 | M | ⬜ |
 
@@ -35,7 +35,7 @@
 | CT-AGE-10 | Domicílio novo reserva deslocamento | "Horário ocupado" se o seguinte começa no deslocamento | P2 | U | ✅ |
 | CT-API-02 | Banco calcula total e "ocupado até" | total = preço; busy_until ≥ fim | P1 | API | ✅ (CI) |
 | CT-API-03 | Banco recusa sobreposição | Erro 23P01 | P1 | API | ✅ (CI) |
-| CT-AGE-11 | Toque duplo em "Salvar" | Só um agendamento criado | P1 | M | ⬜ |
+| CT-AGE-11 | Toque duplo em "Salvar" | Só um agendamento criado | P1 | M | ✅ (celular, 20/11) |
 | CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ⬜ |
 | CT-AGE-13 | Editar só as observações de sessão de série | Sessão não vira exceção da série | P2 | M | ⬜ |
 
@@ -94,7 +94,7 @@
 | CT-LNK-04 | Estúdio real informa link liberado | `booking_enabled` booleano | P2 | API | ✅ (CI) |
 | CT-LNK-05 | Período enorme de horários | Sem erro; limitado a ~95 dias | P1 | API | ✅ (CI) |
 | CT-LNK-06 | Nome curto | Recusado antes de gravar | P2 | API | ✅ (CI) |
-| CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ✅ (CI) |
+| CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ✅ (CI e celular) |
 | CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ⬜ |
 | CT-LNK-09 | Mensagens para a cliente | Português, sem código técnico | P2 | M | ⬜ |
 | CT-LNK-10 | Layout no celular (375 px) | Sem rolagem lateral | P2 | M (web) | ✅ |
@@ -111,7 +111,7 @@
 ## 8. Offline
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
 |---|---|---|---|---|---|
-| CT-OFF-01 | Criar agendamento em modo avião | "Salvo no aparelho"; sincroniza ao voltar | P1 | M | ⬜ |
+| CT-OFF-01 | Criar agendamento em modo avião | "Salvo no aparelho"; sincroniza ao voltar | P1 | M | ✅ (celular, 20/11) |
 | CT-OFF-02 | Wi-Fi sem internet | Vai para a fila em vez de perder | P1 | M | ⬜ |
 | CT-API-06 | Fila envia agendamento + serviços juntos, sem duplicar | 1 agendamento com serviço | P1 | API | ✅ (CI) |
 | CT-API-07 | Fila sem serviço | Recusado | P2 | API | ✅ (CI) |

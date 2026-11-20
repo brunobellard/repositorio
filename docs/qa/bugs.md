@@ -53,7 +53,8 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Achado durante a correção:** o fundo escuro das janelas de baixo (Sheet, "Esqueci minha senha", excluir conta, bairro) era um único botão que engolia todo o conteúdo para o leitor de tela; agora o fundo e o painel não são agrupados e cada campo/botão é lido separadamente.
 **Reteste em produção (20/11/2026):** mesma árvore de acessibilidade no login publicado.
 **Reteste em produção (20/11/2026, 2ª parte):** janela "Esqueci minha senha" lida item a item (`textbox "E-mail"`, `button "Enviar link"`, botão "Cancelar"), sem o fundo agrupando o conteúdo; nenhum erro no console. Telas com login: conferir no celular com TalkBack/VoiceOver (roteiro-celular.md).
-**Status:** corrigido · publicado e conferido nas telas públicas.
+**Reteste no celular (20/11/2026, roteiro A2 com leitor de tela):** agenda ("Novo agendamento", dias por extenso, "Agendar às 09:00"), novo agendamento ("selecionado"/"indisponível"), janelas de baixo lidas item a item e aceite dos Termos como caixa de seleção: tudo ✅.
+**Status:** fechado · conferido na web e no celular.
 
 ---
 
