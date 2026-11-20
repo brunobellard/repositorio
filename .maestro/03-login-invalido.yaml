@@ -1,0 +1,17 @@
+# CT-E2E-03 Senha errada: mensagem clara em português
+appId: host.exp.exponent
+---
+- openLink: ${APP_URL}
+- extendedWaitUntil:
+    visible: "Entrar"
+    timeout: 30000
+- tapOn: "voce@email.com"
+- inputText: ${QA_EMAIL}
+- tapOn: "Mínimo 6 caracteres"
+- inputText: "senha-errada-123"
+- hideKeyboard
+- tapOn: "Entrar"
+- extendedWaitUntil:
+    visible: "E-mail ou senha incorretos."
+    timeout: 15000
+- takeScreenshot: ct-e2e-03-senha-errada

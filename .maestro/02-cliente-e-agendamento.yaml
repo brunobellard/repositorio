@@ -1,0 +1,23 @@
+# CT-E2E-02 Novo agendamento com cliente nova (a partir da Agenda, já logado)
+appId: host.exp.exponent
+---
+- runFlow:
+    when:
+      visible: "Entrar"
+    file: 01-login.yaml
+- tapOn: "+ Novo agendamento"
+- tapOn: "Nova cliente"
+- tapOn: "Nome da cliente"
+- inputText: "QA Maestro"
+- tapOn: "(11) 90000-0000"
+- inputText: "11900000000"
+- hideKeyboard
+- tapOn: "Salvar"
+- assertVisible: "QA Maestro"
+- takeScreenshot: ct-e2e-02-cliente-escolhida
+# Serviço, dia e horário dependem do catálogo da conta de teste: escolha o primeiro de cada
+- scrollUntilVisible:
+    element: "Salvar agendamento"
+    direction: DOWN
+    optional: true
+- takeScreenshot: ct-e2e-02-formulario

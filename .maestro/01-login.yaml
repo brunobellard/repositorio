@@ -1,0 +1,17 @@
+# CT-E2E-01 Login com a conta de teste
+appId: host.exp.exponent
+---
+- openLink: ${APP_URL}
+- extendedWaitUntil:
+    visible: "Entrar"
+    timeout: 30000
+- tapOn: "voce@email.com"
+- inputText: ${QA_EMAIL}
+- tapOn: "Mínimo 6 caracteres"
+- inputText: ${QA_PASSWORD}
+- hideKeyboard
+- tapOn: "Entrar"
+- extendedWaitUntil:
+    visible: "Agenda"
+    timeout: 30000
+- takeScreenshot: ct-e2e-01-agenda
