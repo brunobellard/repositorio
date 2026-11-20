@@ -25,7 +25,7 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 
 export default function FichaCliente() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { clients, appointments, packages, services, profile, deleteClient, historyFrom, ensureFullHistory } =
+  const { clients, appointments, packages, services, profile, deleteClient, historyFrom, ensureFullHistory, clientHistory } =
     useStore();
   const access = usePlanAccess();
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -43,10 +43,16 @@ export default function FichaCliente() {
     .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
   const done = history.filter((a) => a.status === 'concluido');
   const clientPackages = packages.filter((p) => p.clientId === client.id);
-  // Sessões de pacote já foram pagas na venda: conta o valor do pacote e só os extras de cada sessão
+  // Sessões de pacote já foram pagas na venda: conta o valor do pacote e só os extras de cada sessão.
+  // Com só os últimos 12 meses carregados, conta também só os pacotes vendidos nesse período
+  // (antes somava pacotes de todos os tempos com atendimentos de 12 meses)
   const spent =
     done.reduce((t, a) => t + amountDue(a, packages), 0) +
-    clientPackages.reduce((t, p) => t + p.totalPaid, 0);
+    clientPackages
+      .filter((p) => !historyFrom || new Date(p.createdAt) >= new Date(historyFrom))
+      .reduce((t, p) => t + p.totalPaid, 0);
+  // Atendimentos no banco, inclusive os mais antigos que não estão carregados
+  const hasHistory = history.length > 0 || (clientHistory[client.id]?.appointments ?? 0) > 0;
 
   const c = client;
   function askDelete() {
@@ -61,7 +67,7 @@ export default function FichaCliente() {
       );
       return;
     }
-    if (!history.length) {
+    if (!hasHistory) {
       confirmAction(
         'Excluir cliente?',
         clientPackages.length
@@ -70,7 +76,8 @@ export default function FichaCliente() {
         async () => {
           const r = await deleteClient(c.id);
           if (r) {
-            notify('Cliente excluída');
+            // 'anonymized': o banco achou atendimentos antigos e apagou só os dados pessoais
+            notify(r === 'anonymized' ? 'Dados da cliente apagados' : 'Cliente excluída');
             router.back();
           }
         },
@@ -106,11 +113,11 @@ export default function FichaCliente() {
 
       <View className="mt-5 flex-row gap-3">
         <Card className="flex-1">
-          <Text className="text-xs text-muted">Atendimentos</Text>
+          <Text className="text-xs text-muted">{historyFrom ? 'Atendimentos (12 meses)' : 'Atendimentos'}</Text>
           <Text className="text-xl font-bold text-ink">{done.length}</Text>
         </Card>
         <Card className="flex-1">
-          <Text className="text-xs text-muted">Total gasto</Text>
+          <Text className="text-xs text-muted">{historyFrom ? 'Gasto (12 meses)' : 'Total gasto'}</Text>
           <Text className="text-xl font-bold text-ink">{formatBRL(spent)}</Text>
         </Card>
       </View>

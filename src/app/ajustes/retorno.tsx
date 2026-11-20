@@ -12,13 +12,13 @@ import { colors } from '@/theme/colors';
 const OPTIONS = [15, 20, 30, 45, 60];
 
 export default function RetornoClientes() {
-  const { profile, clients, appointments, updateProfile } = useStore();
+  const { profile, clients, appointments, clientHistory, updateProfile } = useStore();
   const [days, setDays] = useState(profile.recallDays);
   const [custom, setCustom] = useState(OPTIONS.includes(profile.recallDays) ? '' : String(profile.recallDays));
   const [saving, setSaving] = useState(false);
 
   const valid = days >= 5 && days <= 365;
-  const preview = valid ? clientsToRecall(clients, appointments, days).length : 0;
+  const preview = valid ? clientsToRecall(clients, appointments, days, undefined, clientHistory).length : 0;
 
   async function save() {
     setSaving(true);

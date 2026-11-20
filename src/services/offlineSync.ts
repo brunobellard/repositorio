@@ -14,6 +14,7 @@ import type {
   Appointment,
   BusinessHours,
   Client,
+  ClientHistory,
   ClientPackage,
   MessageTemplate,
   PaymentMethod,
@@ -79,6 +80,8 @@ export interface Snapshot {
   packages: ClientPackage[];
   /** Opcional: caches antigos não têm */
   serviceAreas?: ServiceArea[];
+  /** Opcional: caches antigos não têm */
+  clientHistory?: Record<string, ClientHistory>;
 }
 
 const cacheKey = (uid: string) => `agenda-beleza:cache:v1:${uid}`;

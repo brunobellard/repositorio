@@ -2,7 +2,7 @@
 import { clientTemplates } from '@/data/mock';
 import { startOfDay } from '@/lib/dates';
 import { formatAddress } from '@/lib/hours';
-import type { Appointment, Client, MessageKind, MessageTemplate, Profile } from '@/types';
+import type { Appointment, Client, ClientHistory, MessageKind, MessageTemplate, Profile } from '@/types';
 
 export interface RecallInfo {
   client: Client;
@@ -21,6 +21,11 @@ export function clientsToRecall(
   appointments: Appointment[],
   recallDays: number,
   now = new Date(),
+  /**
+   * Resumo de todo o histórico (store.clientHistory). O app carrega só os últimos 12 meses:
+   * sem o resumo, quem não volta há mais de 12 meses nem aparecia na lista.
+   */
+  history: Record<string, ClientHistory> = {},
 ): RecallInfo[] {
   const today = startOfDay(now).getTime();
   const nowIso = now.toISOString();
@@ -32,13 +37,21 @@ export function clientsToRecall(
       (a) => a.startsAt >= nowIso && (a.status === 'pendente' || a.status === 'confirmado'),
     );
     if (hasFuture) continue;
-    const last = mine
+    const loaded = mine
       .filter((a) => a.status === 'concluido')
       .sort((a, b) => b.startsAt.localeCompare(a.startsAt))[0];
+    const older = history[client.id];
+    // O mais recente entre o que está carregado e o resumo do banco
+    const last =
+      loaded && (!older?.lastDoneAt || loaded.startsAt >= older.lastDoneAt)
+        ? { at: loaded.startsAt, service: loaded.services.map((s) => s.name).join(' + ') }
+        : older?.lastDoneAt
+          ? { at: older.lastDoneAt, service: older.lastService ?? '' }
+          : undefined;
     if (!last) continue;
-    const days = Math.floor((today - startOfDay(new Date(last.startsAt)).getTime()) / 86_400_000);
+    const days = Math.floor((today - startOfDay(new Date(last.at)).getTime()) / 86_400_000);
     if (days <= recallDays) continue;
-    result.push({ client, days, lastService: last.services.map((s) => s.name).join(' + '), lastAt: last.startsAt });
+    result.push({ client, days, lastService: last.service, lastAt: last.at });
   }
   return result.sort((a, b) => b.days - a.days);
 }

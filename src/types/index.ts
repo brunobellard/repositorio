@@ -103,6 +103,15 @@ export interface Client {
   removed?: boolean;
 }
 
+/** Resumo de todo o histórico da cliente (inclusive o que é mais antigo que os 12 meses carregados). */
+export interface ClientHistory {
+  /** Atendimentos em qualquer situação */
+  appointments: number;
+  /** Último atendimento concluído */
+  lastDoneAt?: string;
+  lastService?: string;
+}
+
 export interface AppointmentService {
   serviceId: string;
   name: string;

@@ -26,16 +26,44 @@ interface Auth {
 
 const AuthContext = createContext<Auth | null>(null);
 
+/** Sessão guardada no aparelho pelo Supabase, mesmo com o token vencido. */
+async function storedSession(): Promise<Session | null> {
+  try {
+    const auth = supabase.auth as unknown as {
+      storageKey: string;
+      storage: { getItem: (k: string) => string | null | Promise<string | null> };
+    };
+    const raw = await auth.storage.getItem(auth.storageKey);
+    const s = raw ? (JSON.parse(raw) as Session) : null;
+    return s?.access_token && s.refresh_token && s.user?.id ? s : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    supabase.auth.getSession().then(async ({ data, error }) => {
+      let s = data.session;
+      // Abriu sem internet com o token vencido: o Supabase não consegue renová-lo e devolve
+      // "sem sessão", e o app caía no login (sem dar para entrar, por estar offline).
+      // A sessão continua guardada no aparelho: usa ela para abrir com os dados salvos.
+      // Quando a internet voltar, o token é renovado sozinho; se a conta tiver saído de
+      // verdade, o Supabase avisa (SIGNED_OUT) e o app volta para o login.
+      if (!s && error && (error.name === 'AuthRetryableFetchError' || isNetworkError(error))) {
+        s = await storedSession();
+      }
+      setSession(s);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // A sessão inicial já é tratada acima (inclusive o caso offline, que aqui viria vazio)
+      if (event === 'INITIAL_SESSION') return;
+      setSession(s);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
