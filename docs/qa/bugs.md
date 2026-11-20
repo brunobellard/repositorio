@@ -18,6 +18,7 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Correção (20/11/2026):** CNPJ real (68.947.841/0001-44) e e-mail de contato provisório em `LEGAL_INFO`; data de atualização dos textos: 20 de novembro de 2026. Conferido localmente em /termos e /privacidade.
 **Razão social:** DataCore Intelligence (informada pelo responsável). Conferido localmente: Termos e Privacidade mostram "DataCore Intelligence (CPF/CNPJ 68.947.841/0001-44)".
 **Antes de publicar nas lojas:** trocar o e-mail provisório pelo de contato definitivo.
+**Reteste em produção (20/11/2026):** /termos e /privacidade mostram "DataCore Intelligence (CPF/CNPJ 68.947.841/0001-44)", o e-mail de contato provisório e "Última atualização: 20 de novembro de 2026"; nenhum dado fictício restante.
 **Status:** corrigido parcialmente · falta só o e-mail definitivo.
 
 ---
