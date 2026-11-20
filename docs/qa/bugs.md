@@ -29,7 +29,9 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Evidência:** [bug-002-rota-inexistente.jpg](evidencias/bug-002-rota-inexistente.jpg)
 **Correção:** `src/app/+not-found.tsx` (página em português com "Ir para o início") e `src/app/_sitemap.tsx` (o mapa de telas deixa de existir e responde como página inexistente).
 **Reteste (local, 20/11/2026):** `/rota-que-nao-existe` e `/_sitemap` mostram "Página não encontrada" — [bug-002-corrigido.jpg](evidencias/bug-002-corrigido.jpg).
-**Status:** corrigido · conferir em produção depois do deploy.
+**Reteste em produção (20/11/2026):** `/rota-que-nao-existe` e `/_sitemap` mostram "Página não encontrada"; "Ir para o início" leva ao login.
+**Observação:** o endereço do login fica com `?not-found=rota-que-nao-existe` (comportamento do Expo Router, sem efeito para a pessoa).
+**Status:** corrigido e conferido em produção.
 
 ---
 
@@ -44,7 +46,8 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Correção:** papéis e nomes em `Button`, `Chip`, `Segmented` (abas), `Fab` ("Novo agendamento", "Nova cliente", "Nova despesa"), `EmptyState`, `Field` e `SearchBar`; links do login e da tela "Esqueci minha senha"; aviso de erro do login anunciado ao aparecer.
 **Reteste (local):** árvore do login agora mostra `tab "Entrar"`, `textbox "E-mail"`, `textbox "Senha"`, `button "Esqueci minha senha"`, `button "Entrar"`, `button "Ainda não tem conta? Criar conta"`.
 **Pendente:** botões feitos direto com `Pressable` em outras telas (agenda, ajustes, link público) ainda sem papel — revisar tela a tela.
-**Status:** corrigido parcialmente (componentes compartilhados e login).
+**Reteste em produção (20/11/2026):** mesma árvore de acessibilidade no login publicado.
+**Status:** corrigido parcialmente (componentes compartilhados e login) · conferido em produção.
 
 ---
 
@@ -55,4 +58,4 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 **Obtido:** botão habilitado; o erro só aparece depois de enviar ao servidor.
 **Correção:** `isValidEmail` em `src/lib/format.ts`, usado no login, no cadastro e em "Esqueci minha senha".
 **Reteste:** teste automático CT-FMT-06; na tela, "Enviar link" fica desabilitado com `ana@exemplo` e habilita com `ana@exemplo.com`.
-**Status:** corrigido.
+**Status:** corrigido · publicado.
