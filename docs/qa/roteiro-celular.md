@@ -3,7 +3,7 @@
 Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / ❌ e, se falhar, registre em [bugs.md](bugs.md) com print (sem dados de clientes reais).
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
-**Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Pendentes: itens sem 🔁 das seções A, B, C, E, F e a seção G (precisa de conta Free).
+**Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
@@ -51,7 +51,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [ ] Mesmo WhatsApp com 4º agendamento futuro → "Você já tem horários marcados…".
 
 ## G. Planos (conta Free separada)
-- [ ] CT-PLA-06 Cadastrar a 11ª cliente → aviso de upgrade.
-- [ ] Apagar dados de uma cliente com histórico → consegue cadastrar outra (removidas não contam).
-- [ ] Conta nova com Dados do estúdio vazios → Carregar dados de exemplo → Dados do estúdio continuam vazios e o link público não mostra endereço (BUG-006); nenhum exemplo no domingo nem fora do expediente (BUG-010).
-- [ ] Carregar dados de exemplo duas vezes → 2ª vez: "Exemplos já carregados".
+- [x] ✅ (20/11, web) CT-PLA-06 Cadastrar a 11ª cliente → aviso de upgrade.
+- [x] ✅ (20/11, web) Apagar dados de uma cliente com histórico → consegue cadastrar outra (removidas não contam).
+- [x] ✅ (20/11, web) Conta nova com Dados do estúdio vazios → Carregar dados de exemplo → Dados do estúdio continuam vazios e o link público não mostra endereço (BUG-006); nenhum exemplo no domingo nem fora do expediente (BUG-010).
+- [x] ✅ (20/11, web) Carregar dados de exemplo duas vezes → 2ª vez: "Exemplos já carregados" (a confirmação aparece antes do aviso: melhoria).

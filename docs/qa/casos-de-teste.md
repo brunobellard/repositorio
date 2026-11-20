@@ -17,7 +17,7 @@
 | CT-CON-06 | Link de nova senha inválido | Abrir /redefinir-senha sem token | "Link inválido ou expirado" | P2 | M (web) | ✅ |
 | CT-CON-07 | Sair da conta apaga o cache | Sair > entrar com outra conta | Nada da conta anterior aparece | P1 | M | ✅ (celular, 20/11) |
 | CT-CON-08 | Abrir sem internet com login vencido | Ficar > 1 h sem abrir; modo avião; abrir | Abre com os dados salvos (não cai no login) | P1 | M | ✅ (celular, 20/11) |
-| CT-CON-09 | Excluir conta | Ajustes > Excluir conta (conta descartável) | Sai do app; login e dados somem (VAL-17/18 = 0) | P1 | M + SQL | ⬜ |
+| CT-CON-09 | Excluir conta | Ajustes > Excluir conta (conta descartável) | Sai do app; login e dados somem (VAL-17/18 = 0) | P1 | M + SQL | ✅ (web, 20/11) |
 | CT-CON-10 | Digital escolhida no login | Ligar "Entrar com digital" > fechar e abrir | Pede a digital só na próxima abertura | P2 | M | ⬜ |
 
 ## 2. Agenda e conflitos
@@ -106,7 +106,7 @@
 | CT-PLA-01..03 | Plano em vigor | Ativo = contratado; teste vencido/cancelado = Free | P1 | U | ✅ |
 | CT-PLA-04 | Recursos por plano | Free sem pacotes | P1 | U | ✅ |
 | CT-PLA-05 | Limites do banco mapeados | Todo PLAN_LIMIT abre o aviso de upgrade | P2 | U | ✅ |
-| CT-PLA-06 | 11ª cliente no Free | Aviso de upgrade; removidas não contam | P1 | M + SQL VAL-19 | ⬜ |
+| CT-PLA-06 | 11ª cliente no Free | Aviso de upgrade; removidas não contam | P1 | M + SQL VAL-19 | ✅ (web, 20/11) |
 
 ## 8. Offline
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |

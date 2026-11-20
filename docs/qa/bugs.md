@@ -109,7 +109,8 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Correção sugerida:** não preencher dados do estúdio nos exemplos (ou só nome/telefone de demonstração, nunca CNPJ e endereço); citar na confirmação tudo o que será criado; oferecer "Remover dados de exemplo".
 **Correção (commit dbebce4):** `loadExampleData` não grava mais dados do estúdio (`exampleStudio` removido); a confirmação cita folgas e taxas e diz que os dados do estúdio não são alterados. Não implementado: "Remover dados de exemplo" (melhoria futura). Dados já gravados na conta de teste limpos pelo responsável com SQL.
 **Reteste em produção (20/11/2026):** confirmação publicada com o texto novo; Dados do estúdio da conta de teste vazios; link público `/agendar/qa-estudio` sem endereço nem Instagram de exemplo. A carga ponta a ponta numa conta nova fica junto com o BUG-010.
-**Status:** corrigido · conferido em produção (falta a carga numa conta nova).
+**Reteste ponta a ponta (20/11/2026, conta nova no Free, Dados do estúdio vazios):** depois de "Carregar dados de exemplo", Dados do estúdio continuam vazios (razão social, CPF/CNPJ, endereço, Instagram).
+**Status:** fechado · conferido em produção.
 
 ---
 
@@ -164,7 +165,8 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Esperado:** exemplos dentro do expediente, para não parecer que o app deixa agendar com o estúdio fechado.
 **Correção (commit dbebce4):** exemplos às 08:30 passaram para 09:00 e todo exemplo fora do expediente ou em folga é pulado (`fitsHours` em `loadExampleData`); a série de cílios procura um dia em que 14:00 caiba.
 **Reteste (20/11/2026):** conferido no código. A carga ponta a ponta precisa de uma conta sem exemplos (a de teste já tem): fazer junto com a conta Free da seção G do roteiro.
-**Status:** corrigido · falta reteste ponta a ponta numa conta nova.
+**Reteste ponta a ponta (20/11/2026, conta nova, expediente Seg–Sáb 9h–18h com almoço):** os 6 atendimentos de exemplo criados no Free caem todos dentro do expediente (nenhum no domingo, antes das 9h ou no almoço).
+**Status:** fechado · conferido em produção.
 
 ---
 
@@ -177,3 +179,43 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 
 **Funcionou bem:** conflitos de horário e duração, dia fechado com "Agendar fora do expediente", folga, salvar/cancelar agendamento, desfazer conclusão (receita sai do Financeiro), lucro líquido com taxas, busca sem acento e por telefone, validação de e-mail e data na ficha, validação do link público (nome só com espaços e WhatsApp com 9 dígitos recusados). Nenhum erro no console.
 **Limitação do ambiente:** o navegador embutido do app de testes bloqueia `window.confirm` (responde "não" sem mostrar). No Chrome e no celular a confirmação aparece normalmente; para testar no navegador embutido foi preciso simular o "OK".
+
+---
+
+## BUG-011 · Alta · Na web, conta nova cai nos Termos sem botão e não chega ao primeiro acesso
+**Onde:** site — `src/app/_layout.tsx` (rotas protegidas) e `src/components/legal-page.tsx`
+**Passos:**
+1. No site, Criar conta com um e-mail novo.
+2. Observar a tela depois do cadastro; depois abrir `https://projeto-app-beleza.expo.app/`.
+
+**Esperado:** abrir o primeiro acesso (`/onboarding`, "Boas-vindas! 💅" com o aceite dos Termos).
+**Obtido:** vai para `/termos` (página pública dos Termos, sem botão "Voltar" nem "Continuar"). Abrir `/` também redireciona para `/termos`. A pessoa fica presa: só digitando `/onboarding` na barra de endereço o primeiro acesso aparece e funciona.
+**Diagnóstico:** sessão válida e perfil com `onboardingCompleted = false` no aparelho; a guarda `needsOnboarding` deveria liberar `onboarding`, mas o roteador cai na rota pública `termos`. No celular o `LegalPage` tem `<Redirect>` para esse caso ("Se o roteador cair aqui sozinho (ex: logo depois do cadastro)"); na web não tem.
+**Evidência:** conta descartável de QA em 20/11/2026, navegador embutido; `/` → `/termos` repetidas vezes; `/onboarding` direto funciona.
+**Correção sugerida:** na web, quando há sessão e falta o primeiro acesso (ou o aceite), `LegalPage` sem `from=app` redireciona para `/onboarding` (como no celular) ou mostra "Continuar"; investigar por que `/` não cai em `onboarding` com a guarda ligada.
+**Status:** aberto · correção para a sessão principal.
+
+---
+
+## BUG-012 · Baixa · Primeiro acesso no plano Free trava ao criar os 4 serviços da especialidade
+**Onde:** `src/app/onboarding.tsx` (passo 2, cria `specialty.services` um a um) × limite do Free (3 serviços ativos, `enforce_free_active_services`)
+**Passos:** conta no Free antes de concluir o primeiro acesso (ex.: teste grátis vencido ou plano trocado) > passo 2 > "Manicure & Nail Design" (4 serviços) > Continuar.
+**Esperado:** avançar com os serviços que cabem no plano (ou só 3 pré-selecionados no Free), com aviso.
+**Obtido:** o 4º serviço é recusado (aviso de limite) e a tela não avança; na segunda tentativa avança (já existem serviços) e a conta fica com 3 dos 4. Ajustes mostra "Serviços e preços · 3 ativos".
+**Impacto:** baixo hoje, porque contas novas começam no teste do Intermediário; acontece se o primeiro acesso for feito já no Free.
+**Status:** aberto · baixa prioridade.
+
+---
+
+## BUG-013 · Baixa · Acessibilidade: botões sem nome em "Dados do estúdio" e na janela de excluir conta
+**Onde:** Ajustes > Dados do estúdio (ícones/botões sem rótulo) e janela "Excluir minha conta" (botão "Cancelar")
+**Passos:** abrir Ajustes > Dados do estúdio > Excluir minha conta; ler a árvore de acessibilidade.
+**Obtido:** quatro `button` sem nome na tela (um deles é o "Cancelar" da janela de exclusão); o leitor de tela diz só "botão".
+**Esperado:** cada botão com nome ("Cancelar", e o nome da ação de cada ícone).
+**Evidência:** árvore de acessibilidade em produção, 20/11/2026 (conta descartável).
+**Status:** aberto · baixa prioridade.
+
+---
+
+## Exclusão de conta (CT-CON-09) · 20/11/2026
+Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
