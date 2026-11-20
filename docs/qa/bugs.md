@@ -68,23 +68,24 @@ Evidências em `docs/qa/evidencias/` (sem dados de clientes reais).
 
 ---
 
-## BUG-005 · Média · Três funções do app logado podem ser executadas sem login
-**Onde:** Supabase — migração `20261203000000_historico_antigo_e_fila_offline.sql` (`client_history_summary`, `delete_package`, `create_offline_appointment`)
+## BUG-005 · Média · Quatro funções internas podem ser executadas sem login
+**Onde:** Supabase — migrações `20261203000000_historico_antigo_e_fila_offline.sql` (`client_history_summary`, `delete_package`, `create_offline_appointment`) e `20261121000000_planos_assinatura.sql` (`plan_rank`)
 **Passos:**
 1. SQL Editor: rodar a VAL-21 de `docs/qa/validacao-sql.sql`.
 2. Ou, sem login (chave pública), chamar `rpc('create_offline_appointment', { p_appointment: {}, p_services: [] })`.
 
 **Esperado:** recusa por permissão antes de rodar ("permission denied for function"), como já acontece com `anonymize_client`, `delete_account` e `purge_account_data`.
-**Obtido:** a VAL-21 lista as três com veredito "PROBLEMA". Sem login, as funções começam a rodar: `create_offline_appointment` devolve a validação interna "Escolha pelo menos um serviço."; as outras duas só param em "permission denied for table appointments / client_packages".
-**Impacto hoje:** nenhum dado exposto nem alterado. As três são `security invoker` e quem não está logado não tem acesso às tabelas (e o RLS ainda filtra por dono). Falta uma das camadas de proteção: se um dia uma tabela voltar a ser liberada ou uma função virar `security definer`, ficam abertas.
-**Causa:** a migração dá `grant execute ... to authenticated`, mas não faz `revoke ... from anon, public` (o padrão do Postgres libera para todos). As migrações anteriores fazem o revoke em cada função.
-**Evidência:** resultado da VAL-21 em 20/11/2026 (só nomes de funções, sem dados de clientes) e o teste automático CT-SEG-11 (`npm run test:api -- -t CT-SEG-11`): 3 falhando, `anonymize_client` passando.
+**Obtido:** a VAL-21 lista as quatro com veredito "PROBLEMA" (7 linhas no total: 3 do link público ok + 4 problemas). Sem login, as funções começam a rodar: `create_offline_appointment` devolve a validação interna "Escolha pelo menos um serviço."; `client_history_summary` e `delete_package` só param em "permission denied for table appointments / client_packages"; `plan_rank` responde normalmente (só converte o nome do plano em número, sem ler dados).
+**Impacto hoje:** nenhum dado exposto nem alterado. `plan_rank` não lê tabelas; as outras três são `security invoker` e quem não está logado não tem acesso às tabelas (e o RLS ainda filtra por dono). Falta uma das camadas de proteção: se um dia uma tabela voltar a ser liberada ou uma função virar `security definer`, ficam abertas.
+**Causa:** a migração 20261203 dá `grant execute ... to authenticated`, mas não faz `revoke ... from anon, public` (o padrão do Postgres libera para todos). `plan_rank` nunca teve revoke. As demais migrações fazem o revoke em cada função.
+**Evidência:** resultado da VAL-21 em 20/11/2026 (só nomes de funções, sem dados de clientes) e o teste automático CT-SEG-11 (`npm run test:api -- -t CT-SEG-11`): 4 falhando, `anonymize_client` passando.
 **Correção sugerida (sessão principal, nova migração):**
 ```sql
 revoke execute on function public.client_history_summary() from public, anon;
 revoke execute on function public.delete_package(uuid) from public, anon;
 revoke execute on function public.create_offline_appointment(jsonb, jsonb) from public, anon;
+revoke execute on function public.plan_rank(text) from public, anon;  -- usada só dentro de funções security definer e gatilhos
 ```
-**Observação:** a VAL-21 também listava ~100 funções `gbt_*` e `*_dist` da extensão `btree_gist` (usada para impedir horários sobrepostos). Elas são internas do Postgres e foram retiradas da consulta. Como a lista colada estava cortada, a VAL-21 corrigida deve ser rodada de novo para ver a lista completa.
-**Reteste:** depois da migração, CT-SEG-11 deve passar nas 4 funções e a VAL-21 não deve mostrar nenhuma linha "PROBLEMA".
+**Observação:** a VAL-21 também listava ~100 funções `gbt_*` e `*_dist` da extensão `btree_gist` (usada para impedir horários sobrepostos). Elas são internas do Postgres e foram retiradas da consulta. A primeira lista veio cortada pelo limite de 100 linhas do SQL Editor; a VAL-21 corrigida (20/11/2026) mostrou a lista completa: 7 linhas.
+**Reteste:** depois da migração, CT-SEG-11 deve passar nas 5 funções e a VAL-21 não deve mostrar nenhuma linha "PROBLEMA".
 **Status:** aberto · correção para a sessão principal.

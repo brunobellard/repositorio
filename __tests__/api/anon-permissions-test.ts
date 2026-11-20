@@ -71,6 +71,7 @@ d('sem login: funções restritas', () => {
     ['delete_package', { p_package_id: FAKE_ID }],
     ['create_offline_appointment', { p_appointment: {}, p_services: [] }],
     ['anonymize_client', { p_client_id: FAKE_ID }],
+    ['plan_rank', { p_tier: 'pro' }],
   ] as const) {
     it(`CT-SEG-11 sem permissão para executar ${fn}`, async () => {
       const { error } = await db.rpc(fn, args);

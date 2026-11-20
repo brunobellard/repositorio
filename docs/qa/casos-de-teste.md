@@ -129,5 +129,5 @@
 | SQL VAL-01 | Resumo das 19 regras de dados (VAL-02..20) | 0 problemas em todas | P1 | SQL | ✅ (20/11) |
 | SQL VAL-20, 22 | RLS ligada; funções de servidor fechadas | 0 tabelas sem RLS; false nas três funções | P1 | SQL | ✅ (20/11) |
 | SQL VAL-21 | Funções executáveis sem login | Só as 3 do link público; nenhuma "PROBLEMA" | P1 | SQL | ❌ BUG-005 |
-| CT-SEG-11 | Funções do app logado sem login | "permission denied for function" (resumo, excluir pacote, fila offline, anonimizar) | P1 | API | ❌ BUG-005 (3 de 4) |
+| CT-SEG-11 | Funções do app logado sem login | "permission denied for function" (resumo, excluir pacote, fila offline, anonimizar, plan_rank) | P1 | API | ❌ BUG-005 (4 de 5) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |
