@@ -96,7 +96,7 @@
 | CT-LNK-05 | Período enorme de horários | Sem erro; limitado a ~95 dias | P1 | API | ✅ (CI) |
 | CT-LNK-06 | Nome curto | Recusado antes de gravar | P2 | API | ✅ (CI) |
 | CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ✅ (CI e celular) |
-| CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ⬜ (21/11: modo avião não reproduz no celular; horários lidos ao abrir e envio sem internet avisa certo; falta teste automático) |
+| CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ✅ (web, 21/11, falha simulada só na leitura dos horários; no celular o modo avião não reproduz) |
 | CT-LNK-09 | Mensagens para a cliente | Português, sem código técnico | P2 | M | ⬜ |
 | CT-LNK-10 | Layout no celular (375 px) | Sem rolagem lateral | P2 | M (web) | ✅ |
 | CT-FUS-01..04 | Fuso do estúdio | Instantes corretos (SP, Manaus); fuso inválido não quebra | P1 | U | ✅ |

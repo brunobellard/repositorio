@@ -4,7 +4,7 @@ Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / �
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 **Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
-**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015 corrigido; resta o BUG-016). Bloco de pacotes, clientes e link (CT-PAC-15, "Pacote em uso", CT-PAC-16, CT-CLI-07, limite de 3 pelo mesmo WhatsApp) ✅; CT-LNK-08 sem bug, mas não reproduzível à mão. Os 3 agendamentos do link (QA Teste, 26/11) foram cancelados.
+**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015 corrigido; resta o BUG-016). Bloco de pacotes, clientes e link (CT-PAC-15, "Pacote em uso", CT-PAC-16, CT-CLI-07, limite de 3 pelo mesmo WhatsApp) ✅; CT-LNK-08 ✅ na web com falha simulada. Os 3 agendamentos do link (QA Teste, 26/11) foram cancelados.
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
@@ -49,7 +49,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11) 🔁 Escolher 7 serviços → para no 6º com aviso.
 - [x] ✅ (20/11) 🔁 Agendar horário livre → aparece na agenda (pendente ou confirmado conforme Ajustes).
 - [ ] Notificação push chega no celular da profissional (versão instalada; Expo Go no Android não recebe).
-- [ ] CT-LNK-08 Abrir o link, ligar o modo avião, ir para "Data" → nenhum horário livre + "Tentar de novo". (21/11, Android: datas e horários continuam aparecendo e "Confirmar agendamento" avisa que está sem internet. Não é bug: os horários ocupados são lidos uma vez, ao abrir o link, e no envio o banco confere de novo. O "Tentar de novo" só aparece se essa leitura falhar ao abrir; o passo do roteiro estava errado. Abrindo o link já no modo avião, o próprio navegador mostra que está sem internet e o app nem carrega: também não é bug. O caso "abre a página, mas a leitura dos horários falha" não dá para reproduzir à mão; fica para um teste automático.)
+- [ ] CT-LNK-08 Abrir o link, ligar o modo avião, ir para "Data" → nenhum horário livre + "Tentar de novo". (21/11, Android: datas e horários continuam aparecendo e "Confirmar agendamento" avisa que está sem internet. Não é bug: os horários ocupados são lidos uma vez, ao abrir o link, e no envio o banco confere de novo. O "Tentar de novo" só aparece se essa leitura falhar ao abrir; o passo do roteiro estava errado. Abrindo o link já no modo avião, o próprio navegador mostra que está sem internet e o app nem carrega: também não é bug. O caso "abre a página, mas a leitura dos horários falha" não dá para reproduzir à mão no celular. Conferido na web (21/11, conta de teste, navegador embutido): a leitura `get_public_busy_slots` foi forçada a falhar pelo console e o link aberto por dentro do app. Resultado: aviso "Não foi possível carregar os horários livres…", todos os dias desabilitados e "Tentar de novo". Com a leitura liberada, "Tentar de novo" sumiu com o aviso e mostrou os dias livres. ✅)
 - [x] ✅ (21/11, Android) Mesmo WhatsApp com 4º agendamento futuro → "Você já tem horários marcados…".
 
 ## G. Planos (conta Free separada)
