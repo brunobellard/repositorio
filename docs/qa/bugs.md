@@ -408,6 +408,32 @@ Produção, navegador embutido, conta de teste. Fora o BUG-018, tudo ✅:
 
 ---
 
+## BUG-020 · Baixa · PostHog faz chamadas de feature flags no login e depois de sair da conta
+**Onde:** `src/services/telemetry.ts` (commit eab8b92). O comentário de `preloadFeatureFlags: false` diz "sem chamadas extras", e `posthog.reset()` é chamado ao sair.
+**Passos:** web, tela de login > entrar com a conta de teste > ver as chamadas a `*.posthog.com` > sair da conta > usar o link público.
+**Obtido (21/11/2026, produção, navegador embutido, registrador de `fetch`):**
+- Ao entrar: `GET us-assets.i.posthog.com/array/<chave>/config` e 2× `POST us.i.posthog.com/flags/?v=2`, com `distinct_id` = UUID da conta, plano e dados do aparelho (sem e-mail ou nome).
+- Depois de sair: 1× `POST /flags/?v=2` com um `distinct_id` anônimo novo (o `reset()` recarrega as flags). Nenhum evento (`/batch`) foi enviado depois de sair. ✅
+
+**Esperado:** o app não usa feature flags, então nenhuma chamada a `/flags`, e nada ao PostHog depois de sair. Cada chamada leva o IP do aparelho ao PostHog, embora `$geoip_disable` esteja ligado nos eventos.
+**Correção sugerida:** desligar o carregamento de flags (ex.: opção de não buscar flags ou `disableRemoteConfig`, conforme a versão do posthog-react-native) e, ao sair, usar `optOut()` ou descartar a instância em vez de só `reset()`.
+**Status:** aberto (sessão Logs & Analytics).
+
+---
+
+## Regressão da telemetria Sentry + PostHog (commits eab8b92 e 8636033) · 21/11/2026
+Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/sendBeacon instalado antes do login; corpo do `/batch` descompactado (gzip). Fora o BUG-020, tudo ✅:
+- **Sem login:** a tela de login e o link público (`/agendar/qa-estudio`, até a etapa de data) não fazem nenhuma chamada a PostHog ou Sentry. Só `public_studio`, `get_public_busy_slots` e `log_public_event`.
+- **Com login:** `identify` com `distinct_id` = UUID da conta e `$set` só com `platform`, `app_version` e `plan`.
+- **Evento `appointment_save_blocked`** (Agendar com o formulário vazio): `origin: agenda`, `missing: cliente-servicos`, `$geoip_disable: true`, `$is_identified: true`, `$recording_status: disabled`. Sem e-mail, nome, telefone, CPF ou texto digitado.
+- **Ao sair** ("Sair da conta?" confirmado): nenhum `/batch` depois, mesmo usando a tela de login e o link público. Só a chamada de flags do BUG-020.
+- **Console:** só o 400 de `auth/v1/token?grant_type=refresh_token` (sessão salva expirada ao reabrir o navegador). Ela é a causa provável dos dois "400 sem endereço" anotados na regressão do faab3b2. Nenhum erro novo da telemetria.
+- **Política de Privacidade** (`/privacidade`, "Última atualização: 21 de novembro de 2026"): seções 2 a 5 citam Sentry e PostHog e dizem que o link público não vai ao PostHog, como observado. O e-mail de contato continua o do BUG-001.
+- **Unitários:** 86 ✅, incluindo `telemetry-scrub-test.ts`.
+- **Não testado:** envio real de erro ao Sentry (provocar um erro em produção) e celular (precisa de build nova com os pacotes nativos).
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅

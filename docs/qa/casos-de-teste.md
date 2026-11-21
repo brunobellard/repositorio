@@ -141,4 +141,7 @@
 | CT-EVT-01..05 | Medição de uso sem login: não grava nem lê app_events; log_public_event ignora estúdio inexistente e nome fora da lista; limpeza só do servidor | Recusa ou ignora sem erro | P1 | API | ✅ (21/11, local) |
 | CT-EVT-06 | Logado: grava o próprio evento, não em nome de outra conta, e não lê nada | Insert aceito só com a própria conta; select vazio | P1 | API | ⬜ (CI, precisa da senha da conta de teste) |
 | SQL VAL-21/22 (faab3b2) | log_public_event liberada para anon; purge_old_app_events só servidor; app_events com RLS (VAL-20) | 4 funções "ok (link público)"; false/false; 0 tabelas sem RLS | P1 | SQL | ✅ (21/11: VAL-20 = 0; VAL-21 só as 4 do link; VAL-22 false/false nas 4) |
+| CT-TEL-01 | Link público e tela de login sem conta | Nenhuma chamada a *.posthog.com nem ao Sentry | P1 | M (web) | ✅ (21/11) |
+| CT-TEL-02 | Payload do PostHog com login (/batch, identify) | distinct_id = UUID da conta; $geoip_disable true; sem e-mail, nome, telefone, CPF ou texto digitado | P1 | M (web) | ✅ (21/11) |
+| CT-TEL-03 | Sair da conta | Nenhum evento enviado ao PostHog depois | P1 | M (web) | ✅ eventos (21/11); ❌ chamada de flags (BUG-020) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |
