@@ -9,6 +9,7 @@ import { PLANS, planRank, yearlySavings, type BillingCycle, type PlanTier } from
 import { useAuth } from '@/data/auth';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { notify } from '@/lib/confirm';
+import { track } from '@/lib/analytics';
 import { formatBRL } from '@/lib/format';
 import { billingProvider } from '@/services/billing';
 import { colors } from '@/theme/colors';
@@ -25,9 +26,14 @@ export default function Assinatura() {
   async function subscribe(tier: Exclude<PlanTier, 'free'>) {
     if (busy || !session) return;
     setBusy(tier);
+    const checkout = { plan: tier, billing_cycle: cycle, provider: billingProvider.id };
+    track('subscription_checkout_started', checkout);
     try {
       const r = await billingProvider.startCheckout(tier, cycle, session.user.id);
-      if (r.status === 'unavailable') notify('Assinatura em breve', r.message, 'info');
+      if (r.status === 'unavailable') {
+        track('subscription_checkout_unavailable', checkout);
+        notify('Assinatura em breve', r.message, 'info');
+      }
     } catch (e) {
       notify('Não foi possível abrir o pagamento', e instanceof Error ? e.message : undefined);
     } finally {

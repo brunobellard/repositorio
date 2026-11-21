@@ -45,3 +45,4 @@ example
 # Arquivos locais com segredos (não enviar ao GitHub)
 supabase/.local/
 supabase/.temp/
+.env.local

@@ -11,6 +11,7 @@ import { Button, Chip, Field, Toggle } from '@/components/ui';
 import { effectivePlan, PLANS } from '@/constants/plans';
 import { SPECIALTIES } from '@/constants/specialties';
 import { notify } from '@/lib/confirm';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
@@ -92,7 +93,10 @@ function OnboardingSteps() {
       if (step === 0) {
         // Grava já: se o link estiver em uso por outro estúdio, o aviso aparece aqui
         const ok = await updateProfile({ businessName: businessName.trim(), slug, serviceMode });
-        if (ok) setStep(1);
+        if (ok) {
+          track('onboarding_step_completed', { step: 1, service_mode: serviceMode });
+          setStep(1);
+        }
       } else if (step === 1) {
         // Só pré-cadastra se a conta ainda não tem serviços (evita duplicar ao voltar)
         const toCreate = specialty
@@ -115,6 +119,11 @@ function OnboardingSteps() {
             );
           }
         }
+        track('onboarding_step_completed', {
+          step: 2,
+          specialty: specialtyId ?? 'skipped',
+          service_count: toCreate.length,
+        });
         setStep(2);
       } else {
         const lunchOk = lunch && openTime < '12:00' && closeTime > '13:00';
@@ -128,7 +137,10 @@ function OnboardingSteps() {
         }));
         const ok = await saveBusinessHours(hours);
         // Ao concluir, o app troca sozinho para a agenda
-        if (ok) await updateProfile({ onboardingCompleted: true });
+        if (ok && (await updateProfile({ onboardingCompleted: true }))) {
+          track('onboarding_step_completed', { step: 3, working_days: days.length, lunch_break: lunchOk });
+          track('onboarding_completed', { service_mode: serviceMode, working_days: days.length });
+        }
       }
     } finally {
       setBusy(false);

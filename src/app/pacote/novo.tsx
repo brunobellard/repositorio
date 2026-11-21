@@ -8,6 +8,7 @@ import { HeaderKeyboardView } from '@/components/keyboard-view';
 import { Avatar, Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
+import { track } from '@/lib/analytics';
 import { addDays, formatDateShort, startOfDay } from '@/lib/dates';
 import { formatBRL, formatPhone, maskBRL, normalize, onlyDigits } from '@/lib/format';
 import { activeFees, feeFor } from '@/lib/packages';
@@ -77,6 +78,14 @@ export default function VenderPacote() {
     });
     setSaving(false);
     if (!ok) return;
+    track('package_sold', {
+      sessions,
+      amount: total,
+      payment_method: method,
+      discount_applied: discount > 0,
+      has_expiration: !!expiresAt,
+      origin: params.clientId ? 'client_file' : 'finance',
+    });
     notify('Pacote vendido', `${formatBRL(total)} foi lançado no Financeiro de hoje.`);
     closeModal();
   }
