@@ -6,6 +6,7 @@ import { Button, Chip, Field, SectionLabel } from '@/components/ui';
 import { expenseCategories } from '@/data/mock';
 import { useStore } from '@/data/store';
 import { closeModal, notify } from '@/lib/confirm';
+import { track } from '@/lib/analytics';
 import { formatBRL, maskBRL } from '@/lib/format';
 
 export default function NovaDespesa() {
@@ -30,6 +31,7 @@ export default function NovaDespesa() {
       occurredAt: new Date().toISOString(),
     });
     if (ok) {
+      track('expense_added', { amount: Math.round(value * 100) / 100, category });
       notify('Despesa lançada');
       closeModal();
     } else setSaving(false);

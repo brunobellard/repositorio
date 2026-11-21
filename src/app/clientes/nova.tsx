@@ -9,6 +9,7 @@ import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { closeModal, notify } from '@/lib/confirm';
+import { track } from '@/lib/analytics';
 import { isValidEmail, isValidPhone, maskPhone, onlyDigits } from '@/lib/format';
 import { requireFeature } from '@/lib/upgrade';
 import { colors } from '@/theme/colors';
@@ -87,6 +88,11 @@ export default function NovaCliente() {
         setSaving(false);
         return;
       }
+      track('client_updated', {
+        has_address: !!data.address,
+        has_birth_date: !!data.birthDate,
+        has_contact: !!(data.whatsapp || data.email),
+      });
       notify('Dados atualizados', data.name);
       closeModal();
       return;
@@ -98,6 +104,11 @@ export default function NovaCliente() {
       setSaving(false);
       return;
     }
+    track('client_created', {
+      has_address: !!data.address,
+      has_birth_date: !!data.birthDate,
+      has_contact: !!(data.whatsapp || data.email),
+    });
     notify('Cliente cadastrada', created.name);
     router.replace({ pathname: '/clientes/[id]', params: { id: created.id } });
   }

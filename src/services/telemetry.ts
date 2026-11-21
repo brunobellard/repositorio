@@ -23,7 +23,8 @@ import { safeProps, scrubBreadcrumb, scrubEvent, scrubText } from '@/lib/telemet
 // Lidas por nome literal: o Expo só embute no app as variáveis escritas assim (process.env.EXPO_PUBLIC_…)
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN ?? '';
 const POSTHOG_KEY = process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '';
-const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
+const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? '';
+const isPostHogConfigured = Boolean(POSTHOG_KEY && POSTHOG_HOST);
 
 const platform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
 const appVersion = Constants.expoConfig?.version ?? undefined;
@@ -45,17 +46,33 @@ export interface ErrorContext {
   [key: string]: string | number | boolean | null | undefined;
 }
 
-/** PostHog é criado só quando há login (ver identifyUser). */
+/** Cliente único, inicializado no layout raiz e reutilizado pelos eventos do app. */
 function getPostHog(): PostHog | null {
-  if (posthog || !POSTHOG_KEY) return posthog;
+  if (posthog || !isPostHogConfigured) return posthog;
   posthog = new PostHog(POSTHOG_KEY, {
     host: POSTHOG_HOST,
-    persistence: 'memory', // nada gravado no aparelho
-    captureAppLifecycleEvents: false, // só os eventos que o app manda de propósito
-    disableGeoip: true, // sem localização pelo IP
-    preloadFeatureFlags: false, // o app não usa feature flags: sem chamadas extras
+    logs: {
+      serviceName: 'agenda-beleza-mobile',
+      serviceVersion: appVersion,
+      environment: __DEV__ ? 'development' : 'production',
+    },
+    errorTracking: {
+      autocapture: {
+        uncaughtExceptions: true,
+        unhandledRejections: true,
+      },
+    },
   });
   return posthog;
+}
+
+/** Canal dedicado aos poucos logs estruturados que este módulo adiciona ao PostHog. */
+function posthogLog(message: string, attributes?: Record<string, string | number | boolean | undefined>): void {
+  try {
+    getPostHog()?.logger.info(message, attributes);
+  } catch {
+    // Logs nunca impedem o app de abrir nem a sessão de continuar.
+  }
 }
 
 /** Converte qualquer coisa lançada (Error, erro do Supabase, texto) num Error com mensagem limpa. */
@@ -68,10 +85,23 @@ function toError(error: unknown): Error {
 }
 
 export const TelemetryService = {
-  /** Liga o Sentry (se houver EXPO_PUBLIC_SENTRY_DSN). Chamar uma vez, no layout raiz. */
+  /** Liga PostHog e Sentry uma vez, no layout raiz. */
   init(): void {
     if (started) return;
     started = true;
+
+    if (!isPostHogConfigured) {
+      if (__DEV__) {
+        const variable = POSTHOG_KEY ? 'EXPO_PUBLIC_POSTHOG_HOST' : 'EXPO_PUBLIC_POSTHOG_KEY';
+        console.error(
+          `${variable} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`,
+        );
+      }
+    } else {
+      getPostHog();
+      posthogLog('telemetry initialized', { platform, app_version: appVersion ?? 'unknown' });
+    }
+
     try {
       if (!SENTRY_DSN) return;
       Sentry.init({
@@ -101,18 +131,27 @@ export const TelemetryService = {
     try {
       if (!userId) {
         if (!identifiedAs) return;
+        posthogLog('authenticated session telemetry reset');
         identifiedAs = null;
         if (sentryOn) Sentry.setUser(null);
         posthog?.reset();
         return;
       }
+      // A identidade persiste no SDK; atualizações de perfil não devem criar novos identify calls.
+      if (identifiedAs === userId) return;
       const props = safeProps({ ...traits, platform, app_version: appVersion });
       if (sentryOn) {
         Sentry.setUser({ id: userId });
         if (typeof props.plan === 'string') Sentry.setTag('plan', props.plan);
       }
       const ph = getPostHog();
-      if (ph) ph.identify(userId, { $set: props });
+      if (ph) {
+        ph.identify(userId, { $set: props });
+        posthogLog('authenticated session telemetry linked', {
+          platform,
+          plan: typeof props.plan === 'string' ? props.plan : 'unknown',
+        });
+      }
       identifiedAs = userId;
     } catch {
       // ignora
