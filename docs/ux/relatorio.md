@@ -1,0 +1,142 @@
+# Relatório de UX — Agenda Beleza
+
+**Data:** 21/11/2026 · **Base:** [avaliação heurística](avaliacao-heuristica.md) (Nielsen + ABNT NBR ISO 9241-11 + NBR 17060), achados de QA (`docs/qa/`) e percurso em produção com a conta de teste. **Ainda sem sessões com usuárias**: as severidades são hipóteses a confirmar com o [plano de teste](plano-teste-usabilidade.md); depois, medir com os [eventos propostos](metricas.md).
+
+## Resumo executivo
+- O app é **sólido na prevenção de erros** (conflitos, folgas, séries, offline) e fala a língua da profissional. Nenhum problema impede o uso (sem severidade 4).
+- Os problemas mais sérios estão nas **duas tarefas que ela faz várias vezes por dia**: marcar um horário (o botão "Agendar" fica apagado sem dizer o que falta) e **concluir + receber** (a ação não tem destaque e "Cancelado" fica ao lado, sem confirmação).
+- **Contraste baixo** em botões e textos de apoio (3:1 no botão principal) prejudica a leitura no estúdio iluminado e deixa botões ativos com cara de desabilitados.
+- Para o negócio: **pedidos do link online não têm lugar próprio** na agenda, e o **link de agendamento está escondido** em Ajustes. São os dois pontos que mais afetam o valor percebido dos planos pagos.
+
+## Priorização
+Prioridade = severidade × esforço. **P1** = fazer já (sev. 3 ou sev. 2 barato) · **P2** = próximo ciclo · **P3** = quando der.
+
+| # | ID | Problema | Sev. | Esforço | Prior. |
+|---|---|---|---|---|---|
+| 1 | UX-01 | Concluir/receber sem destaque no detalhe do agendamento | 3 | M | **P1** |
+| 2 | UX-02 | Cancelar sem confirmação nem desfazer | 3 | P | **P1** |
+| 3 | UX-03 | "Agendar" desabilitado sem dizer o que falta | 3 | P | **P1** |
+| 4 | UX-04 | Contraste abaixo do AA (botão principal 3,0:1; textos 3,6:1; ocupado 1,13:1) | 3 | M | **P1** |
+| 5 | UX-07 | Pedidos online pendentes sem destaque na agenda | 3 | M | **P1** |
+| 6 | UX-13 | Nova cliente dentro do agendamento aceita WhatsApp incompleto | 2 | P | **P1** |
+| 7 | UX-08 | Status só pela cor em cartões curtos | 2 | P | **P1** |
+| 8 | UX-17 | Agenda volta para hoje depois de salvar em outro dia | 2 | P | **P1** |
+| 9 | UX-09 | Link de agendamento escondido; sem "Compartilhar" | 2 | P | **P2** |
+| 10 | UX-05 | Datas só até 21 dias no novo agendamento | 2 | M | **P2** |
+| 11 | UX-06 | Dia sem vaga não sugere o próximo horário livre | 2 | M | **P2** |
+| 12 | UX-11 | Financeiro: sem nome da cliente, filtros e cartões desalinhados, sem meses anteriores, "−" ambíguo | 2 | M | **P2** |
+| 13 | UX-10 | Agenda vazia depois do primeiro acesso, sem próximos passos | 2 | M | **P2** |
+| 14 | UX-15 | Detalhe abre em branco 1–2 s na web | 1 | P | P3 |
+| 15 | UX-14 | Linha "Envio automático · Em breve" tocável | 1 | P | P3 |
+| 16 | UX-12 | Nome do estúdio pedido duas vezes | 1 | P | P3 |
+| 17 | UX-16 | "Vender pacote" com rótulos diferentes em dois lugares | 1 | P | P3 |
+| 18 | — | Filtros de Clientes cortados na borda | 1 | P | P3 |
+
+Esforço: P = pequeno (horas), M = médio (1–3 dias), G = grande.
+
+## Problemas e recomendações por equipe
+
+### UX-01 · Concluir e receber sem destaque (sev. 3)
+**Evidência:** [agendamento-01-detalhe.jpg](evidencias/agendamento-01-detalhe.jpg) — atendimento de hoje às 09:00, confirmado: o botão mais forte é "Enviar lembrete no WhatsApp"; "Concluído" é um chip igual a "Cancelado". Código: `src/app/agendamento/[id].tsx`, bloco "Status" e `askPayment`.
+**Viola:** H8 (estética e design minimalista: hierarquia), H6; ISO 9241-11 eficiência.
+- **UX/UI:** quando o atendimento é de hoje ou já passou e não está concluído, mostrar um **botão principal fixo no rodapé "Concluir e receber R$ 35,00"** que abre as 4 formas de pagamento. Os chips de status viram controle secundário ("Mudar status"). Para atendimento futuro, o botão principal é "Enviar lembrete". Depois de concluir, o principal vira "Enviar comprovante".
+- **Produto:** definir a "ação do momento" por estado (futuro → lembrar/confirmar; hoje/passado → concluir; concluído → comprovante/agradecer). Medir tempo entre fim do atendimento e conclusão.
+- **Dev:** componente de rodapé com a ação por estado; manter `onStatus`/`finish` como estão (as confirmações já existentes continuam valendo). Evento `appointment_completed` com `minutes_after_end`.
+
+### UX-02 · Cancelar sem confirmação nem desfazer (sev. 3)
+**Evidência:** `[id].tsx` → `changeStatus('cancelado')` chama `setAppointmentStatus` direto quando não é série; o chip "Cancelado" fica colado em "Concluído".
+**Viola:** H5 (prevenção de erros), H3 (controle e liberdade).
+- **UX/UI:** depois de cancelar, **aviso com "Desfazer"** por ~5 s (preferível a mais uma pergunta); ou confirmação "Cancelar o horário de Larissa, hoje às 09:00?". Separar visualmente "Cancelar atendimento" (texto vermelho, no fim da tela) dos status positivos.
+- **Produto:** pedir um **motivo opcional** (cliente desmarcou / não compareceu / eu desmarquei). "Não compareceu" é dado valioso para a profissional (e para lembretes futuros).
+- **Dev:** `toast` com ação de desfazer chamando `setAppointmentStatus(id, statusAnterior)`; campo opcional de motivo exige coluna nova (sessão principal decide). Evento `appointment_status_reverted`.
+
+### UX-03 · "Agendar" desabilitado sem explicação (sev. 3)
+**Evidência:** [novo-01-cliente-servicos.jpg](evidencias/novo-01-cliente-servicos.jpg); `novo.tsx` `canSave` e `<Button disabled={!canSave}>`. Mesmo padrão em "Continuar" do link público e "Cadastrar cliente".
+**Viola:** H9 (ajudar a reconhecer e corrigir erros), H1.
+- **UX/UI:** manter o botão **tocável**; ao tocar com algo faltando, rolar até a primeira seção pendente e destacá-la ("Escolha um horário"). No rodapé, trocar "0 serviços" por um resumo do que falta ("Falta: horário").
+- **Produto:** padrão único para todos os formulários do app e do link público.
+- **Dev:** função `missingFields()` em `novo.tsx` reaproveitando as condições de `canSave`; `scrollTo` pela posição da seção (`onLayout`). Evento `appointment_save_blocked` com `missing`.
+
+### UX-04 · Contraste abaixo do mínimo (sev. 3)
+**Evidência:** cálculo WCAG com `src/theme/colors.ts` e o tema padrão `#C08497`: branco/primária **3,00:1**; `muted` sobre fundo **3,64:1** e sobre branco 3,86:1; selo "Pendente" 2,92:1; horário ocupado `line`/fundo **1,13:1**; WhatsApp branco/verde 3,23:1. Na ficha, "Agendar" parece desabilitado ([cliente-01-ficha.jpg](evidencias/cliente-01-ficha.jpg)).
+**Viola:** NBR 17060 / WCAG 1.4.3 (4,5:1 texto normal) e 1.4.11 (3:1 componentes).
+- **UX/UI:** escurecer o texto secundário (ex.: `muted` ≈ `#6F6569`, ~5,5:1); nos botões principais usar `primaryDark` como fundo ou texto escuro quando a cor não atingir 4,5:1; horários ocupados com texto legível + ícone/"ocupado" em vez de quase invisível; verde do WhatsApp mais escuro (`#1E8A55` ou similar).
+- **Produto:** a escolha de cor do estúdio (Aparência) deve **garantir contraste** automaticamente.
+- **Dev:** em `deriveTheme` (`src/theme/palette.ts`), calcular `onPrimary` e, se o contraste com branco/preto for < 4,5, escurecer a cor do botão até atingir (teste unitário com os 6 temas). Ajustar `muted`, `line` de texto e cores de status em `colors.ts` e `tailwind.config.js`.
+
+### UX-07 · Pedidos online sem lugar próprio (sev. 3)
+**Evidência:** `(tabs)/index.tsx` não diferencia `source = 'online'` nem conta pendentes; push só no plano Intermediário e no app instalado (Ajustes na web: "Ativo, aguardando registro do aparelho").
+**Viola:** H1 (visibilidade do estado do sistema).
+- **UX/UI:** faixa no topo da Agenda: **"2 pedidos pelo link aguardando você"** → lista com "Confirmar" / "Recusar" em um toque; selo "Online" no cartão. No detalhe, botão principal "Confirmar agendamento" em vez do chip.
+- **Produto:** decidir se pedido não respondido em X horas gera lembrete; considerar aviso por e-mail quando não houver push. Medir tempo até confirmar.
+- **Dev:** filtro `appointments.filter(a => a.source === 'online' && a.status === 'pendente' && futuro)`; contador também no ícone da aba (badge do `Tabs`).
+
+### UX-13 · Nova cliente dentro do agendamento sem validação (sev. 2)
+**Evidência:** `novo.tsx` `saveNewClient` e botão "Salvar" (`disabled={!newClient.name.trim()}`) aceitam WhatsApp "119"; `clientes/nova.tsx` exige 10–11 dígitos e nome ≥ 2 (BUG-008).
+- **UX/UI:** mesma mensagem de `clientes/nova.tsx` ("WhatsApp — confira o número (DDD + número)") e máscara de telefone.
+- **Dev:** extrair a regra (`phoneOk`) para `src/lib/format.ts` e usar nos dois lugares (e no link público, que já valida).
+
+### UX-08 · Status só pela cor em cartões curtos (sev. 2)
+**Evidência:** [agenda-01-dia.jpg](evidencias/agenda-01-dia.jpg) (Larissa, 09:00, 45 min); `day-timeline.tsx`.
+- **UX/UI:** ícone pequeno de status (✓ confirmado, ⏳ pendente, ✔✔ concluído) ao lado do nome, que cabe em 45 min.
+- **Dev:** `day-timeline.tsx`, versão compacta do cartão; `accessibilityLabel` com o status.
+
+### UX-17 · Agenda volta para hoje depois de salvar (sev. 2)
+- **UX/UI/Dev:** ao fechar o Novo agendamento, abrir a agenda no dia salvo (passar `?date=` como a notificação já faz em `index.tsx`) e destacar o cartão novo por 2 s.
+
+### UX-09 · Link de agendamento escondido (sev. 2)
+**Evidência:** único acesso em Ajustes > Dados do estúdio > "Copiar link" (`ajustes/estudio.tsx`).
+- **UX/UI:** botão **"Compartilhar meu link"** (folha de compartilhamento do sistema) no fim do primeiro acesso, no estado vazio da Agenda e como linha própria em Ajustes ("Link de agendamento"). Texto pronto: "Agende seu horário comigo: <link>".
+- **Produto:** é a principal alavanca de ativação e de valor dos planos pagos; meta: 40% das contas compartilham em 7 dias.
+- **Dev:** `Share.share` do React Native (já vem no RN; no web, `navigator.share` com fallback para copiar). Sem dependência nova.
+
+### UX-05 · Datas só até 21 dias (sev. 2)
+- **UX/UI:** no fim da faixa de dias, um botão **"Outra data"** que abre um calendário mensal (o app já tem `range-calendar.tsx` e o calendário do link público).
+- **Dev:** reaproveitar o componente; `daysAhead` passa a seguir a data escolhida.
+
+### UX-06 · Dia sem vaga não sugere alternativa (sev. 2)
+**Evidência:** [novo-02-sem-horario.jpg](evidencias/novo-02-sem-horario.jpg).
+- **UX/UI:** "Nenhum horário livre neste dia. **Próximo livre: seg, 23/11 às 09:00** [Usar]".
+- **Dev:** procurar nos próximos 30 dias com a mesma lógica de `slots`/`slotConflict`; marcar na faixa de datas os dias sem vaga (como o link público já faz).
+
+### UX-11 · Financeiro (sev. 2)
+**Evidência:** [financeiro-01.jpg](evidencias/financeiro-01.jpg).
+- **UX/UI:** (a) linha da transação com **nome da cliente** ("Manicure · Larissa O."); (b) cartões acompanham o período escolhido (ou o filtro fica acima dos cartões e vale para tudo); (c) seletor de mês "‹ Novembro ›"; (d) botão de despesa com rótulo ("+ Despesa") em vez de "−", e espaço no fim da lista para não cobrir valores.
+- **Produto:** confirmar com as usuárias (tarefa T9) o que elas conferem no fim do dia/mês.
+- **Dev:** `transactions` já têm `appointmentId` → cruzar com `appointments`/`clients` na tela; `paddingBottom` da lista maior que o botão.
+
+### UX-10 · Primeira experiência vazia (sev. 2)
+- **UX/UI:** depois do primeiro acesso, cartão **"Primeiros passos"** na Agenda: ① cadastrar uma cliente ② marcar o primeiro horário ③ compartilhar o link ④ conferir preços. Oferecer "Ver com dados de exemplo" ali, e **"Remover dados de exemplo"** em Ajustes (já pedido no BUG-006).
+- **Produto:** definir a métrica de ativação (1º agendamento em 24 h).
+- **Dev:** estado salvo no perfil ou no aparelho; remoção dos exemplos exige marcar o que foi criado como exemplo (avaliar na sessão principal).
+
+### Severidade 1 (P3)
+- **UX-15:** skeleton/indicador ao abrir o detalhe na web.
+- **UX-14:** "Envio automático (WhatsApp)" sem seta e não tocável, com selo "Em breve".
+- **UX-12:** no cadastro pedir só e-mail e senha (nome do estúdio fica no passo 1) — ou mostrar o passo 1 como "Confirme o nome".
+- **UX-16:** usar o mesmo rótulo "Vender pacote" nos dois lugares.
+- Filtros de Clientes: deixar o último filtro parcialmente visível com sombra/gradiente, ou quebrar em duas linhas.
+
+## Plano sugerido
+1. **Agora (P1, ~1 semana de dev):** UX-01, 02, 03, 04, 07, 13, 08, 17.
+2. **Teste com 3–4 profissionais** (pode ser em paralelo ao P1, com a versão atual, para ter a linha de base).
+3. **Instrumentar** com a opção A de [metricas.md](metricas.md) antes do lançamento público.
+4. **P2** priorizado pelo que o teste confirmar.
+
+## Encaminhado à sessão principal
+Aprovado pelo responsável em 21/11/2026: os 8 itens P1 (marcados). Os demais esperam o teste com usuárias.
+- [x] UX-01 Botão principal "Concluir e receber" no detalhe do agendamento
+- [x] UX-02 Desfazer (ou confirmar) ao cancelar; motivo opcional
+- [x] UX-03 Dizer o que falta ao tocar em "Agendar" (e nos outros formulários)
+- [x] UX-04 Ajustar contraste (texto secundário, botão principal, ocupados, status)
+- [x] UX-07 Faixa de pedidos online pendentes na Agenda
+- [x] UX-13 Validar WhatsApp da nova cliente criada no agendamento
+- [x] UX-08 Ícone de status nos cartões curtos
+- [x] UX-17 Voltar para o dia do agendamento salvo
+- [ ] UX-09 "Compartilhar meu link"
+- [ ] UX-05 "Outra data" com calendário
+- [ ] UX-06 Sugerir próximo horário livre
+- [ ] UX-11 Melhorias do Financeiro
+- [ ] UX-10 Primeiros passos + remover exemplos
+- [ ] Severidade 1 (UX-12, 14, 15, 16, filtros)
+- [ ] Instrumentação de eventos (metricas.md, opção A)
