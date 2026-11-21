@@ -159,3 +159,22 @@ Conta de teste, tela 375×812 no navegador embutido. Agendamento de teste criado
 - UX-18 (2): atendimento **cancelado** continua mostrando "Enviar lembrete no WhatsApp" como botão principal e "Enviar confirmação" (depois do BUG-017, "Mudar status" voltou e permite reativar).
 - UX-19 (1): a linha da hora atual na Agenda passa por cima do nome no cartão em andamento e parece texto riscado ("Larissa Oliveira" às 09:00).
 - UX-20 (1): campo Observações do Novo agendamento é lido pelo exemplo ("Ex: trazer referência…"), não pelo rótulo.
+
+## Reteste dos itens P2, P3 e UX-18 a 20 em produção (21/11/2026, commit 414d88b)
+Conta de teste, tela 375×812 no navegador embutido. Nada foi salvo nem apagado; "Remover dados de exemplo" não foi executado.
+
+| ID | Resultado |
+|---|---|
+| UX-09 | ✅ "Compartilhar meu link" no dia vazio da Agenda e "Compartilhar link de agendamento" em Ajustes. O fim do primeiro acesso não foi visto (precisa de conta nova); conferido no código. |
+| UX-06 | ✅ Domingo (dia fechado), Manicure: "Próximo livre: Seg, 23 de novembro às 13:00" → "Usar" preenche dia e horário ("Das 13:00 às 13:45"). |
+| UX-05 | ✅ "Outra data" → dezembro → 18/12: o dia fica selecionado. ⚠️ A faixa de dias rola até o fim (22–25/12) e o dia escolhido fica fora da vista. |
+| UX-11 | ✅ Seletor "‹ Novembro 2026 ›"; cartões seguem o período ("Faturamento no mês", "Atendimentos pagos 19"); nome da cliente na transação ("Manicure · QA T."); "+ Despesa". ❌ **Regressão:** o título quebrou em "Financei / ro" e o subtítulo em "Novembro de / 2026", porque os botões "Exportar" e "Vender pacote" ocupam a largura ([reteste2-financeiro-titulo-quebrado.jpg](evidencias/reteste2-financeiro-titulo-quebrado.jpg)). |
+| UX-10 | ✅ "Primeiros passos" não aparece na conta de teste (tem atendimentos próprios), como esperado. A confirmação de remover exemplos avisa que saem todos os atendimentos e receitas das clientes de exemplo (código). O item só aparece com exemplos marcados; os exemplos antigos da conta de teste não têm a marca. |
+| UX-15 | ❌ **Não resolvido:** abrindo o detalhe direto pela URL, a tela fica em branco (só o cabeçalho) e não aparece "Carregando agendamento…". O branco não vem do `loading` do store. |
+| UX-14 | ✅ "Envio automático (WhatsApp), em breve" não é mais botão. |
+| UX-16 | ✅ "Vender pacote" no Financeiro (mas ver a regressão do título em UX-11). |
+| Filtros | ✅ Filtros de Clientes em duas linhas. |
+| UX-12 | Não visto (precisa de conta nova); conferido no código ("Confirme o nome do estúdio"). |
+| UX-18 | ✅ Cancelado: "Atendimento cancelado: lembretes e confirmação não se aplicam." e "Mudar status" disponível. |
+| UX-19 | ✅ A linha da hora atual passa por trás do cartão; o nome não parece mais riscado. |
+| UX-20 | ✅ Campo lido como "Observações (opcional)" (código e árvore de acessibilidade). |
