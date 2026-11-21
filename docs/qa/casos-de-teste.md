@@ -138,4 +138,7 @@
 | SQL VAL-20, 22 | RLS ligada; funções de servidor fechadas | 0 tabelas sem RLS; false nas três funções | P1 | SQL | ✅ (20/11) |
 | SQL VAL-21 | Funções executáveis sem login | Só as 3 do link público; nenhuma "PROBLEMA" | P1 | SQL | ✅ (20/11, após BUG-005) |
 | CT-SEG-11 | Funções do app logado sem login | "permission denied for function" (resumo, excluir pacote, fila offline, anonimizar, plan_rank) | P1 | API | ✅ (20/11, após BUG-005) |
+| CT-EVT-01..05 | Medição de uso sem login: não grava nem lê app_events; log_public_event ignora estúdio inexistente e nome fora da lista; limpeza só do servidor | Recusa ou ignora sem erro | P1 | API | ✅ (21/11, local) |
+| CT-EVT-06 | Logado: grava o próprio evento, não em nome de outra conta, e não lê nada | Insert aceito só com a própria conta; select vazio | P1 | API | ⬜ (CI, precisa da senha da conta de teste) |
+| SQL VAL-21/22 (faab3b2) | log_public_event liberada para anon; purge_old_app_events só servidor; app_events com RLS (VAL-20) | 4 funções "ok (link público)"; false/false; 0 tabelas sem RLS | P1 | SQL | ✅ (21/11: VAL-20 = 0; VAL-21 só as 4 do link; VAL-22 false/false nas 4) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

@@ -335,7 +335,52 @@ Produção, navegador embutido, conta de teste. Fora o BUG-017 (corrigido em 653
 
 **Esperado:** "Rosé Antigo" no detalhe e a paleta marcada.
 **Correção sugerida:** comparar com a cor escolhida, guardada no perfil/tema, e não com `colors.primary` escurecida.
-**Status:** aberto (sessão principal).
+**Correção:** commit faab3b2 (sessão principal): o ThemeContext expõe `chosenColor`.
+**Reteste (21/11/2026, produção, navegador embutido):**
+- Ajustes: "Aparência e cores → Rosé Antigo". ✅
+- Aparência e cores: "Rosé Antigo (#C08497)" marcado. ✅
+
+**Status:** fechado.
+
+---
+
+## BUG-019 · Baixa · "Outra data": a faixa de dias não mostra o dia escolhido
+**Onde:** `src/app/agendamento/novo.tsx`, faixa horizontal de datas, depois de escolher um dia em "Outra data" (414d88b; a correção de faab3b2 não resolveu na web).
+**Passos:** Novo agendamento (25/11) > "Outra data" > escolher 11/12.
+**Obtido (21/11/2026, produção, navegador embutido, 375 px e desktop):**
+- O 11/12 fica selecionado, mas a faixa rola até o fim. Aparecem 15–18/12, e o dia escolhido fica fora da tela (scrollLeft 1561 de 1936).
+- Para ver o dia marcado é preciso rolar para trás.
+
+**Esperado:** a faixa para com o dia escolhido visível, de preferência no centro.
+**Correção sugerida:** depois de a faixa crescer, rolar até a posição do dia escolhido (índice × largura do item), não até o fim (`scrollToEnd`).
+**Causa (sessão principal, 21/11):** é o mesmo problema do UX-05. Ao fechar o calendário, o navegador devolve o foco ao botão "Outra data", o último item da faixa, e rola até ele. Correção em andamento: o botão sai da faixa e vai para o lado do rótulo "Data".
+**Correção:** commit da0c7ff (sessão principal).
+**Reteste (21/11/2026, produção, navegador embutido):**
+- Novo agendamento (25/11): "Outra data" aparece ao lado do rótulo "Data", fora da faixa.
+- Escolhido 10/12: fica selecionado e visível no meio da faixa (7 a 14/12 na tela). ✅
+
+UX-15, que entrou no mesmo commit: ~2,3 s depois de a Agenda abrir, o app baixa em segundo plano o código das telas de detalhe e de novo agendamento. Ao abrir um agendamento pelo cartão, nenhum código novo é baixado e o detalhe aparece sem intervalo em branco. ✅
+
+**Status:** fechado.
+
+---
+
+## Regressão do commit faab3b2 (medição de uso, BUG-018, Financeiro, Outra data) · 21/11/2026
+Produção, navegador embutido, conta de teste:
+- BUG-018 fechado (acima).
+- Financeiro em 375 px: título "Financeiro" numa linha só; "Exportar" e "Vender pacote" na linha de baixo. ✅
+- Outra data: BUG-019.
+- Fluxo completo sem erro do servidor (todas as chamadas 2xx no Resource Timing):
+  - novo agendamento (QA Teste, terça 24/11 16:00) → `create_appointment` 200 e `app_events` 201;
+  - concluir com Pix (pede "Concluir antes do horário?") → `complete_appointment` 200 e "Receita lançada: R$ 50,00 · Pix";
+  - desfazer ("Desfazer a conclusão?") → receita sai;
+  - cancelar.
+- O agendamento ficou cancelado.
+- Eventos: `app_events` grava com 201 depois de criar o agendamento e de escolher "Outra data". O envio é silencioso, sem aviso na tela. ✅
+- O console mostrou dois "400" sem endereço, num momento que não consegui repetir. Nas repetições nenhuma chamada ao banco deu 400 (as únicas falhas foram as checagens de conexão `HEAD /`, canceladas de propósito). Fica em observação. Hipótese da sessão principal: fila de eventos antiga do aparelho, de antes da migração, descartada no primeiro envio. Se aparecer de novo, anotar a URL na aba Rede.
+- API (local, com a chave pública): CT-EVT-01 a 05 ✅. O CT-EVT-06 e os de regras de negócio precisam da senha da conta de teste e rodam no CI. Unitários: 112 ✅.
+- SQL (rodado pelo usuário no SQL Editor, 21/11): VAL-20 = 0 tabelas sem RLS (app_events protegida); VAL-21 só as 4 do link público como "ok", nenhuma "PROBLEMA"; VAL-22 false/false nas 4 funções, incluindo `purge_old_app_events()`. ✅
+- Não testado: Política de Privacidade atualizada (texto jurídico; só a data foi vista na mensagem da sessão principal).
 
 ---
 

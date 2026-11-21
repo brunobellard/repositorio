@@ -114,14 +114,14 @@ with r as (
 select * from r order by regra;
 
 -- VAL-21 Funções que qualquer pessoa (anon, sem login) pode executar.
--- Esperado: só as 3 do link público com veredito "ok"; nenhuma linha "PROBLEMA".
+-- Esperado: só as 4 do link público com veredito "ok" (log_public_event entrou em 21/11/2026, faab3b2: medição de uso do link); nenhuma linha "PROBLEMA".
 -- Funções de gatilho ("gatilho") não podem ser chamadas diretamente: aceitáveis, mas o ideal é revogar.
 -- Ignora funções de extensões (ex.: btree_gist, gbt_* e *_dist), que são internas do Postgres.
 select p.proname as funcao,
        pg_get_function_identity_arguments(p.oid) as argumentos,
        p.prosecdef as roda_como_dono,
        case
-         when p.proname in ('public_studio', 'get_public_busy_slots', 'create_public_booking') then 'ok (link público)'
+         when p.proname in ('public_studio', 'get_public_busy_slots', 'create_public_booking', 'log_public_event') then 'ok (link público)'
          when p.prorettype = 'trigger'::regtype then 'gatilho (aceitável)'
          else 'PROBLEMA'
        end as veredito
@@ -131,8 +131,8 @@ select p.proname as funcao,
                     where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
  order by veredito, 1;
 
--- VAL-22 Funções restritas ao servidor. Esperado: false nas duas colunas para as três linhas.
+-- VAL-22 Funções restritas ao servidor. Esperado: false nas duas colunas para as quatro linhas.
 select f as funcao,
        has_function_privilege('anon', f::regprocedure, 'execute') as anon_executa,
        has_function_privilege('authenticated', f::regprocedure, 'execute') as logado_executa
-  from unnest(array['delete_account(uuid)', 'purge_account_data(uuid)', 'appointments_online_limits()']) f;
+  from unnest(array['delete_account(uuid)', 'purge_account_data(uuid)', 'appointments_online_limits()', 'purge_old_app_events()']) f;
