@@ -265,7 +265,15 @@ A agenda de quarta não mostra o pedaço 00:00–00:45: ficou registrado no BUG-
 **Esperado:** o atendimento aparecer também no começo do dia seguinte. O `day-timeline` já corta o que começa na véspera e alarga a grade para mostrar o horário.
 **Correção sugerida:** filtrar os atendimentos que se sobrepõem ao dia (`startsAt < fim do dia && endsAt > início do dia`), não só os que começam nele. Conferir se o total "previsto" do dia não conta o atendimento duas vezes.
 **Melhoria:** a tela do agendamento mostra "23:00 – 00:45", sem dizer "do dia seguinte".
-**Status:** aberto (sessão principal).
+**Correção:** commit 701e29a (sessão principal).
+**Reteste (21/11/2026, produção, conta de teste, navegador embutido):**
+- Criado terça 24/11 23:00–00:45 (QA Teste, fora do expediente).
+- Quarta 25/11: a grade começa às 00:00 e mostra o atendimento das 00:00 às 00:45. O cabeçalho diz "1 atendimento · R$ 0,00 previsto": o valor fica só na terça. ✅
+- Tela do agendamento: "23:00 – 00:45 do dia seguinte · 1h45". ✅
+- Depois, o agendamento foi cancelado.
+
+Melhoria: na quarta (folga dos dados de exemplo), o aviso "Folga · Dia inteiro sem atendimentos" continua aparecendo junto com esse atendimento.
+**Status:** fechado.
 
 ---
 
