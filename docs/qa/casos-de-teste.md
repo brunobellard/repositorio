@@ -143,5 +143,6 @@
 | SQL VAL-21/22 (faab3b2) | log_public_event liberada para anon; purge_old_app_events só servidor; app_events com RLS (VAL-20) | 4 funções "ok (link público)"; false/false; 0 tabelas sem RLS | P1 | SQL | ✅ (21/11: VAL-20 = 0; VAL-21 só as 4 do link; VAL-22 false/false nas 4) |
 | CT-TEL-01 | Link público e tela de login sem conta | Nenhuma chamada a *.posthog.com nem ao Sentry | P1 | M (web) | ✅ (21/11) |
 | CT-TEL-02 | Payload do PostHog com login (/batch, identify) | distinct_id = UUID da conta; $geoip_disable true; sem e-mail, nome, telefone, CPF ou texto digitado | P1 | M (web) | ✅ (21/11) |
-| CT-TEL-03 | Sair da conta | Nenhum evento enviado ao PostHog depois | P1 | M (web) | ✅ eventos (21/11); ❌ chamada de flags (BUG-020) |
+| CT-TEL-03 | Sair da conta | Nenhum evento enviado ao PostHog depois | P1 | M (web) | ✅ (21/11, depois do BUG-020: sem /flags e nada depois de sair) |
+| CT-TEL-04 | Excluir a conta apaga a pessoa e os eventos no PostHog | Pessoa some de Persons; conta excluída mesmo se o PostHog falhar | P1 | M (web) | ✅ (21/11, depois do BUG-021: pessoa sumiu de Persons) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

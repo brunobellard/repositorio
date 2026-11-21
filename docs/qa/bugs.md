@@ -417,7 +417,21 @@ Produção, navegador embutido, conta de teste. Fora o BUG-018, tudo ✅:
 
 **Esperado:** o app não usa feature flags, então nenhuma chamada a `/flags`, e nada ao PostHog depois de sair. Cada chamada leva o IP do aparelho ao PostHog, embora `$geoip_disable` esteja ligado nos eventos.
 **Correção sugerida:** desligar o carregamento de flags (ex.: opção de não buscar flags ou `disableRemoteConfig`, conforme a versão do posthog-react-native) e, ao sair, usar `optOut()` ou descartar a instância em vez de só `reset()`.
-**Status:** aberto (sessão Logs & Analytics).
+**Correção (sessão Logs & Analytics, 21/11, local, ainda sem commit nem deploy):** `disableRemoteFeatureFlags: true` em `telemetry.ts`. Sem `/flags` no login, no `identify` e no `reset()`.
+O `GET /array/<chave>/config` (1× por abertura, sem UUID) continua: o posthog-react-native 4.87.1 não deixa desligar (`disableRemoteConfig` não faz nada). Esse ponto fica como **limitação do fornecedor**, aceita.
+**Reteste pendente:** depois do deploy, conferir login, uso e saída da conta: nenhum `/flags`, só `/config` na abertura e `/batch` com login.
+**Correção:** commit ee6a7de (sessão Logs & Analytics).
+**Reteste (21/11/2026, produção web, navegador embutido, registrador de `fetch` instalado antes do login):**
+- Entrar: `GET /array/<chave>/config` (1×) + `POST /batch/` com `$identify` (`distinct_id` = UUID da conta; `$set` só com `platform` e `app_version`; `$geoip_disable: true`).
+- Usar: Novo agendamento > Agendar vazio → `/batch/` com `appointment_form_opened` e `appointment_save_blocked`.
+- Sair ("Sair da conta?") e usar o link público até a etapa de data: nenhuma chamada ao PostHog.
+- Total: 0 chamadas a `/flags`. ✅
+- O `/config` na abertura continua, aceito como limitação do fornecedor.
+
+Política, seção 6: retenção no banco (até 13 meses), no PostHog (até 12 meses, apagado junto com a conta) e no Sentry (até 90 dias). ✅
+Não testado: exclusão da pessoa no PostHog ao apagar a conta. Depende de o usuário cadastrar `POSTHOG_PERSONAL_API_KEY`/`POSTHOG_PROJECT_ID` e publicar a `delete-account`, e de apagar uma conta descartável.
+
+**Status:** fechado.
 
 ---
 
@@ -431,6 +445,40 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 - **Política de Privacidade** (`/privacidade`, "Última atualização: 21 de novembro de 2026"): seções 2 a 5 citam Sentry e PostHog e dizem que o link público não vai ao PostHog, como observado. O e-mail de contato continua o do BUG-001.
 - **Unitários:** 86 ✅, incluindo `telemetry-scrub-test.ts`.
 - **Não testado:** envio real de erro ao Sentry (provocar um erro em produção) e celular (precisa de build nova com os pacotes nativos).
+
+---
+
+## BUG-021 · Média · Ao excluir a conta, a pessoa não é apagada no PostHog (busca devolve 401)
+**Onde:** `supabase/functions/delete-account/index.ts`, `deletePostHogPerson` (commit ee6a7de), e os segredos `POSTHOG_PERSONAL_API_KEY` / `POSTHOG_PROJECT_ID` da função.
+**Passos (21/11/2026, produção web, navegador embutido):**
+1. Conta descartável criada pelo usuário (estúdio "test").
+2. O app mandou ao PostHog `$identify`, `$set`, `appointment_form_opened` e `appointment_form_abandoned` com `distinct_id` 3f679d6c-c5d4-4483-89d8-fe71e475c738.
+3. Em Persons, a busca por esse id achou a pessoa 366fb283-7075-5806-9141-e9540be460e3.
+4. Ajustes > Dados do estúdio > Excluir minha conta > EXCLUIR > "Excluir conta para sempre".
+
+**Obtido:**
+- A conta foi excluída (`delete-account` 200, "Sua conta foi excluída", volta ao login). ✅
+- O log da função diz: `delete-account: falha ao apagar no PostHog 3f679d6c-… Error: busca 401`. A pessoa e os eventos continuam no PostHog.
+
+**Esperado:** pessoa e eventos apagados no PostHog, como diz a Política (seção 6: "Ao excluir a conta, o cadastro da conta no PostHog e os eventos ligados a ela são apagados automaticamente").
+**Causa provável:** 401 é autenticação, antes de qualquer escopo (escopo faltando daria 403). Opções:
+- o segredo não é uma chave pessoal `phx_…` (por exemplo, a chave de projeto `phc_…` do app);
+- a chave foi colada com espaço ou aspas;
+- a chave foi revogada;
+- a chave é de outra região (o app usa US; o host padrão da função é `https://us.posthog.com`).
+
+**Correção sugerida:** criar uma Personal API key (`phx_…`) com `person:read` e `person:write` no projeto certo, regravar com `supabase secrets set` e repetir o teste com outra conta descartável.
+**Pendência do usuário:** apagar à mão no PostHog a pessoa 366fb283-… (Persons > lixeira, marcando também os eventos). A conta já não existe, então a função não vai rodar de novo para ela.
+**Correção (usuário, 21/11):** nova Personal API key `phx_` com acesso só ao "Default project" e escopo Person = Write, gravada com `supabase secrets set`. A pessoa 366fb283-… foi apagada à mão no PostHog.
+**Reteste (21/11/2026, produção web, navegador embutido):**
+- Nova conta descartável (estúdio "Teste"), `distinct_id` 127563ac-2c34-42f2-9249-150caffe4b3b.
+- O app mandou `$identify`, `$set`, `appointment_form_opened` e `appointment_form_abandoned`.
+- O usuário achou a pessoa em Persons.
+- Ajustes > Dados do estúdio > Excluir minha conta > EXCLUIR → `delete-account` 200 e volta ao login.
+- O usuário recarregou Persons: a pessoa sumiu. ✅
+- Os eventos o PostHog apaga em segundo plano.
+
+**Status:** fechado.
 
 ---
 
