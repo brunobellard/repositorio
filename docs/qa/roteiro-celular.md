@@ -4,7 +4,7 @@ Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / �
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 **Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
-**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015).
+**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015 corrigido; resta o BUG-016).
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
@@ -26,7 +26,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [ ] Série semanal com "até" antes do primeiro dia → salva sessão única, sem travar em "Salvando…". (21/11: feitas séries longas com "até" em vez disso, sem bug: sábados de 21/11 até 10/02 → 11 sessões, a última em 06/02 porque 10/02 é quarta; faltou só 02/01, que cai nas "Férias" dos dados de exemplo (pulada na janela de conflito). Mesma coisa na série de segundas até 07/01: faltou 28/12. "Até uma data" substitui o "Nº de sessões". O caso deste item continua pendente.)
 - [x] ✅ (21/11, Android) CT-AGE-13 Abrir sessão de série → mudar só as observações → a sessão não fica marcada como exceção.
 - [x] ✅ (21/11, Android) Concluir sessão de série com "este e os próximos" e depois desfazer → a própria sessão também volta.
-- [ ] ❌ (21/11, Android) CT-AGE-12 Atendimento 23:00–00:30 → aparece no fim de um dia e no começo do outro. Não dá para marcar depois das 22:00 (BUG-015).
+- [ ] ❌ (21/11, Android) CT-AGE-12 Atendimento 23:00–00:30 → aparece no fim de um dia e no começo do outro. Não dá para marcar depois das 22:00 (BUG-015). Reteste na web depois da correção: marca 23:00 e bloqueia o começo do dia seguinte, mas a agenda do dia seguinte não mostra o atendimento (BUG-016).
 
 ## C. Pacotes
 - [x] ✅ (20/11) 🔁 Vender pacote 4x → agendar sessão com o pacote → concluir → saldo cai para 3.

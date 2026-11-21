@@ -246,6 +246,25 @@ Não vistos nesta conta (só aparecem em outra situação; nomes conferidos no c
 **Obtido (celular Android, 21/11/2026):** não há opção de agendar fora do expediente num dia aberto. No código: o link só aparece com o dia fechado ou de folga; pela agenda só dá para tocar fora do expediente se a hora aparecer na tela (ela mostra só o expediente); e mesmo com "fora do expediente" a grade vai das 07:00 às 21:30 (o atendimento tem que acabar até 22:00). Um horário 23:00–00:30 não tem como ser criado pelo app.
 **Esperado:** num dia aberto também poder liberar horários fora do expediente (antes de abrir e depois de fechar), e a grade ir até perto da meia-noite, aceitando atendimento que termina no dia seguinte. A agenda e o banco já tratam o atendimento que atravessa a meia-noite (CT-AGE-12).
 **Correção sugerida:** mostrar "Agendar fora do expediente" sempre (não só em dia fechado); com ele ligado, grade de 00:00 a 23:30 e `fits` sem limite de fim do dia.
+**Correção:** commit 7aea7a8 (sessão principal).
+**Reteste (21/11/2026, produção, conta de teste, navegador embutido):**
+- Terça 24/11 (dia aberto): "Agendar fora do expediente" aparece abaixo dos horários. Ligado, a grade vai até 23:45.
+- Cliente QA Teste, QA Manicure + Manicure (1h45), 23:00 → "Das 23:00 às 00:45 do dia seguinte" → "Agendamento salvo". Na agenda de terça aparece às 23:00. ✅
+- Quarta 25/11, fora do expediente: 00:00, 00:15 e 00:30 indisponíveis; 00:45 livre (não encosta no atendimento da véspera). ✅
+- Depois, o agendamento foi cancelado.
+
+A agenda de quarta não mostra o pedaço 00:00–00:45: ficou registrado no BUG-016.
+**Status:** fechado.
+
+---
+
+## BUG-016 · Baixa · Atendimento que passa da meia-noite não aparece na agenda do dia seguinte
+**Onde:** `src/app/(tabs)/index.tsx`, l.63: `dayAppts` filtra só por `isSameDay(startsAt, selected)`.
+**Passos (CT-AGE-12):** criar atendimento terça 23:00–00:45 (fora do expediente) > abrir a agenda de quarta.
+**Obtido (21/11/2026, produção, navegador embutido):** quarta mostra "0 atendimentos" e a grade começa às 09:00. O trecho 00:00–00:45 não aparece, embora o horário esteja ocupado (o formulário de novo agendamento bloqueia 00:00–00:30).
+**Esperado:** o atendimento aparecer também no começo do dia seguinte. O `day-timeline` já corta o que começa na véspera e alarga a grade para mostrar o horário.
+**Correção sugerida:** filtrar os atendimentos que se sobrepõem ao dia (`startsAt < fim do dia && endsAt > início do dia`), não só os que começam nele. Conferir se o total "previsto" do dia não conta o atendimento duas vezes.
+**Melhoria:** a tela do agendamento mostra "23:00 – 00:45", sem dizer "do dia seguinte".
 **Status:** aberto (sessão principal).
 
 ---

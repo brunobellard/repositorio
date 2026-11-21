@@ -37,7 +37,7 @@
 | CT-API-03 | Banco recusa sobreposição | Erro 23P01 | P1 | API | ✅ (CI) |
 | CT-AGE-11 | Toque duplo em "Salvar" | Só um agendamento criado | P1 | M | ✅ (celular, 20/11) |
 | CT-E2E-02 | Novo agendamento com cliente nova (Maestro 02): cliente pelo atalho, serviço, 1º horário livre, Agendar | "Agendamento salvo" | P1 | E2E | ✅ (Android, 20/11) |
-| CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ❌ (celular Android, 21/11: não dá para marcar 23:00, BUG-015) |
+| CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ❌ (21/11: depois do BUG-015 já dá para marcar 23:00, mas o dia seguinte não mostra o trecho depois da meia-noite, BUG-016) |
 | CT-AGE-13 | Editar só as observações de sessão de série | Sessão não vira exceção da série | P2 | M | ✅ (celular Android, 21/11) |
 
 ## 3. Recorrência
