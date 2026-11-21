@@ -273,6 +273,10 @@ A agenda de quarta não mostra o pedaço 00:00–00:45: ficou registrado no BUG-
 - Depois, o agendamento foi cancelado.
 
 Melhoria: na quarta (folga dos dados de exemplo), o aviso "Folga · Dia inteiro sem atendimentos" continua aparecendo junto com esse atendimento.
+Feita no commit 8577ac6 (sessão principal). Conferida em 21/11/2026, produção, navegador embutido:
+- Quarta só com atendimentos cancelados: "Dia inteiro sem atendimentos · toque para liberar". ✅
+- Com o da véspera ativo (terça 23:00–00:45): "1 atendimento mesmo assim · toque para liberar o dia". ✅
+- Depois, o agendamento foi cancelado.
 **Status:** fechado.
 
 ---
