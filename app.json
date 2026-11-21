@@ -67,7 +67,14 @@
           "defaultChannel": "agendamentos"
         }
       ],
-      "@sentry/react-native",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://sentry.io/",
+          "organization": "bruno-mw",
+          "project": "repositorio"
+        }
+      ],
       "expo-localization"
     ],
     "experiments": {
