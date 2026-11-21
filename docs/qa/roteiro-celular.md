@@ -4,7 +4,7 @@ Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / �
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 **Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
-**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, série com "até" antes do 1º dia, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ✅ depois das correções dos BUG-015 e BUG-016. Bloco de pacotes, clientes e link (CT-PAC-15, "Pacote em uso", CT-PAC-16, CT-CLI-07, limite de 3 pelo mesmo WhatsApp) ✅; CT-LNK-08 ✅ na web com falha simulada. Os 3 agendamentos do link (QA Teste, 26/11) foram cancelados. Restam só itens que pedem versão instalada (push) ou dois aparelhos (CT-OFF-03), e o CT-OFF-02 (opcional).
+**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, série com "até" antes do 1º dia, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ✅ depois das correções dos BUG-015 e BUG-016. Bloco de pacotes, clientes e link (CT-PAC-15, "Pacote em uso", CT-PAC-16, CT-CLI-07, limite de 3 pelo mesmo WhatsApp) ✅; CT-OFF-02 (Wi-Fi sem internet) ✅; CT-LNK-08 ✅ na web com falha simulada. Os 3 agendamentos do link (QA Teste, 26/11) foram cancelados. Restam só itens que pedem versão instalada (push) ou dois aparelhos (CT-OFF-03),.
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
@@ -42,7 +42,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 ## E. Offline (modo avião)
 - [x] ✅ (20/11) 🔁 CT-OFF-01 Modo avião → criar cliente, criar agendamento, concluir outro → avisos "salvo no aparelho".
 - [x] ✅ (20/11) 🔁 Desligar o modo avião → "Sincronizado com a nuvem" → agendamento aparece com o serviço (conferir VAL-05 = 0).
-- [ ] CT-OFF-02 Wi-Fi ligado mas sem internet (roteador sem cabo) → criar agendamento → vai para a fila.
+- [x] ✅ (21/11, Android) CT-OFF-02 Wi-Fi ligado mas sem internet (roteador sem cabo) → criar agendamento → vai para a fila ("Agendamento salvo no aparelho"; ao religar, "Sincronizado com a nuvem").
 - [ ] CT-OFF-03 Offline, marcar no mesmo horário de um agendamento feito por outro aparelho → ao sincronizar, aviso de conflito e o item some da tela.
 
 ## F. Link público (pelo celular de outra pessoa ou aba anônima)

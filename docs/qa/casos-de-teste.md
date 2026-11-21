@@ -113,7 +113,7 @@
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
 |---|---|---|---|---|---|
 | CT-OFF-01 | Criar agendamento em modo avião | "Salvo no aparelho"; sincroniza ao voltar | P1 | M | ✅ (celular, 20/11) |
-| CT-OFF-02 | Wi-Fi sem internet | Vai para a fila em vez de perder | P1 | M | ⬜ |
+| CT-OFF-02 | Wi-Fi sem internet | Vai para a fila em vez de perder | P1 | M | ✅ (celular Android, Expo Go, 21/11) |
 | CT-API-06 | Fila envia agendamento + serviços juntos, sem duplicar | 1 agendamento com serviço | P1 | API | ✅ (CI) |
 | CT-API-07 | Fila sem serviço | Recusado | P2 | API | ✅ (CI) |
 | CT-OFF-03 | Item recusado na sincronização | Aviso e some da tela | P2 | M | ⬜ |
