@@ -155,7 +155,7 @@ Conta de teste, tela 375×812 no navegador embutido. Agendamento de teste criado
 | UX-13 | ✅ Nome "Q" e WhatsApp "119" recusados: "Confira os dados da cliente", rótulo "confira o número". | [reteste-ux13-nova-cliente.jpg](evidencias/reteste-ux13-nova-cliente.jpg) |
 | UX-17 | ✅ Agendamento salvo para ter 24/11 a partir da agenda de hoje → Agenda abriu em 24/11 com "Agendamento salvo". Destaque de 2 s não feito. | — |
 
-**Novos achados menores (sev. 1–2), não encaminhados:**
+**Novos achados menores (sev. 1–2), encaminhados à sessão principal em 21/11/2026 a pedido do responsável:**
 - UX-18 (2): atendimento **cancelado** continua mostrando "Enviar lembrete no WhatsApp" como botão principal e "Enviar confirmação" (depois do BUG-017, "Mudar status" voltou e permite reativar).
 - UX-19 (1): a linha da hora atual na Agenda passa por cima do nome no cartão em andamento e parece texto riscado ("Larissa Oliveira" às 09:00).
 - UX-20 (1): campo Observações do Novo agendamento é lido pelo exemplo ("Ex: trazer referência…"), não pelo rótulo.
