@@ -4,11 +4,12 @@ Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / �
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 **Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
+**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015).
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
 - [x] ✅ (20/11) 🔁 CT-CON-04 Criar conta com o e-mail da conta de teste → "Já existe uma conta com este e-mail…"
-- [ ] CT-CON-10 Ligar "Entrar com digital", fechar o app (tirar da memória) e abrir → pede a digital; logo depois de entrar com senha não pede.
+- [x] ✅ (21/11, Android) CT-CON-10 Ligar "Entrar com digital", fechar o app (tirar da memória) e abrir → pede a digital; logo depois de entrar com senha não pede.
 - [x] ✅ (20/11) 🔁 CT-CON-07 Sair → entrar com outra conta → nada da conta anterior (nome do estúdio, clientes, cor).
 - [x] ✅ (20/11) 🔁 CT-CON-08 Ficar mais de 1 hora sem abrir, ligar o modo avião, abrir → abre com os dados salvos (não pede login).
 
@@ -17,14 +18,15 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11) Novo agendamento: dias e horários dizem "selecionado"; horário ocupado diz "indisponível".
 - [x] ✅ (20/11) Janelas que sobem de baixo (opções de série, excluir conta): cada botão é lido separadamente.
 - [x] ✅ (20/11) Primeiro acesso: aceite dos Termos lido como caixa de seleção marcada/desmarcada.
-- [ ] 🔁 Botão de voltar do cabeçalho (ex.: Nova cliente) lido como "Voltar" (BUG-009).
+- [x] ✅ (21/11) 🔁 Botão de voltar do cabeçalho (ex.: Nova cliente) lido como "Voltar" (BUG-009).
+- [x] ✅ (21/11) 🔁 Interruptores lidos com o nome da opção (ex.: Ajustes > Horário de funcionamento: "Segunda aberto, ligado") (BUG-014).
 
 ## B. Agenda
 - [x] ✅ (20/11) 🔁 CT-AGE-11 Novo agendamento → tocar duas vezes rápido em Salvar → só 1 criado.
-- [ ] Série semanal com "até" antes do primeiro dia → salva sessão única, sem travar em "Salvando…".
-- [ ] CT-AGE-13 Abrir sessão de série → mudar só as observações → a sessão não fica marcada como exceção.
-- [ ] Concluir sessão de série com "este e os próximos" e depois desfazer → a própria sessão também volta.
-- [ ] CT-AGE-12 Atendimento 23:00–00:30 → aparece no fim de um dia e no começo do outro.
+- [ ] Série semanal com "até" antes do primeiro dia → salva sessão única, sem travar em "Salvando…". (21/11: feitas séries longas com "até" em vez disso, sem bug: sábados de 21/11 até 10/02 → 11 sessões, a última em 06/02 porque 10/02 é quarta; faltou só 02/01, que cai nas "Férias" dos dados de exemplo (pulada na janela de conflito). Mesma coisa na série de segundas até 07/01: faltou 28/12. "Até uma data" substitui o "Nº de sessões". O caso deste item continua pendente.)
+- [x] ✅ (21/11, Android) CT-AGE-13 Abrir sessão de série → mudar só as observações → a sessão não fica marcada como exceção.
+- [x] ✅ (21/11, Android) Concluir sessão de série com "este e os próximos" e depois desfazer → a própria sessão também volta.
+- [ ] ❌ (21/11, Android) CT-AGE-12 Atendimento 23:00–00:30 → aparece no fim de um dia e no começo do outro. Não dá para marcar depois das 22:00 (BUG-015).
 
 ## C. Pacotes
 - [x] ✅ (20/11) 🔁 Vender pacote 4x → agendar sessão com o pacote → concluir → saldo cai para 3.

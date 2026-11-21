@@ -80,6 +80,10 @@ export default function NovoAgendamento() {
 
   // Veio de um toque fora do expediente já confirmado na agenda
   const [override, setOverride] = useState(params.fora === '1' || initialOutside);
+  function toggleOverride() {
+    setOverride(!override);
+    setTime(null);
+  }
   const [clientId, setClientId] = useState<string | undefined>(editing?.clientId ?? params.clientId);
   const [query, setQuery] = useState('');
   const [newClient, setNewClient] = useState<{ name: string; whatsapp: string } | null>(null);
@@ -143,10 +147,11 @@ export default function NovoAgendamento() {
     : !dayHours.isOpen
       ? `O estúdio não abre ${WEEKDAYS_LONG[day.getDay()].toLowerCase()}.`
       : null;
-  // "Fora do expediente": mostra o dia todo, só respeitando outros agendamentos
+  // "Fora do expediente": mostra o dia todo (00:00 até o último horário antes da meia-noite),
+  // só respeitando outros agendamentos; o atendimento pode terminar no dia seguinte (BUG-015)
   const ignoreHours = override;
   const [workStart, workEnd] = ignoreHours
-    ? [7 * 60, 22 * 60]
+    ? [0, 24 * 60]
     : dayHours.isOpen
       ? [hmToMinutes(dayHours.openTime), hmToMinutes(dayHours.closeTime)]
       : [0, 0];
@@ -160,9 +165,12 @@ export default function NovoAgendamento() {
       .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id)
       // Atendimento em domicílio ocupa também o deslocamento depois dele (o gravado quando foi marcado)
       .map((a) => [toDayMin(new Date(a.startsAt).getTime()), toDayMin(busyEndMs(a, buffer))])
-      .filter(([s, e]) => s < 24 * 60 && e > 0),
+      // Inclui o começo do dia seguinte: um atendimento que atravessa a meia-noite não pode encostar nele
+      .filter(([s, e]) => s < 48 * 60 && e > 0),
     ...blocks
-      .filter((b) => new Date(b.startsAt).getTime() < nextDayMs && new Date(b.endsAt).getTime() > dayStartMs)
+      .filter((b) => b.allDay
+        ? new Date(b.startsAt).getTime() < nextDayMs && new Date(b.endsAt).getTime() > dayStartMs
+        : new Date(b.startsAt).getTime() < nextDayMs + 86_400_000 && new Date(b.endsAt).getTime() > dayStartMs)
       .filter((b) => !(ignoreHours && b.allDay))
       .map((b) =>
         b.allDay ? [0, 24 * 60] : [toDayMin(new Date(b.startsAt).getTime()), toDayMin(new Date(b.endsAt).getTime())],
@@ -182,10 +190,13 @@ export default function NovoAgendamento() {
     // Indo à casa da cliente, o deslocamento depois também precisa estar livre
     const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
     // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
-    const fits = ignoreHours ? m + need <= workEnd : isWithinHours(dayHours, m, m + need);
+    const fits = ignoreHours || isWithinHours(dayHours, m, m + need);
     slots.push({ min: m, free: !past && !conflict && fits });
   }
-  const endTime = time !== null && duration ? formatTime(atMinutes(day, time + duration)) : null;
+  const endTime =
+    time !== null && duration
+      ? `${formatTime(atMinutes(day, time + duration))}${time + duration > 24 * 60 ? ' do dia seguinte' : ''}`
+      : null;
   // Horário vindo do toque na agenda ainda é válido?
   const timeValid = time !== null && slots.some((s) => s.min === time && s.free);
 
@@ -590,10 +601,10 @@ export default function NovoAgendamento() {
             <View className="ml-2 flex-1">
               <Text className="text-[13px] leading-5 text-[#8A6420]">
                 {override
-                  ? 'Mostrando horários fora do expediente.'
+                  ? 'Mostrando o dia todo, fora do expediente. O atendimento pode terminar depois da meia-noite.'
                   : `${closedReason} Para atender mesmo assim, libere os horários.`}
               </Text>
-              <Pressable accessibilityRole="button" onPress={() => { setOverride(!override); setTime(null); }} className="mt-1 self-start py-1">
+              <Pressable accessibilityRole="button" onPress={toggleOverride} className="mt-1 self-start py-1">
                 <Text className="text-[13px] font-semibold text-[#8A6420] underline">
                   {override ? 'Voltar ao expediente normal' : 'Agendar fora do expediente'}
                 </Text>
@@ -626,6 +637,12 @@ export default function NovoAgendamento() {
         ) : closedReason && !override ? null : (
           <Text className="text-sm text-muted">Nenhum horário livre neste dia.</Text>
         )}
+        {/* Dia aberto: também dá para liberar horários antes de abrir ou depois de fechar */}
+        {!closedReason && !override ? (
+          <Pressable accessibilityRole="button" onPress={toggleOverride} className="mb-2 self-start py-1">
+            <Text className="text-[13px] font-medium text-primary-dark underline">Agendar fora do expediente</Text>
+          </Pressable>
+        ) : null}
         {timeValid && endTime ? (
           <Text className="mt-1 text-[13px] text-muted">
             Das {formatTime(atMinutes(day, time!))} às {endTime} (término calculado pela duração dos serviços)

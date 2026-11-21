@@ -240,6 +240,16 @@ Não vistos nesta conta (só aparecem em outra situação; nomes conferidos no c
 
 ---
 
+## BUG-015 · Média · Não dá para marcar atendimento depois das 22:00 (nem que atravesse a meia-noite)
+**Onde:** `src/app/agendamento/novo.tsx` (grade de horários com "fora do expediente" fixa em 07:00–22:00; link "Agendar fora do expediente" só aparece em dia fechado ou folga) e `src/components/agenda/day-timeline.tsx` (a agenda só desenha as horas do expediente).
+**Passos (CT-AGE-12):** dia aberto (ex.: até 19:00) > Novo agendamento > procurar 23:00, ou tocar na agenda depois do fechamento.
+**Obtido (celular Android, 21/11/2026):** não há opção de agendar fora do expediente num dia aberto. No código: o link só aparece com o dia fechado ou de folga; pela agenda só dá para tocar fora do expediente se a hora aparecer na tela (ela mostra só o expediente); e mesmo com "fora do expediente" a grade vai das 07:00 às 21:30 (o atendimento tem que acabar até 22:00). Um horário 23:00–00:30 não tem como ser criado pelo app.
+**Esperado:** num dia aberto também poder liberar horários fora do expediente (antes de abrir e depois de fechar), e a grade ir até perto da meia-noite, aceitando atendimento que termina no dia seguinte. A agenda e o banco já tratam o atendimento que atravessa a meia-noite (CT-AGE-12).
+**Correção sugerida:** mostrar "Agendar fora do expediente" sempre (não só em dia fechado); com ele ligado, grade de 00:00 a 23:30 e `fits` sem limite de fim do dia.
+**Status:** aberto (sessão principal).
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅
