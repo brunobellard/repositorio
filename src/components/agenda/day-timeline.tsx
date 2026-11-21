@@ -9,6 +9,14 @@ import { colors, statusInfo } from '@/theme/colors';
 import { workRanges } from '@/lib/hours';
 import type { Appointment, BusinessHours, Client, ScheduleBlock } from '@/types';
 
+/** Ícone de cada status: nos cartões curtos o status não pode depender só da cor (UX-08) */
+const STATUS_ICON = {
+  pendente: 'time-outline',
+  confirmado: 'checkmark-circle-outline',
+  concluido: 'checkmark-done-circle',
+  cancelado: 'close-circle-outline',
+} as const;
+
 const HOUR_HEIGHT = 76;
 const LABEL_WIDTH = 52;
 
@@ -206,12 +214,16 @@ export function DayTimeline({
             <View style={{ flexDirection: 'row', height: '100%' }} pointerEvents="box-none">
               <View style={{ flex: col }} pointerEvents="none" />
               <Pressable accessibilityRole="button"
+                accessibilityLabel={`${client?.name ?? 'Cliente'}, ${formatTime(a.startsAt)}, ${a.services.map((s) => s.name).join(' + ')}, ${st.label}`}
                 onPress={() => onPressAppointment(a)}
                 style={{ flex: 1, backgroundColor: cancelled ? '#FBFAFA' : colors.surface, opacity: cancelled ? 0.7 : 1 }}
                 className="mx-0.5 flex-row overflow-hidden rounded-xl border border-line active:opacity-70">
                 <View style={{ width: 4, backgroundColor: st.color }} />
                 <View className="flex-1 px-2.5 py-1.5">
                   <View className="flex-row items-center justify-between">
+                    {compact ? (
+                      <Ionicons name={STATUS_ICON[a.status]} size={14} color={st.color} style={{ marginRight: 4 }} />
+                    ) : null}
                     <Text
                       numberOfLines={1}
                       className={`flex-1 text-[14px] font-semibold text-ink ${cancelled ? 'line-through' : ''}`}>

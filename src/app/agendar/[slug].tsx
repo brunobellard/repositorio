@@ -10,6 +10,7 @@ import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
+import { notify } from '@/lib/confirm';
 import {
   addDays,
   formatDuration,
@@ -514,8 +515,12 @@ export default function AgendarOnline() {
         </View>
         <Button
           title={needsLocal ? 'Continuar' : 'Escolher data e horário'}
-          onPress={() => setStep(needsLocal ? 'local' : 'date')}
-          disabled={!selected.length}
+          // Tocável mesmo sem serviço: diz o que falta em vez de ficar apagado (UX-03)
+          onPress={() =>
+            selected.length
+              ? setStep(needsLocal ? 'local' : 'date')
+              : notify('Escolha um serviço', 'Toque em pelo menos um serviço da lista.', 'info')
+          }
         />
       </>
     );
@@ -617,7 +622,10 @@ export default function AgendarOnline() {
             <Text className="text-[13px] font-medium text-ink">{formatBRL(travelFee)}</Text>
           </View>
         ) : null}
-        <Button title="Escolher data e horário" onPress={() => setStep('date')} disabled={home && !area} />
+        <Button
+          title="Escolher data e horário"
+          onPress={() => (home && !area ? notify('Escolha o seu bairro', 'Ele define os dias e a taxa de deslocamento.', 'info') : setStep('date'))}
+        />
       </>
     );
   } else if (step === 'date') {
@@ -752,7 +760,14 @@ export default function AgendarOnline() {
             {minutesLabel(time + duration)}
           </Text>
         ) : null}
-        <Button title="Continuar" onPress={() => setStep('details')} disabled={!day || time === null} />
+        <Button
+          title="Continuar"
+          onPress={() =>
+            !day || time === null
+              ? notify(!day ? 'Escolha o dia' : 'Escolha o horário', 'Os dias em destaque têm horários livres.', 'info')
+              : setStep('details')
+          }
+        />
       </>
     );
   } else if (step === 'details') {
@@ -855,8 +870,16 @@ export default function AgendarOnline() {
     footer = (
       <Button
         title={sending ? 'Agendando…' : 'Confirmar agendamento'}
-        onPress={confirm}
-        disabled={!nameOk || !phoneOk || !addressOk || sending}
+        onPress={() => {
+          const missing = [
+            ...(!nameOk ? ['nome completo'] : []),
+            ...(!phoneOk ? ['WhatsApp com DDD'] : []),
+            ...(!addressOk ? ['endereço (rua e número)'] : []),
+          ];
+          if (missing.length) notify('Confira seus dados', `Falta: ${missing.join(', ')}.`, 'info');
+          else confirm();
+        }}
+        loading={sending}
       />
     );
   } else if (booked) {

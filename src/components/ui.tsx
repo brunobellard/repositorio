@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, type LayoutChangeEvent, Pressable, Switch, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OfflineBanner } from '@/components/offline-banner';
@@ -40,9 +40,9 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   );
 }
 
-export function SectionLabel({ children }: { children: ReactNode }) {
+export function SectionLabel({ children, onLayout }: { children: ReactNode; onLayout?: (e: LayoutChangeEvent) => void }) {
   return (
-    <Text className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted">
+    <Text onLayout={onLayout} className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-muted">
       {children}
     </Text>
   );
@@ -133,7 +133,7 @@ export function Button({
   const styles = {
     primary: { box: 'bg-primary', text: 'text-on-primary', icon: colors.onPrimary },
     secondary: { box: 'border border-line bg-surface', text: 'text-ink', icon: colors.ink },
-    whatsapp: { box: 'bg-[#25A366]', text: 'text-white', icon: '#fff' },
+    whatsapp: { box: 'bg-[#1C7A4B]', text: 'text-white', icon: '#fff' },
     danger: { box: 'border border-line bg-surface', text: 'text-[#B2474F]', icon: '#B2474F' },
   }[variant];
   return (

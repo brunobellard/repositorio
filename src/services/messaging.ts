@@ -129,7 +129,7 @@ export function composeEmailHtml(profile: Profile, body: string): string {
   return `<div style="font-family:-apple-system,Segoe UI,Inter,sans-serif;color:#2A2326;max-width:560px">
   <div style="border-bottom:1px solid #EFE9E7;padding-bottom:16px;margin-bottom:16px">${logo}
     <div style="font-size:18px;font-weight:600;margin-top:8px">${esc(name ?? '')}</div>
-    ${rest.map((l) => `<div style="font-size:12px;color:#8A7F83">${esc(l)}</div>`).join('')}
+    ${rest.map((l) => `<div style="font-size:12px;color:#6F6569">${esc(l)}</div>`).join('')}
   </div>
   <div style="font-size:15px;line-height:1.5;white-space:pre-line">${esc(body)}</div>
 </div>`;

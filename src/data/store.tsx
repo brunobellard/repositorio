@@ -300,7 +300,8 @@ interface Store {
     scope: SeriesScope,
   ) => Promise<boolean>;
   cancelAppointments: (ids: string[]) => Promise<boolean>;
-  setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<void>;
+  /** true se gravou (false: erro já avisado na tela) */
+  setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<boolean>;
   /** `method` é ignorado em sessões de pacote (já foram pagas na venda) */
   /** true se concluiu (ou ficou na fila offline) */
   completeAppointment: (id: string, method?: PaymentMethod) => Promise<boolean>;
@@ -1249,7 +1250,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (error) {
         setAppointments(prev);
         fail(error);
-        return;
+        return false;
       }
       // Se estava concluído e voltou, remove a receita lançada automaticamente
       // (mesmo que ela seja antiga e não esteja carregada na tela)
@@ -1259,6 +1260,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       // Sessão de pacote: o banco devolve/consome o crédito; atualiza o saldo na tela
       if (prev.find((a) => a.id === id)?.clientPackageId) await refreshPackages();
+      return true;
     },
 
     async completeAppointment(id, method) {

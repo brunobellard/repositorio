@@ -17,6 +17,7 @@ import { useStore } from '@/data/store';
 import { EMAIL_SENDING_ENABLED } from '@/constants/plans';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
+import { showToast } from '@/components/toast';
 import { confirmAction, notify } from '@/lib/confirm';
 import { amountDue, availableCredits, packageCovered } from '@/lib/packages';
 import { formatDayTitle, formatDuration, formatTime, isSameDay } from '@/lib/dates';
@@ -25,7 +26,8 @@ import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp 
 import { colors, paymentLabels, statusInfo } from '@/theme/colors';
 import type { AppointmentStatus, PaymentMethod } from '@/types';
 
-const STATUSES: AppointmentStatus[] = ['pendente', 'confirmado', 'concluido', 'cancelado'];
+// Cancelar fica à parte, no fim da tela (longe dos status positivos: UX-02)
+const STATUSES: AppointmentStatus[] = ['pendente', 'confirmado', 'concluido'];
 const METHODS: PaymentMethod[] = ['pix', 'credito', 'debito', 'dinheiro'];
 /** Chamado só no toque (fora da renderização): o horário ainda não chegou? */
 const notStartedYet = (start: Date) => start.getTime() > Date.now();
@@ -133,12 +135,40 @@ export default function AgendamentoDetalhe() {
       setAskCancelScope(true);
       return;
     }
+    if (s === 'cancelado') {
+      cancelOne();
+      return;
+    }
     setAppointmentStatus(appt!.id, s);
+  }
+
+  /** Cancela este atendimento e oferece "Desfazer" por alguns segundos (UX-02). */
+  async function cancelOne() {
+    const before = appt!.status;
+    const ok = await setAppointmentStatus(appt!.id, 'cancelado');
+    if (!ok) return;
+    const when = `${formatDayTitle(start).toLowerCase()} às ${formatTime(start)}`;
+    showToast(
+      'Atendimento cancelado',
+      `${client!.name.split(' ')[0]} · ${when}`,
+      'info',
+      before === 'pendente' || before === 'confirmado'
+        ? { label: 'Desfazer', onPress: () => setAppointmentStatus(appt!.id, before) }
+        : undefined,
+    );
+  }
+
+  function askCancel() {
+    if (completing) return;
+    setAskPayment(false);
+    // Desfazer uma conclusão continua pedindo confirmação (tira a receita do Financeiro)
+    if (appt!.status === 'concluido') return onStatus('cancelado');
+    changeStatus('cancelado');
   }
 
   async function cancelSeries(scope: SeriesScope) {
     setAskCancelScope(false);
-    if (scope === 'one') return setAppointmentStatus(appt!.id, 'cancelado');
+    if (scope === 'one') return cancelOne();
     // Sessão concluída (desfazendo a conclusão): a série em lote não mexe em concluídas, então
     // esta é cancelada à parte (tira a receita e devolve o crédito), junto com as próximas
     const self = appt!.status === 'concluido';
@@ -152,6 +182,20 @@ export default function AgendamentoDetalhe() {
   const selfExtra = appt.status === 'concluido' ? 1 : 0;
 
   const editable = appt.status !== 'concluido' && appt.status !== 'cancelado';
+  // "Ação do momento" (UX-01/UX-07): pedido online pendente → confirmar; já começou (ou passou) → concluir e receber
+  const onlinePending = appt.source === 'online' && appt.status === 'pendente';
+  const started = start.getTime() <= new Date().getTime();
+  const primary = !editable
+    ? null
+    : onlinePending
+      ? { title: 'Confirmar agendamento', icon: 'checkmark-circle-outline' as const, onPress: () => onStatus('confirmado') }
+      : started
+        ? {
+            title: appt.clientPackageId && due === 0 ? 'Concluir sessão do pacote' : `Concluir e receber ${formatBRL(due)}`,
+            icon: 'checkmark-done-outline' as const,
+            onPress: () => onStatus('concluido'),
+          }
+        : null;
   const repeatLabel = describeRRule(appt.recurrenceRule, start);
   const position = sessionPosition(appt, appointments);
 
@@ -296,8 +340,34 @@ export default function AgendamentoDetalhe() {
         </View>
       ) : null}
 
-      {/* Status */}
-      <SectionLabel>Status</SectionLabel>
+      {primary && !askPayment ? (
+        <View className="mt-3">
+          <Button title={primary.title} icon={primary.icon} onPress={primary.onPress} loading={!!completing} />
+        </View>
+      ) : null}
+
+      {askPayment && appt.status !== 'concluido' ? (
+        <Card className="mt-3">
+          <Text className="text-[14px] font-semibold text-ink">Forma de pagamento</Text>
+          <Text className="mb-3 text-xs text-muted">
+            {formatBRL(due)} será lançado como receita no Financeiro
+            {pkg ? ' (o restante já foi pago no pacote)' : ''}.
+          </Text>
+          <View className="flex-row flex-wrap gap-2">
+            {METHODS.map((m) => (
+              <Pressable accessibilityRole="button"
+                key={m}
+                disabled={!!completing}
+                onPress={() => finish(m)}
+                className={`min-w-[46%] flex-1 flex-row items-center justify-center rounded-2xl bg-primary py-3 active:opacity-80 ${
+                  completing && completing !== m ? 'opacity-40' : ''
+                }`}>
+                {completing === m ? (
+                  <ActivityIndicator size="small" color={colors.onPrimary} style={{ marginRight: 6 }} />
+                ) : null}
+
+      {/* Status (controle secundário) */}
+      <SectionLabel>Mudar status</SectionLabel>
       <View className="flex-row flex-wrap gap-2">
         {STATUSES.map((s) => {
           const info = statusInfo[s];
@@ -320,25 +390,6 @@ export default function AgendamentoDetalhe() {
         })}
       </View>
 
-      {askPayment && appt.status !== 'concluido' ? (
-        <Card className="mt-3">
-          <Text className="text-[14px] font-semibold text-ink">Forma de pagamento</Text>
-          <Text className="mb-3 text-xs text-muted">
-            {formatBRL(due)} será lançado como receita no Financeiro
-            {pkg ? ' (o restante já foi pago no pacote)' : ''}.
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            {METHODS.map((m) => (
-              <Pressable accessibilityRole="button"
-                key={m}
-                disabled={!!completing}
-                onPress={() => finish(m)}
-                className={`min-w-[46%] flex-1 flex-row items-center justify-center rounded-2xl bg-primary py-3 active:opacity-80 ${
-                  completing && completing !== m ? 'opacity-40' : ''
-                }`}>
-                {completing === m ? (
-                  <ActivityIndicator size="small" color={colors.onPrimary} style={{ marginRight: 6 }} />
-                ) : null}
                 <Text className="text-[14px] font-semibold text-on-primary">{paymentLabels[m]}</Text>
               </Pressable>
             ))}
@@ -383,6 +434,17 @@ export default function AgendamentoDetalhe() {
           <Button title="Enviar por e-mail" icon="mail-outline" variant="secondary" onPress={email} />
         ) : null}
       </View>
+
+      {appt.status !== 'cancelado' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar atendimento"
+          onPress={askCancel}
+          className="mt-6 flex-row items-center justify-center self-center px-4 py-3 active:opacity-60">
+          <Ionicons name="close-circle-outline" size={16} color="#B2474F" />
+          <Text className="ml-1.5 text-[14px] font-medium text-[#B2474F]">Cancelar atendimento</Text>
+        </Pressable>
+      ) : null}
 
       <SeriesScopeSheet
         visible={askCancelScope}

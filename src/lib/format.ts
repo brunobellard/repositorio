@@ -27,6 +27,12 @@ export function normalize(s: string): string {
 export const onlyDigits = (s: string | undefined) => (s ?? '').replace(/\D/g, '');
 
 /** E-mail com formato válido: nome@dominio.ext (sem espaços; extensão com 2+ letras). */
+/** Celular/fixo brasileiro com DDD: 10 ou 11 dígitos (mesma regra do link público). */
+export const isValidPhone = (s: string | undefined) => {
+  const n = onlyDigits(s).length;
+  return n === 10 || n === 11;
+};
+
 export const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(s.trim());
 
 /** Máscara progressiva de telefone, para usar enquanto digita. */

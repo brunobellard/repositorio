@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router';
 import { type ComponentRef, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,7 +36,7 @@ import {
   startOfDay,
   WEEKDAYS_SHORT,
 } from '@/lib/dates';
-import { formatBRL, formatPhone, normalize } from '@/lib/format';
+import { formatBRL, formatPhone, isValidPhone, maskPhone, normalize } from '@/lib/format';
 import { hoursForDay, isWithinHours, timeOffOn, WEEKDAYS_LONG } from '@/lib/hours';
 import { colors } from '@/theme/colors';
 import type { LocationType } from '@/types';
@@ -109,6 +109,22 @@ export default function NovoAgendamento() {
   // e um segundo toque antes disso movia o horário duas vezes ou criava o agendamento em dobro)
   const submitting = useRef(false);
   const dayStrip = useRef<ComponentRef<typeof ScrollView>>(null);
+  const navigation = useNavigation();
+
+  /** Fecha e, se veio da Agenda, abre a Agenda no dia do agendamento salvo (UX-17). */
+  function closeToDay(d: Date | null) {
+    const state = navigation.getState();
+    const prev = state ? state.routes[state.index - 1] : undefined;
+    if (d && prev?.name === '(tabs)') {
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      router.dismissTo({ pathname: '/', params: { date: key } });
+      return;
+    }
+    closeModal();
+  }
+  // Rolar até a seção que falta preencher (UX-03): posição de cada título de seção
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  const sectionY = useRef<Record<string, number>>({});
   const dayStripPositioned = useRef(false);
 
   const client = clients.find((c) => c.id === clientId);
@@ -213,8 +229,20 @@ export default function NovoAgendamento() {
     setServiceIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   }
 
+  // Nova cliente criada aqui segue as regras do cadastro completo (UX-13): nome com 2+ letras, WhatsApp com DDD
+  const newClientNameOk = (newClient?.name.trim().length ?? 0) >= 2;
+  const newClientPhoneOk = !newClient?.whatsapp || isValidPhone(newClient.whatsapp);
+
   async function saveNewClient() {
-    if (!newClient?.name.trim() || saving) return;
+    if (!newClient || saving) return;
+    if (!newClientNameOk || !newClientPhoneOk) {
+      notify(
+        'Confira os dados da cliente',
+        !newClientNameOk ? 'Digite o nome da cliente (pelo menos 2 letras).' : 'O WhatsApp precisa ter DDD + número.',
+        'info',
+      );
+      return;
+    }
     if (!requireFeature(access.canAddClient(), 'unlimitedClients')) return;
     setSaving(true);
     const c = await addClient({
@@ -235,6 +263,26 @@ export default function NovoAgendamento() {
   const packageShort = chosenPackage ? availableCredits(chosenPackage, appointments) < sessionsNeeded : false;
 
   const canSave = !!client && selectedServices.length > 0 && timeValid && !packageShort && addressOk && !saving;
+  // O que ainda falta, na ordem da tela (UX-03): o botão fica tocável e mostra/rola até a primeira pendência
+  const missing: { key: string; label: string; hint: string }[] = [
+    ...(!client ? [{ key: 'cliente', label: 'cliente', hint: 'Escolha ou cadastre a cliente.' }] : []),
+    ...(!addressOk ? [{ key: 'local', label: 'endereço', hint: 'Informe o endereço do atendimento.' }] : []),
+    ...(!selectedServices.length ? [{ key: 'servicos', label: 'serviço', hint: 'Escolha pelo menos um serviço.' }] : []),
+    ...(selectedServices.length && !timeValid ? [{ key: 'horario', label: 'horário', hint: 'Escolha um horário livre.' }] : []),
+    ...(packageShort ? [{ key: 'servicos', label: 'sessões no pacote', hint: 'O pacote não tem sessões livres para todas as datas.' }] : []),
+  ];
+
+  function onPressSave() {
+    if (saving) return;
+    const first = missing[0];
+    if (first) {
+      notify(`Falta: ${missing.map((m) => m.label).join(', ')}`, first.hint, 'info');
+      const y = sectionY.current[first.key];
+      if (y !== undefined) scroller.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+      return;
+    }
+    save();
+  }
   // Bairro atendido em outros dias da semana: só avisa (a profissional decide)
   const areaDayWarning =
     home && area && !area.allowedDays.includes(day.getDay())
@@ -277,7 +325,7 @@ export default function NovoAgendamento() {
     }
     if (created > 1) notify('Série criada', `${created} agendamentos foram adicionados à agenda.`);
     else if (online) notify('Agendamento salvo'); // offline, o próprio store já avisa que ficou no aparelho
-    closeModal();
+    closeToDay(firstStart);
   }
 
   /** Edição: aplica a mudança na sessão (ou nas sessões) escolhida(s). */
@@ -348,7 +396,7 @@ export default function NovoAgendamento() {
       // Deu certo: a tela fecha; continua travado para um toque atrasado não mover de novo
       if (!ok) submitting.current = false;
     }
-    if (ok) closeModal();
+    if (ok) closeToDay(firstStart);
   }
 
   async function save() {
@@ -409,9 +457,9 @@ export default function NovoAgendamento() {
 
   return (
     <View className="flex-1 bg-bg">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroller} contentContainerStyle={{ padding: 20, paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
         {/* 1. Cliente */}
-        <SectionLabel>Cliente</SectionLabel>
+        <SectionLabel onLayout={(e) => { sectionY.current.cliente = e.nativeEvent.layout.y; }}>Cliente</SectionLabel>
         {client ? (
           <Pressable accessibilityRole="button"
             onPress={() => setClientId(undefined)}
@@ -434,9 +482,9 @@ export default function NovoAgendamento() {
               autoFocus
             />
             <Field
-              label="WhatsApp"
+              label={newClientPhoneOk ? 'WhatsApp' : 'WhatsApp — confira o número (DDD + número)'}
               value={newClient.whatsapp}
-              onChangeText={(whatsapp) => setNewClient({ ...newClient, whatsapp })}
+              onChangeText={(whatsapp) => setNewClient({ ...newClient, whatsapp: maskPhone(whatsapp) })}
               placeholder="(11) 90000-0000"
               keyboardType="phone-pad"
             />
@@ -445,7 +493,7 @@ export default function NovoAgendamento() {
                 <Button title="Cancelar" variant="secondary" onPress={() => setNewClient(null)} />
               </View>
               <View className="flex-1">
-                <Button title="Salvar" onPress={saveNewClient} disabled={!newClient.name.trim()} />
+                <Button title="Salvar" onPress={saveNewClient} loading={saving} />
               </View>
             </View>
           </View>
@@ -485,7 +533,7 @@ export default function NovoAgendamento() {
         {/* Local do atendimento */}
         {canHome && !editing ? (
           <>
-            <SectionLabel>Local do atendimento</SectionLabel>
+            <SectionLabel onLayout={(e) => { sectionY.current.local = e.nativeEvent.layout.y; }}>Local do atendimento</SectionLabel>
             {access.serviceMode === 'hybrid' ? (
               <View className="mb-3">
                 <Segmented
@@ -537,7 +585,7 @@ export default function NovoAgendamento() {
         ) : null}
 
         {/* 2. Serviços */}
-        <SectionLabel>Serviços</SectionLabel>
+        <SectionLabel onLayout={(e) => { sectionY.current.servicos = e.nativeEvent.layout.y; }}>Serviços</SectionLabel>
         {categories.map((cat) => (
           <View key={cat} className="mb-1">
             <Text className="mb-1.5 text-[13px] font-medium text-ink">{cat}</Text>
@@ -592,7 +640,7 @@ export default function NovoAgendamento() {
         </ScrollView>
 
         {/* 4. Horário */}
-        <SectionLabel>
+        <SectionLabel onLayout={(e) => { sectionY.current.horario = e.nativeEvent.layout.y; }}>
           Horário {duration ? `· duração ${formatDuration(duration)}` : ''}
         </SectionLabel>
         {closedReason || override ? (
@@ -618,6 +666,7 @@ export default function NovoAgendamento() {
               const sel = time === s.min && s.free;
               return (
                 <Pressable accessibilityRole="button" accessibilityState={{ selected: !!sel, disabled: !s.free }}
+                  accessibilityLabel={`${formatTime(atMinutes(day, s.min))}${s.free ? '' : ', ocupado'}`}
                   key={s.min}
                   disabled={!s.free}
                   onPress={() => setTime(s.min)}
@@ -626,7 +675,7 @@ export default function NovoAgendamento() {
                   }`}>
                   <Text
                     className={`text-[14px] font-medium ${
-                      sel ? 'text-on-primary' : s.free ? 'text-ink' : 'text-line line-through'
+                      sel ? 'text-on-primary' : s.free ? 'text-ink' : 'text-muted line-through'
                     }`}>
                     {formatTime(atMinutes(day, s.min))}
                   </Text>
@@ -731,11 +780,15 @@ export default function NovoAgendamento() {
         className="absolute bottom-0 left-0 right-0 border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
         <View className="mb-2 flex-row justify-between">
+          {missing.length ? (
+            <Text className="flex-1 text-[13px] font-medium text-[#8A6420]">Falta: {missing.map((m) => m.label).join(', ')}</Text>
+          ) : (
           <Text className="text-[13px] text-muted">
             {selectedServices.length} {selectedServices.length === 1 ? 'serviço' : 'serviços'}
             {duration ? ` · ${formatDuration(duration)}` : ''}
             {travelFee ? ` · inclui ${formatBRL(travelFee)} de deslocamento` : ''}
           </Text>
+          )}
           <Text className="text-[15px] font-semibold text-ink">
             {chosenPackage ? 'Pago com pacote' : formatBRL(total)}
           </Text>
@@ -750,8 +803,8 @@ export default function NovoAgendamento() {
                   ? `Agendar ${occurrences.length} sessões`
                   : 'Agendar'
           }
-          onPress={save}
-          disabled={!canSave}
+          onPress={onPressSave}
+          loading={saving}
         />
       </View>
 

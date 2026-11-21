@@ -23,7 +23,7 @@ function Stat({ label, value, tone, hint }: { label: string; value: number; tone
       <Text className="text-xs text-muted">{label}</Text>
       <Text
         className="mt-1 text-lg font-bold"
-        style={{ color: tone === 'neg' ? '#B2474F' : tone === 'pos' ? '#5E8B6A' : colors.ink }}>
+        style={{ color: tone === 'neg' ? '#B2474F' : tone === 'pos' ? '#4A7356' : colors.ink }}>
         {formatBRL(value)}
       </Text>
       {hint ? <Text className="mt-0.5 text-[11px] text-muted">{hint}</Text> : null}
@@ -137,7 +137,7 @@ export default function FinanceiroScreen() {
                       <Ionicons
                         name={income ? 'arrow-down' : 'arrow-up'}
                         size={16}
-                        color={income ? '#5E8B6A' : '#B2474F'}
+                        color={income ? '#4A7356' : '#B2474F'}
                       />
                     </View>
                     <View className="ml-3 flex-1">
@@ -156,7 +156,7 @@ export default function FinanceiroScreen() {
                     </View>
                     <Text
                       className="text-[14px] font-semibold"
-                      style={{ color: income ? '#5E8B6A' : '#B2474F' }}>
+                      style={{ color: income ? '#4A7356' : '#B2474F' }}>
                       {income ? '+' : '−'} {formatBRL(t.amount)}
                     </Text>
                     {!income ? (

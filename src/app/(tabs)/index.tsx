@@ -10,6 +10,7 @@ import { EmptyState, Fab, Screen, ScreenTitle } from '@/components/ui';
 import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { useStore } from '@/data/store';
 import { confirmAction } from '@/lib/confirm';
+import { OnlineRequestsBanner } from '@/components/agenda/online-requests';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
 import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
@@ -125,6 +126,7 @@ export default function AgendaScreen() {
         contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
+        <OnlineRequestsBanner />
         <CalendarHeader
           mode={mode}
           onModeChange={setMode}

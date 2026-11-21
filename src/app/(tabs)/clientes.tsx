@@ -47,7 +47,7 @@ function WhatsAppButton({ onPress, disabled }: { onPress: () => void; disabled?:
       className={`h-9 w-9 items-center justify-center rounded-full bg-[#E7F5EC] active:opacity-60 ${
         disabled ? 'opacity-30' : ''
       }`}>
-      <Ionicons name="logo-whatsapp" size={18} color="#25A366" />
+      <Ionicons name="logo-whatsapp" size={18} color="#1C7A4B" />
     </Pressable>
   );
 }

@@ -11,7 +11,7 @@ module.exports = {
         bg: '#FAF8F6',
         surface: '#FFFFFF',
         ink: '#2A2326',
-        muted: '#8A7F83',
+        muted: '#6F6569',
         line: '#EFE9E7',
         // Cor do tema (Ajustes > Aparência e cores): variáveis CSS definidas no ThemeProvider
         primary: {
@@ -21,13 +21,13 @@ module.exports = {
         },
         'on-primary': 'rgb(var(--color-on-primary) / <alpha-value>)',
         status: {
-          confirmado: '#5E8B6A',
+          confirmado: '#4A7356',
           'confirmado-bg': '#EAF2EC',
-          pendente: '#B7862F',
+          pendente: '#8A6420',
           'pendente-bg': '#FBF2E0',
-          concluido: '#5B7896',
+          concluido: '#4A6582',
           'concluido-bg': '#E7EEF5',
-          cancelado: '#9C9396',
+          cancelado: '#6F6569',
           'cancelado-bg': '#F2EFEF',
         },
       },

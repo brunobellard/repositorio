@@ -9,14 +9,14 @@ export const colors = {
   bg: '#FAF8F6',
   surface: '#FFFFFF',
   ink: '#2A2326',
-  muted: '#8A7F83',
+  muted: '#6F6569',
   line: '#EFE9E7',
   // Cor do tema: trocada por applyThemeColors (ThemeProvider), não edite aqui
   primary: DEFAULT_THEME.primary,
   primaryDark: DEFAULT_THEME.primaryDark,
   primarySoft: DEFAULT_THEME.primarySoft,
   onPrimary: DEFAULT_THEME.onPrimary,
-  whatsapp: '#25A366',
+  whatsapp: '#1C7A4B',
 };
 
 /** Atualiza as cores do tema usadas em ícones e estilos (o ThemeProvider remonta a tela em seguida). */
@@ -33,28 +33,28 @@ export const statusInfo: Record<
 > = {
   pendente: {
     label: 'Pendente',
-    color: '#B7862F',
+    color: '#8A6420',
     bg: '#FBF2E0',
     text: 'text-status-pendente',
     bgClass: 'bg-status-pendente-bg',
   },
   confirmado: {
     label: 'Confirmado',
-    color: '#5E8B6A',
+    color: '#4A7356',
     bg: '#EAF2EC',
     text: 'text-status-confirmado',
     bgClass: 'bg-status-confirmado-bg',
   },
   concluido: {
     label: 'Concluído',
-    color: '#5B7896',
+    color: '#4A6582',
     bg: '#E7EEF5',
     text: 'text-status-concluido',
     bgClass: 'bg-status-concluido-bg',
   },
   cancelado: {
     label: 'Cancelado',
-    color: '#9C9396',
+    color: '#6F6569',
     bg: '#F2EFEF',
     text: 'text-status-cancelado',
     bgClass: 'bg-status-cancelado-bg',

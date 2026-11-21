@@ -9,7 +9,7 @@ import { Button, Field } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { closeModal, notify } from '@/lib/confirm';
-import { isValidEmail, maskPhone, onlyDigits } from '@/lib/format';
+import { isValidEmail, isValidPhone, maskPhone, onlyDigits } from '@/lib/format';
 import { requireFeature } from '@/lib/upgrade';
 import { colors } from '@/theme/colors';
 
@@ -56,12 +56,21 @@ export default function NovaCliente() {
   const birthOk = !birth || !!birthIso;
   const emailOk = !email || isValidEmail(email);
   // Mesma regra do link público: DDD + número (10 ou 11 dígitos), se preenchido
-  const phoneDigits = onlyDigits(phone).length;
-  const phoneOk = phoneDigits === 0 || phoneDigits === 10 || phoneDigits === 11;
-  const canSave = name.trim().length >= 2 && phoneOk && birthOk && emailOk && !saving;
+  const phoneOk = !phone || isValidPhone(phone);
+  // O que falta, em vez de botão apagado sem explicação (UX-03)
+  const problems = [
+    ...(name.trim().length < 2 ? ['nome (pelo menos 2 letras)'] : []),
+    ...(!phoneOk ? ['WhatsApp com DDD'] : []),
+    ...(!emailOk ? ['e-mail válido'] : []),
+    ...(!birthOk ? ['data de nascimento válida'] : []),
+  ];
 
   async function save() {
-    if (!canSave) return;
+    if (saving) return;
+    if (problems.length) {
+      notify('Confira o cadastro', `Falta: ${problems.join(', ')}.`, 'info');
+      return;
+    }
     const data = {
       name: name.trim(),
       whatsapp: onlyDigits(phone) || undefined,
@@ -145,7 +154,7 @@ export default function NovaCliente() {
       <View
         className="border-t border-line bg-surface px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <Button title={saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar cliente'} loading={saving} onPress={save} disabled={!canSave} />
+        <Button title={saving ? 'Salvando…' : editing ? 'Salvar alterações' : 'Cadastrar cliente'} loading={saving} onPress={save} />
       </View>
     </HeaderKeyboardView>
   );

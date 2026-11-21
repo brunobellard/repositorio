@@ -3,6 +3,8 @@ import { Tabs } from 'expo-router/tabs';
 import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
 
+import { pendingOnlineRequests } from '@/components/agenda/online-requests';
+import { useStore } from '@/data/store';
 import { colors } from '@/theme/colors';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -15,6 +17,9 @@ function icon(name: IconName, active: IconName) {
 }
 
 export default function TabsLayout() {
+  // Pedidos pelo link esperando resposta: número no ícone da Agenda (UX-07)
+  const { appointments } = useStore();
+  const pending = pendingOnlineRequests(appointments).length;
   return (
     <Tabs
       screenOptions={{
@@ -29,7 +34,12 @@ export default function TabsLayout() {
       }}>
       <Tabs.Screen
         name="index"
-        options={{ title: 'Agenda', tabBarIcon: icon('calendar-outline', 'calendar') }}
+        options={{
+          title: 'Agenda',
+          tabBarIcon: icon('calendar-outline', 'calendar'),
+          tabBarBadge: pending ? pending : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.primaryDark, color: '#fff', fontSize: 11 },
+        }}
       />
       <Tabs.Screen
         name="clientes"

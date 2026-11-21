@@ -178,21 +178,21 @@ function financeHtml(d: FinanceData, p: Period): string {
   .logo { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; }
   .initials { width: 52px; height: 52px; border-radius: 14px; background: #F7EBED; color: #9A5561; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; }
   h1 { font-size: 18px; margin: 0; }
-  .muted { color: #8A7F83; }
+  .muted { color: #6F6569; }
   .period { margin-left: auto; text-align: right; }
   .period b { display: block; font-size: 13px; color: #2A2326; }
   .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
   .card { border: 1px solid #EFE9E7; border-radius: 12px; padding: 10px 12px; }
-  .lbl { color: #8A7F83; font-size: 10px; }
+  .lbl { color: #6F6569; font-size: 10px; }
   .val { font-size: 15px; font-weight: 700; margin-top: 2px; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8A7F83; margin: 18px 0 6px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6F6569; margin: 18px 0 6px; }
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; font-weight: 600; color: #8A7F83; font-size: 10px; padding: 6px 4px; border-bottom: 1px solid #EFE9E7; }
+  th { text-align: left; font-weight: 600; color: #6F6569; font-size: 10px; padding: 6px 4px; border-bottom: 1px solid #EFE9E7; }
   td { padding: 6px 4px; border-bottom: 1px solid #F4F0EE; vertical-align: top; }
   .r { text-align: right; white-space: nowrap; }
-  .in { color: #5E8B6A; } .out { color: #B2474F; }
+  .in { color: #4A7356; } .out { color: #B2474F; }
   tfoot td { font-weight: 700; border-bottom: none; }
-  .foot { margin-top: 18px; color: #8A7F83; font-size: 9px; text-align: center; }
+  .foot { margin-top: 18px; color: #6F6569; font-size: 9px; text-align: center; }
 </style></head><body>
   <div class="head">
     ${prof.logoUrl ? `<img class="logo" src="${esc(prof.logoUrl)}" />` : `<div class="initials">${esc(prof.businessName.slice(0, 2).toUpperCase())}</div>`}
@@ -206,9 +206,9 @@ function financeHtml(d: FinanceData, p: Period): string {
 
   <div class="cards">
     ${card('Faturamento bruto', s.gross)}
-    ${card('Taxas descontadas', s.fees, '#B7862F')}
+    ${card('Taxas descontadas', s.fees, '#8A6420')}
     ${card('Total de despesas', s.expenses, '#B2474F')}
-    ${card('Lucro líquido', s.profit, s.profit >= 0 ? '#5E8B6A' : '#B2474F')}
+    ${card('Lucro líquido', s.profit, s.profit >= 0 ? '#4A7356' : '#B2474F')}
   </div>
 
   <h2>Por forma de pagamento</h2>

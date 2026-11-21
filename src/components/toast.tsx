@@ -14,6 +14,13 @@ interface ToastItem {
   title: string;
   message?: string;
   tone: ToastTone;
+  action?: ToastAction;
+}
+
+/** Botão no aviso (ex.: "Desfazer"); o aviso fica mais tempo na tela para dar tempo de tocar. */
+export interface ToastAction {
+  label: string;
+  onPress: () => void;
 }
 
 type Listener = (t: ToastItem) => void;
@@ -21,13 +28,13 @@ const listeners = new Set<Listener>();
 let nextId = 1;
 
 /** Mostra um aviso curto. Erros ficam um pouco mais na tela. */
-export function showToast(title: string, message?: string, tone: ToastTone = 'success') {
-  const item = { id: nextId++, title, message, tone };
+export function showToast(title: string, message?: string, tone: ToastTone = 'success', action?: ToastAction) {
+  const item = { id: nextId++, title, message, tone, action };
   listeners.forEach((l) => l(item));
 }
 
 const TONES: Record<ToastTone, { icon: 'checkmark-circle' | 'alert-circle' | 'information-circle'; color: string }> = {
-  success: { icon: 'checkmark-circle', color: '#5E8B6A' },
+  success: { icon: 'checkmark-circle', color: '#4A7356' },
   error: { icon: 'alert-circle', color: '#B2474F' },
   info: { icon: 'information-circle', color: colors.primaryDark },
 };
@@ -47,7 +54,7 @@ export function ToastHost() {
       Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 8 }).start();
       timer.current = setTimeout(
         () => Animated.timing(anim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => setItem(null)),
-        t.tone === 'error' ? 4500 : 2600,
+        t.action ? 6000 : t.tone === 'error' ? 4500 : 2600,
       );
     };
     listeners.add(listener);
@@ -86,6 +93,20 @@ export function ToastHost() {
           <Text className="text-[14px] font-semibold text-ink">{item.title}</Text>
           {item.message ? <Text className="text-[12px] leading-4 text-muted">{item.message}</Text> : null}
         </View>
+        {item.action ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={item.action.label}
+            hitSlop={8}
+            onPress={() => {
+              const act = item.action!;
+              setItem(null);
+              act.onPress();
+            }}
+            className="ml-4 rounded-full border border-line px-3 py-1.5 active:opacity-60">
+            <Text className="text-[13px] font-semibold text-primary-dark">{item.action.label}</Text>
+          </Pressable>
+        ) : null}
       </Pressable>
     </Animated.View>
   );
