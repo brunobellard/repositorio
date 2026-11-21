@@ -10,6 +10,7 @@ import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Text, Text
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
+import { trackPublic } from '@/lib/analytics';
 import { notify } from '@/lib/confirm';
 import {
   addDays,
@@ -119,6 +120,15 @@ async function fetchBusySlots(slug: string): Promise<Busy[] | null> {
  * inválido...) já vêm do banco em português e são mostradas como estão; qualquer outro erro
  * (técnico, em inglês, sem internet) vira um texto simples.
  */
+/** Tipo do erro para a medição (nunca a mensagem, que pode repetir o que a cliente digitou) */
+function bookingErrorKind(e: { code?: string; message?: string }): string {
+  if (/network request failed|failed to fetch|fetch failed|networkerror|load failed/i.test(e.message ?? '')) return 'network';
+  if (/PLAN_LIMIT/.test(e.message ?? '')) return 'plan_limit';
+  if (e.code === '23P01') return 'conflict';
+  if (e.code === 'P0001') return 'rule';
+  return 'other';
+}
+
 function bookingError(e: { code?: string; message?: string }): string {
   if (/network request failed|failed to fetch|fetch failed|networkerror|load failed/i.test(e.message ?? '')) {
     return 'Sem conexão com a internet. Confira sua conexão e tente de novo.';
@@ -249,6 +259,7 @@ export default function AgendarOnline() {
         return;
       }
       setStudio(data as PublicStudio);
+      trackPublic(slug, 'public_link_viewed');
       const slots = await fetchBusySlots(slug);
       if (cancelled) return;
       setBusyFailed(!slots);
@@ -418,11 +429,13 @@ export default function AgendarOnline() {
     });
     setSending(false);
     if (e) {
+      trackPublic(slug, 'public_booking_failed', { error: bookingErrorKind(e) });
       setError(bookingError(e));
       // O horário pode ter sido ocupado: atualiza a disponibilidade
       if (/ocupad|indispon/i.test(e.message ?? '') || e.code === '23P01') loadBusy();
       return;
     }
+    trackPublic(slug, 'public_booking_submitted', { n_services: selected.length });
     setBooked(data as Booked);
     setStep('done');
   }
@@ -518,7 +531,8 @@ export default function AgendarOnline() {
           // Tocável mesmo sem serviço: diz o que falta em vez de ficar apagado (UX-03)
           onPress={() =>
             selected.length
-              ? setStep(needsLocal ? 'local' : 'date')
+              ? (trackPublic(slug, 'public_services_selected', { n_services: selected.length }),
+                setStep(needsLocal ? 'local' : 'date'))
               : notify('Escolha um serviço', 'Toque em pelo menos um serviço da lista.', 'info')
           }
         />
@@ -765,7 +779,11 @@ export default function AgendarOnline() {
           onPress={() =>
             !day || time === null
               ? notify(!day ? 'Escolha o dia' : 'Escolha o horário', 'Os dias em destaque têm horários livres.', 'info')
-              : setStep('details')
+              : (trackPublic(slug, 'public_datetime_selected', {
+                  n_services: selected.length,
+                  days_ahead: Math.round((day.getTime() - startOfDay(new Date()).getTime()) / 86_400_000),
+                }),
+                setStep('details'))
           }
         />
       </>

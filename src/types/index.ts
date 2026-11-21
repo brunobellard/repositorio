@@ -122,6 +122,8 @@ export interface AppointmentService {
 }
 
 export interface Appointment {
+  /** Quando foi criado (pedido online: base para medir o tempo de resposta) */
+  createdAt?: string;
   id: string;
   clientId: string;
   startsAt: string; // ISO

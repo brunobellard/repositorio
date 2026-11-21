@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 import { LEGAL_INFO } from '@/constants/legal';
 import { setBiometricEnabled } from '@/lib/biometrics';
+import { resetAnalytics } from '@/lib/analytics';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { clearThemeCache } from '@/lib/theme-cache';
 import { webBaseUrl } from '@/lib/web';
@@ -121,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setBiometricEnabled(false).catch(() => {});
       await clearThemeCache();
       // 'local': sai deste aparelho na hora, mesmo sem internet (o padrão 'global' falha offline e mantém a sessão)
+      resetAnalytics();
       await supabase.auth.signOut({ scope: 'local' });
     },
 

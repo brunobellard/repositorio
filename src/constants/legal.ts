@@ -12,7 +12,7 @@ export const LEGAL_INFO = {
   /** E-mail para suporte, privacidade e pedidos do titular (LGPD art. 18) */
   // PROVISÓRIO (fase de testes): trocar pelo e-mail de contato definitivo antes de publicar nas lojas
   contactEmail: 'brunobellard@gmail.com',
-  updatedAt: '20 de novembro de 2026',
+  updatedAt: '21 de novembro de 2026',
 };
 
 /** Um bloco de texto: parágrafo (string) ou lista de itens (string[]). */
@@ -69,7 +69,9 @@ export const PRIVACY: LegalDocument = {
         'Dados técnicos:',
         [
           'identificador de notificações (token de push) do aparelho, quando você ativa os avisos;',
-          'registros técnicos de acesso e de erro (data, hora, endereço IP e tipo de dispositivo), mantidos por segurança e pelo prazo exigido pelo Marco Civil da Internet (Lei nº 12.965/2014).',
+          'registros técnicos de acesso e de erro (data, hora, endereço IP e tipo de dispositivo), mantidos por segurança e pelo prazo exigido pelo Marco Civil da Internet (Lei nº 12.965/2014);',
+          'registros de uso do app: quais telas e ações foram usadas (por exemplo, abrir o formulário de agendamento, concluir um atendimento ou compartilhar o link), quando, quanto tempo levaram, o tipo de aparelho e a versão do app. Esses registros ficam ligados à sua conta e nunca incluem nome, telefone, e-mail, endereço, anotações ou qualquer outro dado das suas clientes, nem textos que você digita;',
+          'na página pública de agendamento: as etapas percorridas (por exemplo, serviços escolhidos e agendamento enviado), de forma anônima, sem nome, WhatsApp, endereço IP nem cookies de rastreamento. Esses registros ficam ligados ao estúdio da página.',
         ],
         'Biometria: o login por digital ou Face ID é feito inteiramente pelo sistema do seu aparelho. Nunca recebemos nem armazenamos sua impressão digital ou imagem do rosto.',
       ],
@@ -82,6 +84,7 @@ export const PRIVACY: LegalDocument = {
           'Enviar avisos de novos agendamentos por notificação: consentimento (art. 7º, I), que você pode retirar a qualquer momento em Ajustes.',
           'Gerenciar planos, período de teste e assinaturas: execução de contrato.',
           'Prevenir fraudes, abusos e acessos indevidos, e manter a segurança do serviço: legítimo interesse (art. 7º, IX) e proteção ao crédito, quando aplicável.',
+          'Entender como o app é usado (onde as pessoas encontram dificuldade, quais etapas são abandonadas) para melhorar a usabilidade: legítimo interesse (art. 7º, IX), usando apenas os registros de uso descritos acima, sem dados das clientes do estúdio. Você pode se opor a esse uso pelo contato da seção 12.',
           'Cumprir obrigações legais e regulatórias, como a guarda de registros de acesso e documentos fiscais: cumprimento de obrigação legal (art. 7º, II).',
           'Dados sensíveis registrados em anotações técnicas: tratados somente para a finalidade definida pelo estúdio, que é responsável por obter o consentimento específico da cliente ou por se apoiar em outra hipótese do art. 11 da LGPD.',
         ],
@@ -114,6 +117,7 @@ export const PRIVACY: LegalDocument = {
         [
           'Os dados ficam guardados enquanto sua conta existir.',
           'Ao excluir a conta (Ajustes > Dados do estúdio > Excluir minha conta), apagamos imediatamente sua conta e todos os dados do estúdio, incluindo clientes, agenda, financeiro e arquivos. Cópias de segurança são sobrescritas em até 30 dias.',
+          'Registros de uso do app e da página pública são guardados por até 13 meses e depois apagados. Ao excluir a conta, eles são apagados junto.',
           'Podemos manter, pelo prazo legal, apenas o que a lei exigir, como registros de acesso (6 meses, pelo Marco Civil da Internet) e documentos fiscais das assinaturas.',
         ],
       ],
@@ -145,7 +149,7 @@ export const PRIVACY: LegalDocument = {
     {
       heading: '9. Armazenamento no aparelho',
       body: [
-        'O app guarda no seu aparelho uma cópia dos dados para funcionar sem internet, a sessão de login e preferências (como o login por digital). Essas informações são apagadas ao sair da conta ou ao excluí-la. A versão web usa o armazenamento local do navegador para manter a sessão. Não usamos cookies de publicidade ou rastreamento.',
+        'O app guarda no seu aparelho uma cópia dos dados para funcionar sem internet, a sessão de login e preferências (como o login por digital). Registros de uso ainda não enviados (por falta de internet) também ficam guardados no aparelho até o envio. Essas informações são apagadas ao sair da conta ou ao excluí-la. A versão web usa o armazenamento local do navegador para manter a sessão. Não usamos cookies de publicidade ou rastreamento.',
       ],
     },
     {

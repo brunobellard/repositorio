@@ -15,6 +15,7 @@ import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { openUpgrade } from '@/lib/upgrade';
 import { bookingUrl, isValidSlug, sanitizeSlugInput, slugify } from '@/lib/booking';
+import { track } from '@/lib/analytics';
 import { notify } from '@/lib/confirm';
 import { initials, maskDocument, maskPhone, maskZip, onlyDigits } from '@/lib/format';
 import { colors } from '@/theme/colors';
@@ -102,12 +103,14 @@ export default function DadosEstudio() {
   async function copyLink() {
     if (!savedLink) return;
     await Clipboard.setStringAsync(savedLink);
+    track('booking_link_copied', { place: 'estudio' });
     notify('Link copiado', 'Cole na bio do Instagram ou no WhatsApp.');
   }
 
   function shareLink() {
     if (!savedLink) return;
     const text = `Agende seu horário no ${profile.businessName} pelo link: ${savedLink}`;
+    track('booking_link_shared', { place: 'estudio_whatsapp' });
     Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`);
   }
 

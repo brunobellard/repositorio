@@ -23,8 +23,10 @@ import {
 const CACHE_KEY = THEME_CACHE_KEY;
 
 interface Theme {
-  /** Cor principal (HEX) */
+  /** Cor principal (HEX) usada na tela; pode ser um pouco mais escura que a escolhida, para ter contraste AA */
   primaryColor: string;
+  /** Cor escolhida pela profissional (paleta ou HEX), sem o ajuste de contraste: use para comparar com as paletas */
+  chosenColor: string;
   /** Cor principal com transparência (~10%), para fundos suaves */
   softBackgroundColor: string;
   /** Texto legível sobre a cor principal: branco ou quase preto */
@@ -77,11 +79,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Theme>(
     () => ({
       primaryColor: theme.primary,
+      chosenColor: color,
       softBackgroundColor: `${theme.primary}1A`,
       contrastTextColor: theme.onPrimary,
       theme,
     }),
-    [theme],
+    [theme, color],
   );
 
   if (cached === undefined) return null;

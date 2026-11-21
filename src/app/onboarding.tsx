@@ -400,7 +400,7 @@ function OnboardingSteps() {
             {/* Último passo: o link já existe (passo 1); dá para divulgar antes de entrar na agenda (UX-09) */}
             <View className="mt-6">
               <Text className="mb-2 text-[13px] text-muted">Seu link de agendamento já está pronto. Mande para as clientes:</Text>
-              <ShareLinkButton />
+              <ShareLinkButton place="onboarding" />
             </View>
           </>
         )}

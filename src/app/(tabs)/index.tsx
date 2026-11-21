@@ -193,7 +193,7 @@ export default function AgendaScreen() {
             />
             {/* Dia vazio: bom momento para divulgar o link (UX-09) */}
             <View className="mx-4 mt-2">
-              <ShareLinkButton />
+              <ShareLinkButton place="agenda" />
             </View>
           </>
         ) : null}

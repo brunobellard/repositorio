@@ -18,6 +18,7 @@ import { EMAIL_SENDING_ENABLED } from '@/constants/plans';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { showToast } from '@/components/toast';
+import { track } from '@/lib/analytics';
 import { confirmAction, notify } from '@/lib/confirm';
 import { amountDue, availableCredits, packageCovered } from '@/lib/packages';
 import { formatDayTitle, formatDuration, formatTime, isSameDay } from '@/lib/dates';
@@ -85,6 +86,11 @@ export default function AgendamentoDetalhe() {
     const ok = await completeAppointment(appt!.id, method);
     setCompleting(null);
     if (!ok) return;
+    track('appointment_completed', {
+      method: method ?? 'pacote',
+      package: !!appt!.clientPackageId,
+      minutes_after_end: Math.round((new Date().getTime() - new Date(appt!.endsAt).getTime()) / 60_000),
+    });
     setAskPayment(false);
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   }
@@ -162,7 +168,13 @@ export default function AgendamentoDetalhe() {
       `${client!.name.split(' ')[0]} · ${when}`,
       'info',
       before === 'pendente' || before === 'confirmado'
-        ? { label: 'Desfazer', onPress: () => setAppointmentStatus(appt!.id, before) }
+        ? {
+            label: 'Desfazer',
+            onPress: () => {
+              track('appointment_status_reverted', { from: 'cancelado', to: before, via: 'undo' });
+              setAppointmentStatus(appt!.id, before);
+            },
+          }
         : undefined,
     );
   }

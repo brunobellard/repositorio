@@ -71,7 +71,7 @@ export function GettingStarted() {
             onPress: () => {
               if (!requireFeature(access.hasPublicLink, 'publicLink')) return;
               save({ shared: true });
-              shareBookingLink(link, profile.businessName);
+              shareBookingLink(link, profile.businessName, 'primeiros_passos');
             },
           },
         ]

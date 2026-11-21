@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams, useNavigation } from 'expo-router';
-import { type ComponentRef, useRef, useState } from 'react';
+import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { NO_REPEAT, RecurrencePicker } from '@/components/agenda/recurrence-pick
 import { SeriesScopeSheet, Sheet, SheetOption } from '@/components/sheet';
 import { AddressFields, findArea } from '@/components/address-fields';
 import { RangeCalendar } from '@/components/range-calendar';
+import { track } from '@/lib/analytics';
 import { Avatar, Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { closeModal, confirmAction, notify } from '@/lib/confirm';
@@ -111,8 +112,33 @@ export default function NovoAgendamento() {
   // Trava imediata contra toque duplo no salvar (o estado `saving` só muda no próximo desenho da tela,
   // e um segundo toque antes disso movia o horário duas vezes ou criava o agendamento em dobro)
   const submitting = useRef(false);
+  // Medição do formulário (sem dados da cliente): de onde veio, quanto tempo levou, o que faltou
+  const formOrigin = editing ? 'edit' : params.clientId ? 'client_file' : initialHasTime ? 'slot' : params.date ? 'agenda' : 'other';
+  const tracking = useRef({ origin: formOrigin, openedAt: 0, saved: false, inlineClient: false, client: false, service: false, time: false });
   const dayStrip = useRef<ComponentRef<typeof ScrollView>>(null);
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const t = tracking.current;
+    t.openedAt = Date.now();
+    track('appointment_form_opened', { origin: t.origin });
+    return () => {
+      if (t.saved) return;
+      track('appointment_form_abandoned', {
+        origin: t.origin,
+        duration_ms: Date.now() - t.openedAt,
+        has_client: t.client,
+        has_service: t.service,
+        has_time: t.time,
+      });
+    };
+  }, []);
+  // O que já foi preenchido (lido só ao sair da tela)
+  useEffect(() => {
+    tracking.current.client = !!clientId;
+    tracking.current.service = serviceIds.length > 0;
+    tracking.current.time = time !== null;
+  });
 
   /** Fecha e, se veio da Agenda, abre a Agenda no dia do agendamento salvo (UX-17). */
   function closeToDay(d: Date | null) {
@@ -129,6 +155,8 @@ export default function NovoAgendamento() {
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const sectionY = useRef<Record<string, number>>({});
   const dayStripPositioned = useRef(false);
+  // Dia escolhido pelo calendário: a faixa cresce até ele, e só então dá para rolar (UX-05)
+  const dayStripTarget = useRef<number | null>(null);
 
   const client = clients.find((c) => c.id === clientId);
   const selectedServices = serviceIds.map((id) => services.find((s) => s.id === id)!).filter(Boolean);
@@ -246,7 +274,10 @@ export default function NovoAgendamento() {
     setTime(min);
     setPickDate(false);
     const i = Math.round((target.getTime() - today.getTime()) / 86_400_000);
-    setTimeout(() => dayStrip.current?.scrollTo({ x: Math.max(0, (i - 2) * 64), animated: true }), 50);
+    const x = Math.max(0, (i - 2) * 64);
+    // Se a faixa crescer, onContentSizeChange rola depois; se não, este rolar já basta
+    dayStripTarget.current = x;
+    setTimeout(() => dayStrip.current?.scrollTo({ x, animated: true }), 50);
   }
 
   // Datas da série (a primeira é o horário escolhido)
@@ -279,6 +310,7 @@ export default function NovoAgendamento() {
     });
     setSaving(false);
     if (!c) return;
+    tracking.current.inlineClient = true;
     setClientId(c.id);
     setNewClient(null);
     setQuery('');
@@ -304,6 +336,7 @@ export default function NovoAgendamento() {
     if (saving) return;
     const first = missing[0];
     if (first) {
+      track('appointment_save_blocked', { origin: tracking.current.origin, missing: missing.map((m) => m.key).join('-') });
       notify(`Falta: ${missing.map((m) => m.label).join(', ')}`, first.hint, 'info');
       const y = sectionY.current[first.key];
       if (y !== undefined) scroller.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
@@ -347,6 +380,19 @@ export default function NovoAgendamento() {
       if (!created) submitting.current = false;
     }
     if (!created) return;
+    tracking.current.saved = true;
+    track('appointment_saved', {
+      origin: tracking.current.origin,
+      duration_ms: Date.now() - tracking.current.openedAt,
+      days_ahead: Math.round((startOfDay(dates[0]).getTime() - startOfDay(new Date()).getTime()) / 86_400_000),
+      n_services: serviceIds.length,
+      series_count: dates.length,
+      used_package: !!chosenPackage,
+      outside_hours: override,
+      home,
+      created_client_inline: tracking.current.inlineClient,
+      online,
+    });
     // Guarda o endereço na ficha da cliente quando mudou
     if (home && client && (address.trim() !== (client.address ?? '') || neighborhood.trim() !== (client.neighborhood ?? ''))) {
       await updateClientAddress(client.id, address, neighborhood);
@@ -424,7 +470,16 @@ export default function NovoAgendamento() {
       // Deu certo: a tela fecha; continua travado para um toque atrasado não mover de novo
       if (!ok) submitting.current = false;
     }
-    if (ok) closeToDay(firstStart);
+    if (ok) {
+      tracking.current.saved = true;
+      track('appointment_edited', {
+        duration_ms: Date.now() - tracking.current.openedAt,
+        scope,
+        moved: !!shiftMs,
+        services_changed: servicesChanged,
+      });
+      closeToDay(firstStart);
+    }
   }
 
   async function save() {
@@ -642,6 +697,12 @@ export default function NovoAgendamento() {
           ref={dayStrip}
           // Já abre mostrando o dia escolhido (cada dia ocupa 64px: 56 + margem 8)
           onContentSizeChange={() => {
+            if (dayStripTarget.current !== null) {
+              const x = dayStripTarget.current;
+              dayStripTarget.current = null;
+              setTimeout(() => dayStrip.current?.scrollTo({ x, animated: true }), 0);
+              return;
+            }
             if (dayStripPositioned.current) return;
             dayStripPositioned.current = true;
             const i = days.findIndex((d) => isSameDay(d, day));

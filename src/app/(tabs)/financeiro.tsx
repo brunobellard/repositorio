@@ -116,25 +116,24 @@ export default function FinanceiroScreen() {
       <ScreenTitle
         title="Financeiro"
         subtitle={`${MONTHS[monthStart.getMonth()]} de ${monthStart.getFullYear()}`}
-        right={
-          <View className="flex-row gap-2">
-            <Pressable accessibilityRole="button"
-              onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
-              accessibilityLabel="Exportar relatório"
-              className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
-              <Ionicons name="download-outline" size={14} color={colors.ink} />
-              <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button"
-              onPress={() => requireFeature(access.hasPackages, 'packages') && router.push('/pacote/novo')}
-              accessibilityLabel="Vender pacote"
-              className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
-              <Ionicons name="ticket-outline" size={14} color={colors.ink} />
-              <Text className="ml-1 text-[13px] font-semibold text-ink">Vender pacote</Text>
-            </Pressable>
-          </View>
-        }
       />
+      {/* Ações numa linha própria: no topo, ao lado do título, quebravam "Financeiro" em 375 px */}
+      <View className="-mt-1 mb-2 flex-row gap-2 px-5">
+        <Pressable accessibilityRole="button"
+          onPress={() => requireFeature(access.hasExport, 'export') && setExporting(true)}
+          accessibilityLabel="Exportar relatório"
+          className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+          <Ionicons name="download-outline" size={14} color={colors.ink} />
+          <Text className="ml-1 text-[13px] font-semibold text-ink">Exportar</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button"
+          onPress={() => requireFeature(access.hasPackages, 'packages') && router.push('/pacote/novo')}
+          accessibilityLabel="Vender pacote"
+          className="flex-row items-center rounded-full border border-line bg-surface px-3 py-1.5 active:opacity-70">
+          <Ionicons name="ticket-outline" size={14} color={colors.ink} />
+          <Text className="ml-1 text-[13px] font-semibold text-ink">Vender pacote</Text>
+        </Pressable>
+      </View>
       <ExportFinanceSheet visible={exporting} onClose={() => setExporting(false)} />
       {loading ? (
         <FinanceSkeleton />

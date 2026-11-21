@@ -68,7 +68,8 @@ function Preview({ t, studio }: { t: ThemeColors; studio: string }) {
 /** Ajustes › Aparência e cores */
 export default function Aparencia() {
   const { profile, updateProfile } = useStore();
-  const { primaryColor } = useTheme();
+  // Compara com a cor ESCOLHIDA: a da tela é escurecida para contraste e não bate com a paleta (BUG-018)
+  const { chosenColor: primaryColor } = useTheme();
   const access = usePlanAccess();
   const insets = useSafeAreaInsets();
 

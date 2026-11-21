@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { openLegal } from '@/components/legal-page';
 import { shareBookingLink, useBookingLink } from '@/components/share-link-button';
+import { useTheme } from '@/context/ThemeContext';
 import { Avatar, Card, Screen, ScreenTitle, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { useState } from 'react';
@@ -76,6 +77,8 @@ const EXAMPLE_EXTRAS =
 
 export default function AjustesScreen() {
   const bookingLink = useBookingLink();
+  // Cor escolhida (sem o ajuste de contraste), para achar o nome da paleta (BUG-018)
+  const { chosenColor } = useTheme();
   const { profile, services, clients, businessHours, loadExampleData, removeExampleData, updateProfile, serviceAreas, pendingSync } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
@@ -202,13 +205,13 @@ export default function AjustesScreen() {
               icon="share-social-outline"
               label="Compartilhar link de agendamento"
               detail={access.hasPublicLink ? undefined : 'Intermediário'}
-              onPress={() => requireFeature(access.hasPublicLink, 'publicLink') && shareBookingLink(bookingLink, profile.businessName)}
+              onPress={() => requireFeature(access.hasPublicLink, 'publicLink') && shareBookingLink(bookingLink, profile.businessName, 'ajustes')}
             />
           ) : null}
           <Row
             icon="color-palette-outline"
             label="Aparência e cores"
-            detail={THEME_PRESETS.find((p) => p.hex === colors.primary)?.name ?? colors.primary}
+            detail={THEME_PRESETS.find((p) => p.hex === chosenColor)?.name ?? chosenColor}
             href="/ajustes/aparencia"
           />
           <Row

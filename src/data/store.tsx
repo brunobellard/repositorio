@@ -15,6 +15,7 @@ import {
   mockClients,
   mockTransactions,
 } from '@/data/mock';
+import { track } from '@/lib/analytics';
 import { notify } from '@/lib/confirm';
 import { addDays, atMinutes, minutesOfDay, startOfDay } from '@/lib/dates';
 import { hoursForDay, isWithinHours, timeOffOn } from '@/lib/hours';
@@ -147,6 +148,7 @@ const toClientHistory = (rows: any[]): Record<string, ClientHistory> =>
   );
 const toAppointment = (r: any): Appointment => ({
   id: r.id,
+  createdAt: r.created_at ?? undefined,
   clientId: r.client_id,
   startsAt: new Date(r.starts_at).toISOString(),
   endsAt: new Date(r.ends_at).toISOString(),
@@ -1263,6 +1265,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       // Sessão de pacote: o banco devolve/consome o crédito; atualiza o saldo na tela
       if (prev.find((a) => a.id === id)?.clientPackageId) await refreshPackages();
+      const before = prev.find((a) => a.id === id);
+      if (before && before.status !== status) {
+        const minutesFromStart = Math.round((Date.now() - new Date(before.startsAt).getTime()) / 60_000);
+        track('appointment_status_changed', {
+          from: before.status,
+          to: status,
+          source: before.source ?? 'manual',
+          minutes_from_start: minutesFromStart,
+        });
+        // Pedido feito pelo link: quanto tempo a profissional levou para responder
+        if (before.source === 'online' && before.status === 'pendente' && (status === 'confirmado' || status === 'cancelado')) {
+          const minutesSinceRequest = before.createdAt
+            ? Math.round((Date.now() - new Date(before.createdAt).getTime()) / 60_000)
+            : undefined;
+          track(status === 'confirmado' ? 'online_booking_confirmed' : 'online_booking_declined', {
+            minutes_since_request: minutesSinceRequest,
+          });
+        }
+      }
       return true;
     },
 
