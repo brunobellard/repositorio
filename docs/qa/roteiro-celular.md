@@ -4,7 +4,7 @@ Use o Expo Go (ou a versão instalada) com a **conta de teste**. Marque ✅ / �
 Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 **Última execução (20/11/2026, conta de teste):** todos os itens 🔁 e a seção A2 passaram (16 itens, nenhum bug). Seção G feita na web com conta Free descartável (20/11, tudo ✅; achados BUG-011 e BUG-012). Pendentes: itens sem 🔁 das seções A, B, C, E, F.
-**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015 corrigido; resta o BUG-016).
+**21/11/2026 (celular Android):** CT-CON-10, BUG-009 e BUG-014 no leitor de tela, CT-AGE-13 e concluir/desfazer série ✅; CT-AGE-12 ❌ (BUG-015 corrigido; resta o BUG-016). Bloco de pacotes, clientes e link (CT-PAC-15, "Pacote em uso", CT-PAC-16, CT-CLI-07, limite de 3 pelo mesmo WhatsApp) ✅; CT-LNK-08 sem bug, mas não reproduzível à mão. Os 3 agendamentos do link (QA Teste, 26/11) foram cancelados.
 
 ## A. Conta
 - [x] ✅ (20/11) 🔁 CT-CON-02 Senha errada → "E-mail ou senha incorretos."
@@ -30,14 +30,14 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 
 ## C. Pacotes
 - [x] ✅ (20/11) 🔁 Vender pacote 4x → agendar sessão com o pacote → concluir → saldo cai para 3.
-- [ ] CT-PAC-15 Editar a sessão tirando o serviço do pacote → aviso "Tirar do pacote?" → crédito volta.
-- [ ] Excluir pacote com sessão feita → "Pacote em uso".
-- [ ] CT-PAC-16 Reenviar comprovante de uma sessão antiga → "Restam" mostra o saldo daquela data.
+- [x] ✅ (21/11, Android) CT-PAC-15 Editar a sessão tirando o serviço do pacote → aviso "Tirar do pacote?" → crédito volta.
+- [x] ✅ (21/11, Android) Excluir pacote com sessão feita (ficha da cliente > pacote > Excluir pacote) → "Pacote em uso".
+- [x] ✅ (21/11, Android) CT-PAC-16 Reenviar comprovante de uma sessão antiga → "Restam" mostra o saldo daquela data.
 
 ## D. Clientes
 - [x] ✅ (20/11) 🔁 Excluir cliente sem atendimentos → some.
 - [x] ✅ (20/11) 🔁 Excluir cliente com atendimentos → "Apagar dados" → aparece como "Cliente removida" na agenda antiga e some da lista, da busca e do "Para chamar de volta".
-- [ ] CT-CLI-07 Ficha → cartões com "(12 meses)" → "ver histórico completo" → "Total gasto".
+- [x] ✅ (21/11, Android) CT-CLI-07 Ficha → cartões com "(12 meses)" → "ver histórico completo" → "Total gasto".
 
 ## E. Offline (modo avião)
 - [x] ✅ (20/11) 🔁 CT-OFF-01 Modo avião → criar cliente, criar agendamento, concluir outro → avisos "salvo no aparelho".
@@ -49,8 +49,8 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11) 🔁 Escolher 7 serviços → para no 6º com aviso.
 - [x] ✅ (20/11) 🔁 Agendar horário livre → aparece na agenda (pendente ou confirmado conforme Ajustes).
 - [ ] Notificação push chega no celular da profissional (versão instalada; Expo Go no Android não recebe).
-- [ ] CT-LNK-08 Abrir o link, ligar o modo avião, ir para "Data" → nenhum horário livre + "Tentar de novo".
-- [ ] Mesmo WhatsApp com 4º agendamento futuro → "Você já tem horários marcados…".
+- [ ] CT-LNK-08 Abrir o link, ligar o modo avião, ir para "Data" → nenhum horário livre + "Tentar de novo". (21/11, Android: datas e horários continuam aparecendo e "Confirmar agendamento" avisa que está sem internet. Não é bug: os horários ocupados são lidos uma vez, ao abrir o link, e no envio o banco confere de novo. O "Tentar de novo" só aparece se essa leitura falhar ao abrir; o passo do roteiro estava errado. Abrindo o link já no modo avião, o próprio navegador mostra que está sem internet e o app nem carrega: também não é bug. O caso "abre a página, mas a leitura dos horários falha" não dá para reproduzir à mão; fica para um teste automático.)
+- [x] ✅ (21/11, Android) Mesmo WhatsApp com 4º agendamento futuro → "Você já tem horários marcados…".
 
 ## G. Planos (conta Free separada)
 - [x] ✅ (20/11, web) CT-PLA-06 Cadastrar a 11ª cliente → aviso de upgrade.

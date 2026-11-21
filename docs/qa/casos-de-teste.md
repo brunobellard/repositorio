@@ -67,8 +67,8 @@
 | CT-PAC-11..14 | Valor a receber | Pacote cobre 1 sessão; extras e deslocamento cobrados | P1 | U | ✅ |
 | CT-API-04 | Concluir lança receita única | 1 receita, valor do serviço | P1 | API | ✅ (CI) |
 | CT-API-05 | Excluir pacote em uso / livre | Em uso: recusa; livre: sai com a receita | P1 | API | ✅ (CI) |
-| CT-PAC-15 | Tirar serviço do pacote ao editar sessão | Pergunta "Tirar do pacote?"; crédito volta | P2 | M | ⬜ |
-| CT-PAC-16 | Comprovante reenviado depois | "Restam" = saldo na data do atendimento | P3 | M | ⬜ |
+| CT-PAC-15 | Tirar serviço do pacote ao editar sessão | Pergunta "Tirar do pacote?"; crédito volta | P2 | M | ✅ (celular Android, 21/11) |
+| CT-PAC-16 | Comprovante reenviado depois | "Restam" = saldo na data do atendimento | P3 | M | ✅ (celular Android, 21/11) |
 | CT-FIN-01 | Exportar planilha | Despesas com líquido negativo; soma = lucro | P2 | M | ⬜ |
 | SQL VAL-02..04, 09..13 | Consistência de pacotes e receitas | 0 problemas | P1 | SQL | ✅ (VAL-01, 20/11) |
 
@@ -83,7 +83,7 @@
 | CT-CLI-06 | Mensagem com variáveis | Troca {nome}, {dias}; mantém desconhecidas | P2 | U | ✅ |
 | CT-API-08 | Apagar dados (LGPD) | "Cliente removida", sem contato, histórico mantido | P1 | API | ✅ (CI) |
 | CT-API-09 | Excluir cliente com histórico direto | Banco recusa (23503); app oferece "Apagar dados" | P1 | API | ✅ (CI) |
-| CT-CLI-07 | Ficha com histórico parcial | Cartões "(12 meses)"; "ver histórico completo" volta a "Total gasto" | P2 | M | ⬜ |
+| CT-CLI-07 | Ficha com histórico parcial | Cartões "(12 meses)"; "ver histórico completo" volta a "Total gasto" | P2 | M | ✅ (celular Android, 21/11) |
 | CT-CLI-08 | Busca sem acento | "acento cao" encontra "QA Acento Ção" | P3 | U + M | ✅ (U) |
 
 ## 6. Link público
@@ -96,7 +96,7 @@
 | CT-LNK-05 | Período enorme de horários | Sem erro; limitado a ~95 dias | P1 | API | ✅ (CI) |
 | CT-LNK-06 | Nome curto | Recusado antes de gravar | P2 | API | ✅ (CI) |
 | CT-LNK-07 | 7 serviços | Recusado; tela para no 6º | P2 | API + M | ✅ (CI e celular) |
-| CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ⬜ |
+| CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ⬜ (21/11: modo avião não reproduz no celular; horários lidos ao abrir e envio sem internet avisa certo; falta teste automático) |
 | CT-LNK-09 | Mensagens para a cliente | Português, sem código técnico | P2 | M | ⬜ |
 | CT-LNK-10 | Layout no celular (375 px) | Sem rolagem lateral | P2 | M (web) | ✅ |
 | CT-FUS-01..04 | Fuso do estúdio | Instantes corretos (SP, Manaus); fuso inválido não quebra | P1 | U | ✅ |
