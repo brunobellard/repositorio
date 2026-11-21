@@ -48,5 +48,8 @@ Os roteiros:
   (no Free, com 10 clientes, o app mostra "Mais de 10 clientes" e o roteiro para).
 - `03-login-invalido.yaml` (CT-E2E-03): senha errada mostra "E-mail ou senha incorretos.".
 
-Depois de rodar: apague a cliente "QA Maestro" e o agendamento (ficha da cliente > Excluir cliente > Apagar dados).
+Depois de rodar, limpe a conta de teste:
+1. Ficha da cliente "QA Maestro" > toque no agendamento de terça (QA Manicure) > Status **Cancelado**.
+   Com atendimento marcado o app não deixa excluir ("Cancele ou conclua antes de excluir").
+2. Volte à ficha > **Excluir cliente** > confirme "Apagar dados". O atendimento cancelado fica no histórico como "Cliente removida".
 Prints de cada passo ficam em `%USERPROFILE%\.maestro\tests\`. Anexe-os ao registrar um bug (docs/qa/bugs.md), sem dados de clientes reais.
