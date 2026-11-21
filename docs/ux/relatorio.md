@@ -187,3 +187,11 @@ Conta de teste, tela 375×812 no navegador embutido. Nada foi salvo nem apagado;
 | UX-05 (faixa de dias) | ❌ Continua: depois de escolher 18/12 em "Outra data", o dia fica selecionado, mas a faixa termina no fim (scrollLeft 2009 de 2009, mostrando 22–25/12). Causa provável: ao fechar o calendário, o navegador devolve o foco ao botão "Outra data", que fica no fim da faixa, e rola até ele. |
 | UX-15 (tela em branco) | ⚠️ Medido: tocando no cartão, o cabeçalho "Agendamento" aparece na hora e o conteúdo ~0,3 s depois; abrindo direto pela URL, ~0,7 s depois de a página carregar (~1,2 s no total). Causa: o código da tela (`[id]-….js`) só é baixado no primeiro toque (divisão do código por rota na web). Medição com o painel do navegador oculto; no celular nativo não acontece. |
 | Medição de uso | ✅ Eventos chegando: depois de abrir o Novo agendamento, tocar em "Agendar" vazio e voltar, o app enviou o lote para `app_events` com resposta 201 e a fila do aparelho ficou vazia. Consultas de análise em [consultas-eventos.sql](consultas-eventos.sql). |
+
+## Reteste UX-05 e UX-15 (21/11/2026, commit da0c7ff)
+| Item | Resultado |
+|---|---|
+| UX-05 | ✅ "Outra data" fica ao lado do rótulo "Data". Escolhendo 18/12, o dia aparece selecionado e visível na faixa (scrollLeft 1600 de 1937) ([reteste4-outra-data-ok.jpg](evidencias/reteste4-outra-data-ok.jpg)). |
+| UX-15 | ✅ Saindo da Agenda: os arquivos do detalhe e do Novo agendamento são baixados ~2,5 s depois que a Agenda abre; tocando no cartão, o conteúdo aparece em ~50 ms (antes, ~300 ms com a tela em branco). Abrindo o detalhe direto pela URL, o intervalo continua (aceito: caso raro e só na web). |
+
+**Situação:** todos os itens do relatório (P1, P2, P3, UX-18 a 20, BUG-018) e a medição de uso estão em produção e conferidos. Próximo passo: teste com as profissionais ([plano-teste-usabilidade.md](plano-teste-usabilidade.md)) e as consultas de [consultas-eventos.sql](consultas-eventos.sql) quando houver uso real.
