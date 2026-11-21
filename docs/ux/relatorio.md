@@ -140,3 +140,22 @@ Aprovado pelo responsável em 21/11/2026: os 8 itens P1 (marcados). Os demais es
 - [ ] UX-10 Primeiros passos + remover exemplos
 - [ ] Severidade 1 (UX-12, 14, 15, 16, filtros)
 - [ ] Instrumentação de eventos (metricas.md, opção A)
+
+## Reteste dos itens P1 em produção (21/11/2026, commit 2c0257d)
+Conta de teste, tela 375×812 no navegador embutido. Agendamento de teste criado (QA Teste, ter 24/11 17:00) e cancelado no fim; nenhuma forma de pagamento escolhida.
+
+| ID | Resultado | Evidência |
+|---|---|---|
+| UX-01 | ✅ **Corrigido no commit 653c3af (BUG-017) e conferido em produção:** Pix, Crédito, Débito e Dinheiro aparecem limpos e "Mudar status" fica logo abaixo, sempre visível ([reteste-ux01-corrigido.jpg](evidencias/reteste-ux01-corrigido.jpg)). No 1º reteste estava quebrado: "Concluir e receber R$ 35,00" aparece certo, mas ao tocar nele cada botão Pix/Crédito/Débito/Dinheiro vem coberto por "MUDAR STATUS · Pendente · Confirmado · Concluído": o bloco de status foi colado dentro do botão de pagamento (`[id].tsx`, l. 369–391, dentro do `METHODS.map`). Fora do pagamento, "Mudar status" não aparece: não dá para confirmar manualmente um agendamento feito no app nem desfazer uma conclusão pelos chips. Mesmo problema do BUG-017 do QA. | [reteste-ux01-pagamento-quebrado.jpg](evidencias/reteste-ux01-pagamento-quebrado.jpg) |
+| UX-02 | ✅ "Cancelar atendimento" em vermelho no fim da tela; aviso "Atendimento cancelado · Desfazer"; Desfazer voltou para Pendente. Motivo opcional não feito (precisa de coluna nova). | (sem print: a tela mostra o telefone da cliente de teste) |
+| UX-03 | ✅ "Agendar" tocável; aviso e rodapé "Falta: cliente, serviço". | [reteste-ux03-falta.jpg](evidencias/reteste-ux03-falta.jpg) |
+| UX-04 | ✅ no que foi visto: textos secundários mais escuros, botão principal em tom mais fechado. Faltou medir os outros 5 temas na tela (há testes unitários). | — |
+| UX-07 | ✅ Faixa "1 pedido pelo link aguardando você", lista com Confirmar/Recusar e número no ícone da Agenda. | [reteste-agenda-faixa-pedidos.jpg](evidencias/reteste-agenda-faixa-pedidos.jpg), [reteste-lista-pedidos.jpg](evidencias/reteste-lista-pedidos.jpg) |
+| UX-08 | ✅ Ícones de status nos cartões curtos; leitor de tela diz "Larissa Oliveira, 09:00, Manicure, Confirmado". | idem |
+| UX-13 | ✅ Nome "Q" e WhatsApp "119" recusados: "Confira os dados da cliente", rótulo "confira o número". | [reteste-ux13-nova-cliente.jpg](evidencias/reteste-ux13-nova-cliente.jpg) |
+| UX-17 | ✅ Agendamento salvo para ter 24/11 a partir da agenda de hoje → Agenda abriu em 24/11 com "Agendamento salvo". Destaque de 2 s não feito. | — |
+
+**Novos achados menores (sev. 1–2), não encaminhados:**
+- UX-18 (2): atendimento **cancelado** continua mostrando "Enviar lembrete no WhatsApp" como botão principal e "Enviar confirmação" (depois do BUG-017, "Mudar status" voltou e permite reativar).
+- UX-19 (1): a linha da hora atual na Agenda passa por cima do nome no cartão em andamento e parece texto riscado ("Larissa Oliveira" às 09:00).
+- UX-20 (1): campo Observações do Novo agendamento é lido pelo exemplo ("Ex: trazer referência…"), não pelo rótulo.
