@@ -122,7 +122,9 @@ export const PRIVACY: LegalDocument = {
         [
           'Os dados ficam guardados enquanto sua conta existir.',
           'Ao excluir a conta (Ajustes > Dados do estúdio > Excluir minha conta), apagamos imediatamente sua conta e todos os dados do estúdio, incluindo clientes, agenda, financeiro e arquivos. Cópias de segurança são sobrescritas em até 30 dias.',
-          'Registros de uso do app e da página pública são guardados por até 13 meses e depois apagados. Ao excluir a conta, eles são apagados junto.',
+          'Registros de uso guardados no nosso banco (app e página pública): até 13 meses, e depois apagados. Ao excluir a conta, eles são apagados junto.',
+          'Cópia dos registros de uso no PostHog: até 12 meses, prazo do fornecedor. A limpeza é mensal e pode levar até 2 meses a mais. Ao excluir a conta, o cadastro da conta no PostHog e os eventos ligados a ela são apagados automaticamente; o fornecedor conclui a exclusão em segundo plano, normalmente em poucos dias.',
+          'Relatórios de erro e de desempenho no Sentry: até 90 dias, e depois apagados pelo fornecedor.',
           'Podemos manter, pelo prazo legal, apenas o que a lei exigir, como registros de acesso (6 meses, pelo Marco Civil da Internet) e documentos fiscais das assinaturas.',
         ],
       ],

@@ -9,11 +9,51 @@
 //     A conta apagada é sempre a dona do token; nada vem do corpo da requisição.
 //   * A service role fica só no servidor (variável SUPABASE_SERVICE_ROLE_KEY,
 //     já disponível nas Edge Functions). Nunca vai para o app.
+//
+// PostHog (Política de Privacidade, seção 6): com a conta apagada, apaga também a pessoa e os
+// eventos dela no PostHog (o distinct_id é o id da conta; ver src/services/telemetry.ts).
+// Segredos da função (opcionais; sem eles, esta etapa é pulada):
+//   npx supabase secrets set POSTHOG_PERSONAL_API_KEY=phx_... POSTHOG_PROJECT_ID=12345
+//   (POSTHOG_API_HOST, opcional: https://us.posthog.com por padrão; região EU: https://eu.posthog.com)
+// A chave pessoal precisa do escopo person:write (e person:read). Nunca vai para o app.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const POSTHOG_KEY = Deno.env.get('POSTHOG_PERSONAL_API_KEY') ?? '';
+const POSTHOG_PROJECT = Deno.env.get('POSTHOG_PROJECT_ID') ?? '';
+const POSTHOG_API = (Deno.env.get('POSTHOG_API_HOST') || 'https://us.posthog.com').replace(/\/+$/, '');
+
+/**
+ * Apaga no PostHog a pessoa com este distinct_id e os eventos dela (o PostHog conclui a exclusão
+ * dos eventos em segundo plano). Nunca lança erro: a conta já foi apagada e isto não pode desfazer nada.
+ */
+async function deletePostHogPerson(distinctId: string): Promise<void> {
+  if (!POSTHOG_KEY || !POSTHOG_PROJECT) return;
+  const base = `${POSTHOG_API}/api/projects/${encodeURIComponent(POSTHOG_PROJECT)}/persons`;
+  const headers = { Authorization: `Bearer ${POSTHOG_KEY}` };
+  try {
+    const found = await fetch(`${base}/?distinct_id=${encodeURIComponent(distinctId)}`, {
+      headers,
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!found.ok) throw new Error(`busca ${found.status}`);
+    const { results } = (await found.json()) as { results?: { id?: string }[] };
+    for (const person of results ?? []) {
+      if (!person.id) continue;
+      const del = await fetch(`${base}/${encodeURIComponent(person.id)}/?delete_events=true`, {
+        method: 'DELETE',
+        headers,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!del.ok) throw new Error(`exclusão ${del.status}`);
+    }
+  } catch (e) {
+    // Fica no log da função para refazer pelo painel do PostHog (Persons > Delete person)
+    console.error('delete-account: falha ao apagar no PostHog', distinctId, e);
+  }
+}
 
 // A versão web do app chama a função de outro domínio
 const CORS = {
@@ -53,6 +93,9 @@ Deno.serve(async (req) => {
     //    a conta ficava vazia mas continuava existindo.
     const { error: deleteError } = await admin.rpc('delete_account', { p_owner: user.id });
     if (deleteError) throw deleteError;
+
+    // 3. Cópia dos registros de uso no PostHog (só depois de a conta ter sido apagada de fato)
+    await deletePostHogPerson(user.id);
 
     return json({ ok: true });
   } catch (e) {

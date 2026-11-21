@@ -53,7 +53,10 @@ function getPostHog(): PostHog | null {
     persistence: 'memory', // nada gravado no aparelho
     captureAppLifecycleEvents: false, // só os eventos que o app manda de propósito
     disableGeoip: true, // sem localização pelo IP
-    preloadFeatureFlags: false, // o app não usa feature flags: sem chamadas extras
+    // O app não usa feature flags: sem chamadas a /flags no login, no identify nem no reset (BUG-020).
+    // A leitura da configuração do projeto (/config, uma vez por abertura) o SDK não deixa desligar.
+    preloadFeatureFlags: false,
+    disableRemoteFeatureFlags: true,
   });
   return posthog;
 }
