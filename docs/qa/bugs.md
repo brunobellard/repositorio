@@ -281,6 +281,51 @@ Feita no commit 8577ac6 (sessão principal). Conferida em 21/11/2026, produção
 
 ---
 
+## BUG-017 · Alta · "Mudar status" foi parar dentro dos botões de forma de pagamento
+**Onde:** `src/app/agendamento/[id].tsx` (commit 2c0257d, melhorias de UX P1), ~l.369–392. O bloco `{/* Status (controle secundário) */}`, com `<SectionLabel>Mudar status</SectionLabel>` e `STATUSES.map(...)`, ficou dentro do `<Pressable>` de cada forma de pagamento (`METHODS.map`). Está entre o `ActivityIndicator` e o `<Text>{paymentLabels[m]}</Text>`.
+**Passos:** abrir um atendimento que já começou (ex.: Larissa Oliveira, hoje 09:00, confirmado) > ver a tela > tocar "Concluir e receber R$ 35,00".
+**Obtido (21/11/2026, produção, navegador embutido, conta de teste):**
+- Fora do pagamento, a seção "Mudar status" não aparece: não dá para voltar a Pendente/Confirmado nem marcar Concluído sem passar pelo pagamento.
+- Depois de tocar "Concluir e receber", cada botão de pagamento mostra os chips Pendente/Confirmado/Concluído sobrepostos, e o nome da forma de pagamento (Pix, Crédito…) fica escondido. Tocar num chip ali pode disparar também o pagamento.
+- Nenhum pagamento foi escolhido no teste.
+
+**Esperado:** "Mudar status" como seção própria, abaixo das ações, sempre visível. Os botões de pagamento mostram só o nome da forma de pagamento.
+**Correção sugerida:** fechar o `Pressable`/`Card` do pagamento antes do bloco de status e tirar "Mudar status" de dentro do `askPayment`.
+**Correção:** commit 653c3af (sessão principal).
+**Reteste (21/11/2026, produção, navegador embutido, conta de teste, Larissa 09:00):**
+- "Mudar status" (Pendente, Confirmado, Concluído) aparece logo abaixo de "Concluir e receber R$ 35,00". ✅
+- Ao tocar "Concluir e receber", o cartão "Forma de pagamento" mostra só Pix, Crédito, Débito e Dinheiro, e "Mudar status" fica abaixo dele. ✅
+- A tela foi fechada sem escolher pagamento.
+
+**Status:** fechado.
+
+---
+
+## Regressão das melhorias de UX P1 (commit 2c0257d) · 21/11/2026
+Produção, navegador embutido, conta de teste. Fora o BUG-017 (corrigido em 653c3af e retestado), tudo ✅:
+- **Detalhe do agendamento:**
+  - "Concluir e receber R$ 35,00" num atendimento que já começou.
+  - "Confirmar agendamento" num pedido do link pendente.
+  - Futuro e não online: sem botão principal.
+- **Cancelar atendimento:**
+  - Num avulso (QA Teste, hoje 11:00) cancela na hora e mostra "Atendimento cancelado" com "Desfazer". "Desfazer" voltou para Pendente.
+  - Numa sessão de série (30/11 16:00) pergunta "Cancelar apenas este / este e os próximos / todos da série". Fechado com "Voltar", sem cancelar.
+- **Novo agendamento (aberto pela Agenda, terça 24/11):**
+  - "Agendar" tocável. Vazio: "Falta: cliente, serviço". Com cliente e serviço: "Falta: horário", e a tela rola até a seção.
+  - Cliente nova pelo formulário: nome "Z" → "pelo menos 2 letras"; WhatsApp "(11) 99" → "DDD + número". Cancelada sem salvar.
+  - Ao salvar (QA Teste, 16:00), a Agenda abriu em 24/11. Depois o agendamento foi cancelado.
+- **Clientes > Nova cliente:** "Cadastrar cliente" vazio → "Confira o cadastro · Falta: nome (pelo menos 2 letras)".
+- **Agenda:** faixa "1 pedido pelo link aguardando você" com número 1 no ícone da aba. A lista "Pedidos pelo link" tem Confirmar e Recusar (não usados). Cartões com ícone de status.
+- **Link público:**
+  - Sem serviço → "Escolha um serviço".
+  - Sem dia → "Escolha o dia".
+  - Sem horário → "Escolha o horário".
+  - Seus dados vazios → "Confira seus dados · Falta: nome completo, WhatsApp com DDD". Nada foi enviado.
+  - Melhoria: o aviso "Escolha o horário" repete o subtítulo dos dias ("Os dias em destaque têm horários livres"); o certo seria falar dos horários.
+- **Contraste AA:** coberto pelos 19 testes de `__tests__/unit/theme-test.ts`, da sessão principal.
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅

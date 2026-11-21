@@ -39,6 +39,11 @@
 | CT-E2E-02 | Novo agendamento com cliente nova (Maestro 02): cliente pelo atalho, serviço, 1º horário livre, Agendar | "Agendamento salvo" | P1 | E2E | ✅ (Android, 20/11) |
 | CT-AGE-12 | Atendimento que atravessa a meia-noite | Barra aparece nos dois dias, sem "voltar" ao início | P3 | M | ✅ (web, 21/11, depois das correções dos BUG-015 e BUG-016) |
 | CT-AGE-13 | Editar só as observações de sessão de série | Sessão não vira exceção da série | P2 | M | ✅ (celular Android, 21/11) |
+| CT-AGE-14 | Atendimento que já começou: botão "Concluir e receber R$ X"; escolher a forma de pagamento | Botões de pagamento só com o nome; "Mudar status" visível como seção própria | P1 | M (web) | ✅ (21/11, depois do BUG-017) |
+| CT-AGE-15 | "Cancelar atendimento" num avulso → "Desfazer" no aviso (6 s) | Cancela na hora; Desfazer volta ao status anterior | P1 | M (web) | ✅ (21/11) |
+| CT-AGE-16 | "Agendar" com campos faltando | Botão tocável; aviso "Falta: …" e a tela rola até a seção | P2 | M (web) | ✅ (21/11) |
+| CT-AGE-17 | Salvar um agendamento aberto pela Agenda | A Agenda abre no dia salvo | P2 | M (web) | ✅ (21/11) |
+| CT-AGE-18 | Pedido do link pendente | Faixa "N pedidos pelo link" + número no ícone da aba; lista com Confirmar/Recusar; detalhe com "Confirmar agendamento" | P1 | M (web) | ✅ (21/11) |
 
 ## 3. Recorrência
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
@@ -85,6 +90,7 @@
 | CT-API-09 | Excluir cliente com histórico direto | Banco recusa (23503); app oferece "Apagar dados" | P1 | API | ✅ (CI) |
 | CT-CLI-07 | Ficha com histórico parcial | Cartões "(12 meses)"; "ver histórico completo" volta a "Total gasto" | P2 | M | ✅ (celular Android, 21/11) |
 | CT-CLI-08 | Busca sem acento | "acento cao" encontra "QA Acento Ção" | P3 | U + M | ✅ (U) |
+| CT-CLI-09 | Cadastro com nome de 1 letra ou WhatsApp sem DDD (tela Nova cliente e atalho do novo agendamento) | Botão tocável; aviso diz o que falta; nada é salvo | P2 | M (web) | ✅ (21/11) |
 
 ## 6. Link público
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
@@ -99,6 +105,7 @@
 | CT-LNK-08 | Falha ao buscar horários | Nenhum horário livre + "Tentar de novo" | P1 | M | ✅ (web, 21/11, falha simulada só na leitura dos horários; no celular o modo avião não reproduz) |
 | CT-LNK-09 | Mensagens para a cliente | Português, sem código técnico | P2 | M | ⬜ |
 | CT-LNK-10 | Layout no celular (375 px) | Sem rolagem lateral | P2 | M (web) | ✅ |
+| CT-LNK-11 | Avançar sem serviço, dia, horário ou dados | Botões tocáveis; avisos "Escolha um serviço / o dia / o horário" e "Falta: nome completo, WhatsApp com DDD"; nada é enviado | P2 | M (web) | ✅ (21/11) |
 | CT-FUS-01..04 | Fuso do estúdio | Instantes corretos (SP, Manaus); fuso inválido não quebra | P1 | U | ✅ |
 
 ## 7. Planos
