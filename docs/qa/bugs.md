@@ -193,7 +193,9 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Diagnóstico:** sessão válida e perfil com `onboardingCompleted = false` no aparelho; a guarda `needsOnboarding` deveria liberar `onboarding`, mas o roteador cai na rota pública `termos`. No celular o `LegalPage` tem `<Redirect>` para esse caso ("Se o roteador cair aqui sozinho (ex: logo depois do cadastro)"); na web não tem.
 **Evidência:** conta descartável de QA em 20/11/2026, navegador embutido; `/` → `/termos` repetidas vezes; `/onboarding` direto funciona.
 **Correção sugerida:** na web, quando há sessão e falta o primeiro acesso (ou o aceite), `LegalPage` sem `from=app` redireciona para `/onboarding` (como no celular) ou mostra "Continuar"; investigar por que `/` não cai em `onboarding` com a guarda ligada.
-**Status:** aberto · correção para a sessão principal.
+**Correção:** commit 6139c2e (sessão principal).
+**Reteste (20/11/2026, produção):** conta descartável nova criada no site abriu direto em "Boas-vindas! 💅" (primeiro acesso). Sem login, `/` e `/onboarding` levam ao `/login`. ✅
+**Status:** fechado.
 
 ---
 
@@ -203,7 +205,10 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Esperado:** avançar com os serviços que cabem no plano (ou só 3 pré-selecionados no Free), com aviso.
 **Obtido:** o 4º serviço é recusado (aviso de limite) e a tela não avança; na segunda tentativa avança (já existem serviços) e a conta fica com 3 dos 4. Ajustes mostra "Serviços e preços · 3 ativos".
 **Impacto:** baixo hoje, porque contas novas começam no teste do Intermediário; acontece se o primeiro acesso for feito já no Free.
-**Status:** aberto · baixa prioridade.
+**Correção:** commit 6139c2e (sessão principal).
+**Reteste (21/11/2026, produção):** conta descartável nova, colocada no Free por SQL antes do passo 2 > "Manicure & Nail Design" (4 serviços) > Continuar. Avançou no primeiro toque para o passo 3, com o aviso "3 serviços cadastrados · O plano Free permite 3 serviços ativos. Você pode trocar ou ajustar em Ajustes > Serviços…". Depois de concluir, Ajustes mostra "Serviços e preços · 3 ativos". ✅
+Melhoria (sem bug): no Free, o texto do passo 2 ainda diz "já deixamos 4 serviços cadastrados"; poderia avisar antes que o plano guarda 3.
+**Status:** fechado.
 
 ---
 
@@ -213,9 +218,24 @@ revoke execute on function public.plan_rank(text) from public, anon;  -- usada s
 **Obtido:** quatro `button` sem nome na tela (um deles é o "Cancelar" da janela de exclusão); o leitor de tela diz só "botão".
 **Esperado:** cada botão com nome ("Cancelar", e o nome da ação de cada ícone).
 **Evidência:** árvore de acessibilidade em produção, 20/11/2026 (conta descartável).
-**Status:** aberto · baixa prioridade.
+**Correção:** commit 6139c2e (sessão principal).
+**Reteste (20/11/2026, produção, conta de teste):** em Dados do estúdio todos os botões têm nome ("Voltar", "Escolher logo do estúdio", "Link de agendamento online, disponível a partir do plano Intermediário", "Excluir minha conta", "Salvar dados"); na janela de exclusão, "Excluir conta para sempre" e "Cancelar". A janela foi fechada por "Cancelar", sem excluir. ✅
+Resta só o campo de digitar a confirmação, nomeado pelo texto de exemplo "EXCLUIR" (aceitável).
+**Status:** fechado.
+
+---
+
+## BUG-014 · Baixa · Acessibilidade: interruptores (liga/desliga) sem nome
+**Onde:** `src/components/ui.tsx` — componente `Toggle` (usado em login, primeiro acesso, Ajustes, Dados do estúdio, Horários, Regiões e Serviços)
+**Passos:** Ajustes > ler a árvore de acessibilidade do interruptor de "Avisar agendamentos online".
+**Obtido:** `switch "on"`: o leitor de tela diz só "ligado", sem dizer o que liga. O `Toggle` não recebe nem repassa `accessibilityLabel`.
+**Esperado:** o nome da opção ("Avisar agendamentos online, ligado").
+**Correção sugerida:** `Toggle` aceitar `label` e repassar como `accessibilityLabel` ao `Switch`; preencher em cada uso com o texto da linha.
+**Evidência:** produção, 20/11/2026, navegador embutido (conta de teste).
+**Status:** aberto · baixa prioridade · correção para a sessão principal.
 
 ---
 
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
+21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅
