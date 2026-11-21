@@ -112,7 +112,7 @@ export default function Login() {
               <Text className="text-[14px] font-medium text-ink">Entrar com {biometric.support.label}</Text>
               <Text className="text-[12px] text-muted">Nas próximas vezes que abrir o app, sem digitar a senha</Text>
             </View>
-            <Toggle value={useBiometric} onChange={setUseBiometric} />
+            <Toggle label={`Entrar com ${biometric.support.label}`} value={useBiometric} onChange={setUseBiometric} />
           </View>
         ) : null}
 

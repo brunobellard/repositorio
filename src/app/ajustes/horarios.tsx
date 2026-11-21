@@ -212,7 +212,7 @@ export default function HorariosScreen() {
                   <Text className={`mr-2 text-[13px] ${d.isOpen ? 'text-ink' : 'text-muted'}`}>
                     {d.isOpen ? 'Aberto' : 'Fechado'}
                   </Text>
-                  <Toggle value={d.isOpen} onChange={(isOpen) => update(dow, { isOpen })} />
+                  <Toggle label={`${WEEKDAYS_LONG[dow]} aberto`} value={d.isOpen} onChange={(isOpen) => update(dow, { isOpen })} />
                 </View>
                 {d.isOpen ? (
                   <View className="mt-2">

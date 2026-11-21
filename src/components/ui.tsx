@@ -264,13 +264,14 @@ export function EmptyState({
 }
 
 /** Interruptor liga/desliga nas cores do app (no navegador também). */
-export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   // activeThumbColor/activeTrackColor são do react-native-web; no celular são ignorados
   const webColors = { activeThumbColor: '#fff', activeTrackColor: colors.primary } as object;
   return (
     <Switch
       value={value}
       onValueChange={onChange}
+      accessibilityLabel={label}
       trackColor={{ true: colors.primary, false: colors.line }}
       thumbColor="#fff"
       ios_backgroundColor={colors.line}

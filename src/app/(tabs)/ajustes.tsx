@@ -228,6 +228,7 @@ export default function AjustesScreen() {
               </Text>
             </View>
             <Toggle
+              label="Avisar agendamentos online"
               value={access.hasPush && profile.pushNotificationsEnabled}
               onChange={(on) => requireFeature(access.hasPush, 'push') && togglePush(on)}
             />
@@ -262,6 +263,7 @@ export default function AjustesScreen() {
               </View>
               <Text className="ml-3 flex-1 text-[15px] text-ink">Entrar com {biometric.support.label}</Text>
               <Toggle
+                label={`Entrar com ${biometric.support.label}`}
                 value={biometric.enabled}
                 onChange={(on) => {
                   if (on) biometric.enable();

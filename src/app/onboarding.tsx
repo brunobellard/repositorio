@@ -69,6 +69,8 @@ function OnboardingSteps() {
   const [lunch, setLunch] = useState(true);
 
   const specialty = SPECIALTIES.find((s) => s.id === specialtyId);
+  // Limite de serviços ativos do plano (3 no Free; null = sem limite)
+  const serviceLimit = PLANS[effectivePlan(profile)].limits.activeServices;
   const isOther = specialtyId === 'other';
   const validCustom = customServices.filter(isCustomValid);
   const otherReady = isOther && !!customName.trim() && validCustom.length > 0;
@@ -99,8 +101,7 @@ function OnboardingSteps() {
             : [];
         if (toCreate.length && services.length === 0) {
           // No Free cabem só alguns serviços ativos: cria os que cabem e avisa (antes travava no 4º; BUG-012)
-          const limit = PLANS[effectivePlan(profile)].limits.activeServices;
-          const fits = limit === null ? toCreate : toCreate.slice(0, limit);
+          const fits = serviceLimit === null ? toCreate : toCreate.slice(0, serviceLimit);
           for (const s of fits) {
             const ok = await saveService({ ...s, active: true });
             if (!ok) return;
@@ -108,7 +109,7 @@ function OnboardingSteps() {
           if (fits.length < toCreate.length) {
             notify(
               `${fits.length} serviços cadastrados`,
-              `O plano ${PLANS[effectivePlan(profile)].name} permite ${limit} serviços ativos. Você pode trocar ou ajustar em Ajustes > Serviços e preços.`,
+              `O plano ${PLANS[effectivePlan(profile)].name} permite ${serviceLimit} serviços ativos. Você pode trocar ou ajustar em Ajustes > Serviços e preços.`,
               'info',
             );
           }
@@ -216,7 +217,7 @@ function OnboardingSteps() {
           <>
             <Text className="text-[24px] font-bold tracking-tight text-ink">Qual é a sua especialidade?</Text>
             <Text className="mb-5 mt-1 text-[14px] leading-5 text-muted">
-              Escolha uma e já deixamos 4 serviços cadastrados com preço e duração. Não achou a sua? Use “Outra
+              Escolha uma e já deixamos {serviceLimit === null || serviceLimit >= 4 ? 4 : serviceLimit} serviços cadastrados com preço e duração. Não achou a sua? Use “Outra
               especialidade”. Você ajusta tudo depois em Ajustes.
             </Text>
             {SPECIALTIES.map((s) => {
@@ -392,7 +393,7 @@ function OnboardingSteps() {
                 <Text className="text-[15px] text-ink">Pausa para almoço</Text>
                 <Text className="text-[12px] text-muted">Das 12h às 13h, sem agendamentos</Text>
               </View>
-              <Toggle value={lunch} onChange={setLunch} />
+              <Toggle label="Pausa para almoço" value={lunch} onChange={setLunch} />
             </View>
           </>
         )}

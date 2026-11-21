@@ -355,7 +355,7 @@ export default function DadosEstudio() {
                 : 'Agendamentos online entram como pendentes até você confirmar.'}
             </Text>
           </View>
-          <Toggle value={form.bookingAutoApprove} onChange={(v) => set({ bookingAutoApprove: v })} />
+          <Toggle label="Aprovação automática" value={form.bookingAutoApprove} onChange={(v) => set({ bookingAutoApprove: v })} />
         </View>
         </>
         )}

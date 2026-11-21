@@ -181,7 +181,7 @@ export default function Regioes() {
                         <Text className="text-[15px] text-ink">Ativo</Text>
                         <Text className="text-[12px] text-muted">Desativado, some do agendamento online</Text>
                       </View>
-                      <Toggle value={draft.isActive} onChange={(isActive) => setDraft({ ...draft, isActive })} />
+                      <Toggle label="Região ativa" value={draft.isActive} onChange={(isActive) => setDraft({ ...draft, isActive })} />
                     </View>
                   ) : null}
                   <Button title={saving ? 'Salvando…' : 'Salvar bairro'} loading={saving} disabled={!canSave} onPress={save} />

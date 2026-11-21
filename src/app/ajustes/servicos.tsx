@@ -64,7 +64,7 @@ export default function ServicosScreen() {
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={colors.muted} style={{ marginHorizontal: 8 }} />
                     </Pressable>
-                    <Toggle value={s.active} onChange={(on) => {
+                    <Toggle label={`${s.name} ativo`} value={s.active} onChange={(on) => {
                         // Reativar conta no limite de serviços ativos do plano
                         if (on && !requireFeature(access.canAddService(), 'unlimitedServices')) return;
                         setServiceActive(s.id, on);
