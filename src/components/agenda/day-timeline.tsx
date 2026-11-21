@@ -192,6 +192,17 @@ export function DayTimeline({
           );
         })}
 
+      {/* Linha do horário atual: desenhada antes dos cartões, passa por trás deles (UX-19) */}
+      {showNow ? (
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', top: y(minutesOfDay(now)), left: LABEL_WIDTH - 5, right: 0 }}
+          className="flex-row items-center">
+          <View className="h-2.5 w-2.5 rounded-full bg-primary" />
+          <View className="h-[1.5px] flex-1 bg-primary" />
+        </View>
+      ) : null}
+
       {/* Agendamentos */}
       {laidOut.map(({ item: a, col, cols }) => {
         const top = y(mins(a.startsAt));
@@ -260,16 +271,6 @@ export function DayTimeline({
         );
       })}
 
-      {/* Linha do horário atual */}
-      {showNow ? (
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', top: y(minutesOfDay(now)), left: LABEL_WIDTH - 5, right: 0 }}
-          className="flex-row items-center">
-          <View className="h-2.5 w-2.5 rounded-full bg-primary" />
-          <View className="h-[1.5px] flex-1 bg-primary" />
-        </View>
-      ) : null}
     </View>
   );
 }

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NO_REPEAT, RecurrencePicker } from '@/components/agenda/recurrence-picker';
 import { SeriesScopeSheet, Sheet, SheetOption } from '@/components/sheet';
 import { AddressFields, findArea } from '@/components/address-fields';
+import { RangeCalendar } from '@/components/range-calendar';
 import { Avatar, Button, Chip, Field, SectionLabel, Segmented } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { closeModal, confirmAction, notify } from '@/lib/confirm';
@@ -28,6 +29,7 @@ import {
   addDays,
   atMinutes,
   formatDateShort,
+  formatDayTitle,
   formatDuration,
   formatTime,
   hmToMinutes,
@@ -96,6 +98,7 @@ export default function NovoAgendamento() {
   const [conflicts, setConflicts] = useState<{ date: Date; reason: string }[] | null>(null);
   const [askScope, setAskScope] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(null);
+  const [pickDate, setPickDate] = useState(false);
   // Atendimento a domicílio (modelos "A domicílio" e "Híbrido")
   const canHome = access.serviceMode !== 'fixed';
   const [locationType, setLocationType] = useState<LocationType>(
@@ -163,52 +166,67 @@ export default function NovoAgendamento() {
     : !dayHours.isOpen
       ? `O estúdio não abre ${WEEKDAYS_LONG[day.getDay()].toLowerCase()}.`
       : null;
-  // "Fora do expediente": mostra o dia todo (00:00 até o último horário antes da meia-noite),
-  // só respeitando outros agendamentos; o atendimento pode terminar no dia seguinte (BUG-015)
-  const ignoreHours = override;
-  const [workStart, workEnd] = ignoreHours
-    ? [0, 24 * 60]
-    : dayHours.isOpen
-      ? [hmToMinutes(dayHours.openTime), hmToMinutes(dayHours.closeTime)]
-      : [0, 0];
-  // Minutos contados a partir da meia-noite do dia escolhido (podem ser negativos ou passar de 24h):
-  // um atendimento ou bloqueio que atravessa a meia-noite ocupa o fim de um dia e o começo do outro
-  const dayStartMs = day.getTime();
-  const nextDayMs = addDays(day, 1).getTime();
-  const toDayMin = (ms: number) => (ms - dayStartMs) / 60_000;
-  const busy = [
-    ...appointments
-      .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id)
-      // Atendimento em domicílio ocupa também o deslocamento depois dele (o gravado quando foi marcado)
-      .map((a) => [toDayMin(new Date(a.startsAt).getTime()), toDayMin(busyEndMs(a, buffer))])
-      // Inclui o começo do dia seguinte: um atendimento que atravessa a meia-noite não pode encostar nele
-      .filter(([s, e]) => s < 48 * 60 && e > 0),
-    ...blocks
-      .filter((b) => b.allDay
-        ? new Date(b.startsAt).getTime() < nextDayMs && new Date(b.endsAt).getTime() > dayStartMs
-        : new Date(b.startsAt).getTime() < nextDayMs + 86_400_000 && new Date(b.endsAt).getTime() > dayStartMs)
-      .filter((b) => !(ignoreHours && b.allDay))
-      .map((b) =>
-        b.allDay ? [0, 24 * 60] : [toDayMin(new Date(b.startsAt).getTime()), toDayMin(new Date(b.endsAt).getTime())],
-      ),
-  ];
   const need = Math.max(duration, slot);
   const now = new Date();
-  // Na edição, o horário original continua disponível mesmo se já começou (ex: trocar serviços durante o atendimento)
-  const originalMin = editStart && isSameDay(day, editStart) ? minutesOfDay(editStart) : null;
-  const gridMins: number[] = [];
-  for (let m = workStart; m + slot <= workEnd; m += slot) gridMins.push(m);
-  if (originalMin !== null && !gridMins.includes(originalMin)) gridMins.push(originalMin);
-  gridMins.sort((a, b) => a - b);
-  const slots: { min: number; free: boolean }[] = [];
-  for (const m of gridMins) {
-    const past = isSameDay(day, now) && m < minutesOfDay(now) && m !== originalMin;
-    // Indo à casa da cliente, o deslocamento depois também precisa estar livre
-    const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
-    // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
-    const fits = ignoreHours || isWithinHours(dayHours, m, m + need);
-    slots.push({ min: m, free: !past && !conflict && fits });
+  /** Horários de um dia, livres ou não. ignoreHours = "fora do expediente" (dia todo). */
+  function slotsFor(d: Date, ignoreHours: boolean): { min: number; free: boolean }[] {
+    const dh = hoursForDay(d, businessHours);
+    // "Fora do expediente": mostra o dia todo (00:00 até o último horário antes da meia-noite),
+    // só respeitando outros agendamentos; o atendimento pode terminar no dia seguinte (BUG-015)
+    const [workStart, workEnd] = ignoreHours
+      ? [0, 24 * 60]
+      : dh.isOpen
+        ? [hmToMinutes(dh.openTime), hmToMinutes(dh.closeTime)]
+        : [0, 0];
+    // Minutos contados a partir da meia-noite do dia escolhido (podem ser negativos ou passar de 24h):
+    // um atendimento ou bloqueio que atravessa a meia-noite ocupa o fim de um dia e o começo do outro
+    const dayStartMs = d.getTime();
+    const nextDayMs = addDays(d, 1).getTime();
+    const toDayMin = (ms: number) => (ms - dayStartMs) / 60_000;
+    const busy = [
+      ...appointments
+        .filter((a) => a.status !== 'cancelado' && a.id !== editing?.id)
+        // Atendimento em domicílio ocupa também o deslocamento depois dele (o gravado quando foi marcado)
+        .map((a) => [toDayMin(new Date(a.startsAt).getTime()), toDayMin(busyEndMs(a, buffer))])
+        // Inclui o começo do dia seguinte: um atendimento que atravessa a meia-noite não pode encostar nele
+        .filter(([s, e]) => s < 48 * 60 && e > 0),
+      ...blocks
+        .filter((b) => b.allDay
+          ? new Date(b.startsAt).getTime() < nextDayMs && new Date(b.endsAt).getTime() > dayStartMs
+          : new Date(b.startsAt).getTime() < nextDayMs + 86_400_000 && new Date(b.endsAt).getTime() > dayStartMs)
+        .filter((b) => !(ignoreHours && b.allDay))
+        .map((b) =>
+          b.allDay ? [0, 24 * 60] : [toDayMin(new Date(b.startsAt).getTime()), toDayMin(new Date(b.endsAt).getTime())],
+        ),
+    ];
+    // Na edição, o horário original continua disponível mesmo se já começou (ex: trocar serviços durante o atendimento)
+    const originalMin = editStart && isSameDay(d, editStart) ? minutesOfDay(editStart) : null;
+    const gridMins: number[] = [];
+    for (let m = workStart; m + slot <= workEnd; m += slot) gridMins.push(m);
+    if (originalMin !== null && !gridMins.includes(originalMin)) gridMins.push(originalMin);
+    gridMins.sort((a, b) => a - b);
+    const list: { min: number; free: boolean }[] = [];
+    for (const m of gridMins) {
+      const past = isSameDay(d, now) && m < minutesOfDay(now) && m !== originalMin;
+      // Indo à casa da cliente, o deslocamento depois também precisa estar livre
+      const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
+      // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
+      const fits = ignoreHours || isWithinHours(dh, m, m + need);
+      list.push({ min: m, free: !past && !conflict && fits });
+    }
+    return list;
   }
+  const slots = slotsFor(day, override);
+  // Dia sem vaga: procura o próximo horário livre nos próximos 30 dias, no expediente (UX-06)
+  const nextFree = (() => {
+    if (override || !duration || slots.some((x) => x.free)) return null;
+    for (let i = 1; i <= 30; i++) {
+      const d = addDays(day, i);
+      const free = slotsFor(d, false).find((x) => x.free);
+      if (free) return { day: d, min: free.min };
+    }
+    return null;
+  })();
   const endTime =
     time !== null && duration
       ? `${formatTime(atMinutes(day, time + duration))}${time + duration > 24 * 60 ? ' do dia seguinte' : ''}`
@@ -220,6 +238,16 @@ export default function NovoAgendamento() {
   const today = startOfDay(new Date());
   const daysAhead = Math.max(21, Math.round((day.getTime() - today.getTime()) / 86_400_000) + 8);
   const days = Array.from({ length: daysAhead }, (_, i) => addDays(today, i));
+
+  /** Escolhe um dia (calendário ou "próximo livre") e mostra-o na faixa de datas. */
+  function goToDay(d: Date, min: number | null = null) {
+    const target = startOfDay(d);
+    setDay(target);
+    setTime(min);
+    setPickDate(false);
+    const i = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+    setTimeout(() => dayStrip.current?.scrollTo({ x: Math.max(0, (i - 2) * 64), animated: true }), 50);
+  }
 
   // Datas da série (a primeira é o horário escolhido)
   const firstStart = time !== null ? atMinutes(day, time) : null;
@@ -636,6 +664,14 @@ export default function NovoAgendamento() {
               </Pressable>
             );
           })}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Escolher outra data no calendário"
+            onPress={() => setPickDate(true)}
+            className="mr-2 w-16 items-center justify-center rounded-2xl border border-dashed border-line bg-surface py-2 active:opacity-70">
+            <Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />
+            <Text className="mt-0.5 text-[11px] font-medium text-primary-dark">Outra data</Text>
+          </Pressable>
           <View className="w-8" />
         </ScrollView>
 
@@ -683,8 +719,25 @@ export default function NovoAgendamento() {
               );
             })}
           </View>
-        ) : closedReason && !override ? null : (
-          <Text className="text-sm text-muted">Nenhum horário livre neste dia.</Text>
+        ) : (
+          <View>
+            {/* Dia fechado ou de folga: o aviso acima já explica; aqui só a sugestão (UX-06) */}
+            {closedReason && !override ? null : <Text className="text-sm text-muted">Nenhum horário livre neste dia.</Text>}
+            {nextFree ? (
+              <View className="mt-2 flex-row items-center rounded-2xl border border-line bg-surface px-4 py-3">
+                <Text className="flex-1 text-[14px] text-ink">
+                  Próximo livre: <Text className="font-semibold">{formatDayTitle(nextFree.day)} às {formatTime(atMinutes(nextFree.day, nextFree.min))}</Text>
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Usar ${formatDayTitle(nextFree.day)} às ${formatTime(atMinutes(nextFree.day, nextFree.min))}`}
+                  onPress={() => goToDay(nextFree.day, nextFree.min)}
+                  className="ml-3 rounded-full bg-primary px-4 py-1.5 active:opacity-80">
+                  <Text className="text-[13px] font-semibold text-on-primary">Usar</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         )}
         {/* Dia aberto: também dá para liberar horários antes de abrir ou depois de fechar */}
         {!closedReason && !override ? (
@@ -769,6 +822,7 @@ export default function NovoAgendamento() {
           value={notes}
           onChangeText={setNotes}
           placeholder="Ex: trazer referência da nail art"
+          accessibilityLabel="Observações (opcional)"
           placeholderTextColor={colors.muted}
           multiline
           className="min-h-[80px] rounded-2xl border border-line bg-surface px-4 py-3 text-[15px] text-ink"
@@ -809,6 +863,18 @@ export default function NovoAgendamento() {
       </View>
 
       {editing ? <Stack.Screen options={{ title: 'Editar agendamento' }} /> : null}
+
+      <Sheet visible={pickDate} onClose={() => setPickDate(false)} title="Escolher data">
+        {/* O calendário trabalha com período: tocar depois do início chega como "fim" (s, e); vale o último toque */}
+        <RangeCalendar
+          start={day}
+          end={null}
+          onChange={(s, e) => {
+            const picked = e ?? s;
+            if (picked) goToDay(picked);
+          }}
+        />
+      </Sheet>
 
       {/* Datas da série com conflito */}
       <Sheet

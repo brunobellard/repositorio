@@ -132,6 +132,7 @@ const toClient = (r: any): Client => ({
   address: r.address ?? undefined,
   neighborhood: r.neighborhood ?? undefined,
   removed: !!r.removed_at,
+  isExample: !!r.is_example,
 });
 const toClientHistory = (rows: any[]): Record<string, ClientHistory> =>
   Object.fromEntries(
@@ -333,6 +334,8 @@ interface Store {
   updateTemplate: (t: MessageTemplate) => Promise<boolean>;
   /** Cria dados de exemplo dentro dos limites do plano. false se nada foi criado. */
   loadExampleData: () => Promise<boolean>;
+  /** Apaga só o que "Carregar dados de exemplo" criou (clientes de exemplo, seus atendimentos, despesas e folgas). */
+  removeExampleData: () => Promise<boolean>;
 
   // Ajustes
   /** Expediente dos 7 dias (índice = dia da semana, 0 = domingo) */
@@ -1485,6 +1488,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return true;
     },
 
+    async removeExampleData() {
+      const { data, error } = await supabase.rpc('remove_example_data');
+      if (error) {
+        fail(error);
+        return false;
+      }
+      await reload();
+      const n = (data as { clients?: number; appointments?: number } | null) ?? {};
+      notify(
+        'Exemplos removidos',
+        `${n.clients ?? 0} ${n.clients === 1 ? 'cliente' : 'clientes'} e ${n.appointments ?? 0} ${n.appointments === 1 ? 'atendimento' : 'atendimentos'} de exemplo saíram da conta.`,
+      );
+      return true;
+    },
+
     /** Preenche a conta com clientes, agendamentos e despesas de exemplo. */
     async loadExampleData() {
       // Respeita o plano em vigor: no Free, só o que cabe nos limites (e sobra espaço para os dados reais)
@@ -1515,6 +1533,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             email: c.email ?? null,
             birth_date: c.birthDate ?? null,
             technical_notes: c.technicalNotes ?? null,
+            is_example: true,
           })),
         )
         .select();
@@ -1575,6 +1594,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             payment_method: tx.paymentMethod,
             appointment_id: appt.id,
             occurred_at: a.endsAt,
+            is_example: true,
           });
         }
       }
@@ -1588,6 +1608,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             category: t.category,
             description: t.description ?? null,
             occurred_at: t.occurredAt,
+            is_example: true,
           })),
       );
 
@@ -1635,7 +1656,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Folgas/feriados de exemplo
       await supabase.from('schedule_blocks').insert(
-        exampleTimeOffs().map((b) => ({ starts_at: b.startsAt, ends_at: b.endsAt, all_day: true, reason: b.reason })),
+        exampleTimeOffs().map((b) => ({ starts_at: b.startsAt, ends_at: b.endsAt, all_day: true, reason: b.reason, is_example: true })),
       );
 
       // Dados do estúdio (razão social, CNPJ, endereço, Instagram) nunca são preenchidos com exemplos:

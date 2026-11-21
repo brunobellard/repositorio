@@ -44,6 +44,7 @@ export default function AgendamentoDetalhe() {
     completeAppointment,
     cancelAppointments,
     packages,
+    loading,
   } = useStore();
   const access = usePlanAccess();
   const [askPayment, setAskPayment] = useState(false);
@@ -56,7 +57,15 @@ export default function AgendamentoDetalhe() {
   if (!appt || !client) {
     return (
       <View className="flex-1 items-center justify-center bg-bg">
-        <Text className="text-muted">Agendamento não encontrado.</Text>
+        {loading ? (
+          // UX-15: na web os dados chegam 1–2 s depois de abrir o link; antes a tela ficava em branco
+          <>
+            <ActivityIndicator color={colors.primary} />
+            <Text className="mt-3 text-muted">Carregando agendamento…</Text>
+          </>
+        ) : (
+          <Text className="text-muted">Agendamento não encontrado.</Text>
+        )}
       </View>
     );
   }
@@ -422,10 +431,13 @@ export default function AgendamentoDetalhe() {
       <View className="gap-2">
         {appt.status === 'concluido' ? (
           <Button title="Agradecimento no WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={() => whatsapp('recibo')} />
-        ) : (
+        ) : appt.status !== 'cancelado' ? (
+          // UX-18: cancelado não recebe lembrete nem confirmação (para reativar, "Mudar status")
           <Button title="Enviar lembrete no WhatsApp" icon="logo-whatsapp" variant="whatsapp" onPress={() => whatsapp('lembrete')} />
+        ) : (
+          <Text className="text-[13px] text-muted">Atendimento cancelado: lembretes e confirmação não se aplicam.</Text>
         )}
-        {appt.status !== 'concluido' ? (
+        {appt.status !== 'concluido' && appt.status !== 'cancelado' ? (
           <Button title="Enviar confirmação no WhatsApp" icon="chatbubble-outline" variant="secondary" onPress={() => whatsapp('confirmacao')} />
         ) : null}
         {/* E-mail só aparece quando o envio real estiver ligado (EMAIL_SENDING_ENABLED) */}

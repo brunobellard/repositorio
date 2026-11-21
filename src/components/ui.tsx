@@ -199,18 +199,21 @@ export function Fab({
   onPress,
   icon = 'add',
   label = 'Adicionar',
+  text,
 }: {
   onPress: () => void;
   icon?: IconName;
   /** O que o botão faz, para o leitor de tela (o botão só tem ícone) */
   label?: string;
+  /** Texto visível ao lado do ícone (ex.: "Despesa"): o botão vira uma pílula */
+  text?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="absolute bottom-6 right-5 h-14 w-14 items-center justify-center rounded-full bg-primary active:opacity-80"
+      className={`absolute bottom-6 right-5 h-14 flex-row items-center justify-center rounded-full bg-primary active:opacity-80 ${text ? 'px-5' : 'w-14'}`}
       style={{
         shadowColor: colors.primaryDark,
         shadowOpacity: 0.3,
@@ -218,7 +221,8 @@ export function Fab({
         shadowOffset: { width: 0, height: 6 },
         elevation: 6,
       }}>
-      <Ionicons name={icon} size={28} color={colors.onPrimary} />
+      <Ionicons name={icon} size={text ? 22 : 28} color={colors.onPrimary} />
+      {text ? <Text className="ml-1.5 text-[15px] font-semibold text-on-primary">{text}</Text> : null}
     </Pressable>
   );
 }

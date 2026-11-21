@@ -10,7 +10,9 @@ import { EmptyState, Fab, Screen, ScreenTitle } from '@/components/ui';
 import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
 import { useStore } from '@/data/store';
 import { confirmAction } from '@/lib/confirm';
+import { GettingStarted } from '@/components/agenda/getting-started';
 import { OnlineRequestsBanner } from '@/components/agenda/online-requests';
+import { ShareLinkButton } from '@/components/share-link-button';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
 import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
@@ -127,6 +129,7 @@ export default function AgendaScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />}>
         <OnlineRequestsBanner />
+        <GettingStarted />
         <CalendarHeader
           mode={mode}
           onModeChange={setMode}
@@ -179,14 +182,20 @@ export default function AgendaScreen() {
             </View>
           </Pressable>
         ) : active.length === 0 ? (
-          <EmptyState
-            compact
-            icon="calendar-clear-outline"
-            text={isSameDay(selected, new Date()) ? 'Nenhum horário marcado para hoje' : 'Nenhum horário marcado neste dia'}
-            subtitle="Toque num horário livre abaixo ou crie um agendamento."
-            actionLabel="+ Novo agendamento"
-            onAction={() => router.push({ pathname: '/agendamento/novo', params: { date: selected.toISOString() } })}
-          />
+          <>
+            <EmptyState
+              compact
+              icon="calendar-clear-outline"
+              text={isSameDay(selected, new Date()) ? 'Nenhum horário marcado para hoje' : 'Nenhum horário marcado neste dia'}
+              subtitle="Toque num horário livre abaixo ou crie um agendamento."
+              actionLabel="+ Novo agendamento"
+              onAction={() => router.push({ pathname: '/agendamento/novo', params: { date: selected.toISOString() } })}
+            />
+            {/* Dia vazio: bom momento para divulgar o link (UX-09) */}
+            <View className="mx-4 mt-2">
+              <ShareLinkButton />
+            </View>
+          </>
         ) : null}
 
         <DayTimeline

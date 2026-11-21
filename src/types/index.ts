@@ -101,6 +101,8 @@ export interface Client {
    * mostrarem os atendimentos antigos. Não aparece nas listas nem conta no limite do plano.
    */
   removed?: boolean;
+  /** Criada por "Carregar dados de exemplo" (sai em "Remover dados de exemplo") */
+  isExample?: boolean;
 }
 
 /** Resumo de todo o histórico da cliente (inclusive o que é mais antigo que os 12 meses carregados). */

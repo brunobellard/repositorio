@@ -4,6 +4,7 @@ import { router, type Href } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { openLegal } from '@/components/legal-page';
+import { shareBookingLink, useBookingLink } from '@/components/share-link-button';
 import { Avatar, Card, Screen, ScreenTitle, SectionLabel, Toggle } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { useState } from 'react';
@@ -25,13 +26,29 @@ function Row({
   detail,
   href,
   onPress,
+  soon,
 }: {
   icon: IconName;
   label: string;
   detail?: string;
   href?: Href;
   onPress?: () => void;
+  /** Recurso que ainda não existe: linha sem toque, com selo "Em breve" (UX-14) */
+  soon?: boolean;
 }) {
+  if (soon) {
+    return (
+      <View accessible accessibilityLabel={`${label}, em breve`} className="flex-row items-center py-3">
+        <View className="h-8 w-8 items-center justify-center rounded-full bg-bg">
+          <Ionicons name={icon} size={16} color={colors.muted} />
+        </View>
+        <Text className="ml-3 flex-1 text-[15px] text-muted">{label}</Text>
+        <View className="rounded-full bg-primary-soft px-2 py-0.5">
+          <Text className="text-[11px] font-semibold text-primary-dark">Em breve</Text>
+        </View>
+      </View>
+    );
+  }
   return (
     <Pressable accessibilityRole="button"
       onPress={() =>
@@ -55,15 +72,17 @@ function Row({
 const EXAMPLE_EXTRAS =
   ' Se as taxas da maquininha estiverem zeradas, entram taxas típicas (dá para mudar depois).' +
   ' Os dados do estúdio (razão social, CNPJ, endereço) não são alterados.' +
-  ' Os exemplos ficam na conta até você apagá-los.';
+  ' Para tirar tudo depois, use Ajustes > Remover dados de exemplo.';
 
 export default function AjustesScreen() {
-  const { profile, services, clients, businessHours, loadExampleData, updateProfile, serviceAreas, pendingSync } = useStore();
+  const bookingLink = useBookingLink();
+  const { profile, services, clients, businessHours, loadExampleData, removeExampleData, updateProfile, serviceAreas, pendingSync } = useStore();
   const openDays = businessHours.filter((h) => h.isOpen).length;
   const { session, signOut } = useAuth();
   const biometric = useBiometricLock();
   const access = usePlanAccess();
   const [loadingExample, setLoadingExample] = useState(false);
+  const [removingExample, setRemovingExample] = useState(false);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
 
@@ -100,6 +119,21 @@ export default function AjustesScreen() {
     } finally {
       setTesting(false);
     }
+  }
+
+  // Clientes criadas por "Carregar dados de exemplo" (UX-10)
+  const exampleCount = clients.filter((c) => c.isExample && !c.removed).length;
+  function askRemoveExamples() {
+    confirmAction(
+      'Remover dados de exemplo?',
+      'Saem as clientes de exemplo e TODOS os atendimentos, pacotes e receitas delas (inclusive os que você lançou para elas), além das despesas e folgas de exemplo. Suas outras clientes e lançamentos não são alterados.',
+      async () => {
+        setRemovingExample(true);
+        await removeExampleData();
+        setRemovingExample(false);
+      },
+      'Remover',
+    );
   }
 
   function askExampleData() {
@@ -162,6 +196,15 @@ export default function AjustesScreen() {
         <SectionLabel>Estúdio</SectionLabel>
         <Card className="py-1">
           <Row icon="storefront-outline" label="Dados do estúdio" href="/ajustes/estudio" />
+          {/* Link de agendamento em linha própria (UX-09): compartilhar sem procurar em Dados do estúdio */}
+          {bookingLink ? (
+            <Row
+              icon="share-social-outline"
+              label="Compartilhar link de agendamento"
+              detail={access.hasPublicLink ? undefined : 'Intermediário'}
+              onPress={() => requireFeature(access.hasPublicLink, 'publicLink') && shareBookingLink(bookingLink, profile.businessName)}
+            />
+          ) : null}
           <Row
             icon="color-palette-outline"
             label="Aparência e cores"
@@ -251,7 +294,7 @@ export default function AjustesScreen() {
             detail={`${profile.recallDays} dias`}
             onPress={() => requireFeature(access.hasRetentionCRM, 'retentionCRM') && router.push('/ajustes/retorno')}
           />
-          <Row icon="flash-outline" label="Envio automático (WhatsApp)" detail="Em breve" />
+          <Row icon="flash-outline" label="Envio automático (WhatsApp)" soon />
         </Card>
 
         <SectionLabel>Conta</SectionLabel>
@@ -278,6 +321,14 @@ export default function AjustesScreen() {
             detail={clients.length ? undefined : 'Recomendado'}
             onPress={loadingExample ? () => {} : askExampleData}
           />
+          {exampleCount ? (
+            <Row
+              icon="trash-outline"
+              label={removingExample ? 'Removendo exemplos…' : 'Remover dados de exemplo'}
+              detail={`${exampleCount} ${exampleCount === 1 ? 'cliente' : 'clientes'}`}
+              onPress={removingExample ? () => {} : askRemoveExamples}
+            />
+          ) : null}
           <Row
             icon="document-text-outline"
             label="Termos de Uso"

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import { ExportClientsSheet } from '@/components/export-sheets';
 import { ClientsSkeleton } from '@/components/skeleton';
@@ -24,7 +24,7 @@ function FilterChip({ label, count, active, onPress }: { label: string; count?: 
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ selected: !!(active) }}
       onPress={onPress}
-      className={`mr-2 flex-row items-center rounded-full border px-3.5 py-1.5 ${
+      className={`mb-2 mr-2 flex-row items-center rounded-full border px-3.5 py-1.5 ${
         active ? 'border-primary bg-primary' : 'border-line bg-surface'
       }`}>
       <Text className={`text-[13px] font-semibold ${active ? 'text-on-primary' : 'text-ink'}`}>{label}</Text>
@@ -108,7 +108,8 @@ export default function ClientesScreen() {
 
   const header = (
     <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 12 }}>
+      {/* Em telas estreitas o 3º filtro ficava cortado: quebra em mais de uma linha */}
+      <View className="flex-row flex-wrap pb-1">
         <FilterChip label="Todas" active={filter === 'todas'} onPress={() => setFilter('todas')} />
         <FilterChip
           label="Para chamar de volta"
@@ -122,7 +123,7 @@ export default function ClientesScreen() {
           active={filter === 'aniversario'}
           onPress={() => requireFeature(access.hasRetentionCRM, 'retentionCRM') && setFilter('aniversario')}
         />
-      </ScrollView>
+      </View>
       {filter === 'retorno' ? (
         <Text className="mb-3 text-[12px] leading-4 text-muted">
           Sem atendimento há mais de {profile.recallDays} dias e sem horário marcado.{' '}

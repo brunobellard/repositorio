@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardView } from '@/components/keyboard-view';
 import { ServiceModePicker } from '@/components/service-mode-picker';
+import { ShareLinkButton } from '@/components/share-link-button';
 import { TermsStep } from '@/components/terms-step';
 import { Button, Chip, Field, Toggle } from '@/components/ui';
 import { effectivePlan, PLANS } from '@/constants/plans';
@@ -172,7 +173,7 @@ function OnboardingSteps() {
               Em 3 passos rápidos seu estúdio fica pronto para receber agendamentos.
             </Text>
             <Field
-              label="Nome do estúdio"
+              label={initialName ? 'Confirme o nome do estúdio' : 'Nome do estúdio'}
               value={businessName}
               onChangeText={(t) => {
                 setBusinessName(t);
@@ -394,6 +395,12 @@ function OnboardingSteps() {
                 <Text className="text-[12px] text-muted">Das 12h às 13h, sem agendamentos</Text>
               </View>
               <Toggle label="Pausa para almoço" value={lunch} onChange={setLunch} />
+            </View>
+
+            {/* Último passo: o link já existe (passo 1); dá para divulgar antes de entrar na agenda (UX-09) */}
+            <View className="mt-6">
+              <Text className="mb-2 text-[13px] text-muted">Seu link de agendamento já está pronto. Mande para as clientes:</Text>
+              <ShareLinkButton />
             </View>
           </>
         )}
