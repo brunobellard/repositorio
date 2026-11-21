@@ -326,6 +326,43 @@ Produção, navegador embutido, conta de teste. Fora o BUG-017 (corrigido em 653
 
 ---
 
+## BUG-018 · Baixa · Ajustes mostra a cor do tema como código (#956675) e nenhuma paleta aparece marcada
+**Onde:** `src/app/(tabs)/ajustes.tsx` l.211 (`THEME_PRESETS.find((p) => p.hex === colors.primary)`) e a seleção de paleta em `src/app/ajustes/aparencia.tsx`. Desde o contraste AA do 2c0257d, `colors.primary` é a versão escurecida da cor escolhida (#C08497 → #956675) e não bate mais com o HEX da paleta.
+**Passos:** conta de teste com o tema padrão (Rosé Antigo) > Ajustes > ver "Aparência e cores" > abrir a tela.
+**Obtido (21/11/2026, produção, navegador embutido):**
+- Em Ajustes, "Aparência e cores" mostra "#956675" (antes mostrava "Rosé Antigo").
+- Em Aparência e cores, nenhuma das paletas fica marcada.
+
+**Esperado:** "Rosé Antigo" no detalhe e a paleta marcada.
+**Correção sugerida:** comparar com a cor escolhida, guardada no perfil/tema, e não com `colors.primary` escurecida.
+**Status:** aberto (sessão principal).
+
+---
+
+## Regressão do pacote de UX P2/P3 (commit 414d88b) · 21/11/2026
+Produção, navegador embutido, conta de teste. Fora o BUG-018, tudo ✅:
+- **Compartilhar link:**
+  - Ajustes > "Compartilhar link de agendamento" envia "Agende seu horário comigo no QA Estúdio: …/agendar/qa-estudio".
+  - O compartilhamento foi interceptado no navegador; nada foi enviado.
+  - Dia vazio da Agenda (01/12): "Nenhum horário marcado neste dia" + "Compartilhar meu link".
+- **Novo agendamento:**
+  - Na quarta 25/11 (folga): "Próximo livre: Qui, 26 de novembro às 09:00" + "Usar". "Usar" levou ao dia 26 e marcou 09:00.
+  - "Outra data" abre o calendário, e o dia 10/12 ficou selecionado. Nada foi salvo.
+  - Melhoria: depois de "Outra data", a faixa de dias não rola até o dia escolhido; aparecem 14–17/12 e o 10/12 fica fora da tela.
+- **Financeiro:**
+  - Seletor de mês (Outubro vazio, com "+ Lançar despesa"); para em novembro de 2025.
+  - Hoje / Esta semana / Este mês mudam os cartões. Hoje: R$ 350,00, 6 pagos, lucro R$ 345,80 já sem R$ 4,20 de taxas.
+  - Receitas com o nome da cliente ("Manicure · QA T."), "+ Despesa" e "Vender pacote".
+- **Atendimento cancelado:** "Atendimento cancelado: lembretes e confirmação não se aplicam."
+- **Clientes:** filtros em duas linhas ("Todas", "Para chamar de volta", "Aniversariantes de novembro").
+- **Ajustes:** "Envio automático (WhatsApp) · Em breve".
+- **API:** CT-SEG-11 agora inclui `remove_example_data`. Sem login: "permission denied for function" ✅.
+- **Não testado:**
+  - "Remover dados de exemplo": só aparece com exemplos marcados, e a conta de teste tem exemplos antigos, sem marca. Apagar dados precisa de autorização.
+  - "Primeiros passos" e "Confirme o nome do estúdio": precisam de conta nova.
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅

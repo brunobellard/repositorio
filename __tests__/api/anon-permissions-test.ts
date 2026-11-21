@@ -72,6 +72,8 @@ d('sem login: funções restritas', () => {
     ['create_offline_appointment', { p_appointment: {}, p_services: [] }],
     ['anonymize_client', { p_client_id: FAKE_ID }],
     ['plan_rank', { p_tier: 'pro' }],
+    // 414d88b: "Remover dados de exemplo" (Ajustes) só para quem está logado
+    ['remove_example_data', {}],
   ] as const) {
     it(`CT-SEG-11 sem permissão para executar ${fn}`, async () => {
       const { error } = await db.rpc(fn, args);
