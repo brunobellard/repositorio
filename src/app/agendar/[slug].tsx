@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
 import { trackPublic } from '@/lib/analytics';
+import { TelemetryService } from '@/services/telemetry';
 import { notify } from '@/lib/confirm';
 import {
   addDays,
@@ -429,7 +430,10 @@ export default function AgendarOnline() {
     });
     setSending(false);
     if (e) {
-      trackPublic(slug, 'public_booking_failed', { error: bookingErrorKind(e) });
+      const kind = bookingErrorKind(e);
+      trackPublic(slug, 'public_booking_failed', { error: kind });
+      // Só falhas inesperadas; nunca a mensagem crua nem o que a cliente digitou (o filtro limpa o resto)
+      if (kind === 'other') TelemetryService.captureError(e, { where: 'public_booking', code: e.code });
       setError(bookingError(e));
       // O horário pode ter sido ocupado: atualiza a disponibilidade
       if (/ocupad|indispon/i.test(e.message ?? '') || e.code === '23P01') loadBusy();

@@ -21,7 +21,8 @@
       "permissions": [
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
-      ]
+      ],
+      "package": "com.brunobellard.projeto_app_beleza"
     },
     "web": {
       "bundler": "metro",
@@ -65,7 +66,9 @@
           "color": "#B76E79",
           "defaultChannel": "agendamentos"
         }
-      ]
+      ],
+      "@sentry/react-native",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

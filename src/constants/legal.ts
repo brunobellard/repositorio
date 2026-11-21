@@ -70,8 +70,9 @@ export const PRIVACY: LegalDocument = {
         [
           'identificador de notificações (token de push) do aparelho, quando você ativa os avisos;',
           'registros técnicos de acesso e de erro (data, hora, endereço IP e tipo de dispositivo), mantidos por segurança e pelo prazo exigido pelo Marco Civil da Internet (Lei nº 12.965/2014);',
-          'registros de uso do app: quais telas e ações foram usadas (por exemplo, abrir o formulário de agendamento, concluir um atendimento ou compartilhar o link), quando, quanto tempo levaram, o tipo de aparelho e a versão do app. Esses registros ficam ligados à sua conta e nunca incluem nome, telefone, e-mail, endereço, anotações ou qualquer outro dado das suas clientes, nem textos que você digita;',
-          'na página pública de agendamento: as etapas percorridas (por exemplo, serviços escolhidos e agendamento enviado), de forma anônima, sem nome, WhatsApp, endereço IP nem cookies de rastreamento. Esses registros ficam ligados ao estúdio da página.',
+          'registros de uso do app: quais telas e ações foram usadas (por exemplo, abrir o formulário de agendamento, concluir um atendimento ou compartilhar o link), quando, quanto tempo levaram, o tipo de aparelho e a versão do app. Esses registros ficam ligados à sua conta e nunca incluem nome, telefone, e-mail, endereço, anotações ou qualquer outro dado das suas clientes, nem textos que você digita. Uma cópia desses registros é enviada à ferramenta de análise de uso PostHog (seção 4), identificada apenas pelo código interno da sua conta e pelo plano, sem e-mail, nome ou CPF/CNPJ, sem gravação de tela e sem localização pelo endereço IP;',
+          'relatórios de erro e de desempenho do app, enviados à ferramenta Sentry (seção 4): o tipo e o local do erro no código, o tempo de abertura das telas e das chamadas ao servidor, o modelo e o sistema do aparelho, a versão do app e o código interno da sua conta. Antes do envio, o app remove e-mails, números de documento e de telefone, nomes, endereços e anotações; não são enviados capturas de tela nem textos digitados;',
+          'na página pública de agendamento: as etapas percorridas (por exemplo, serviços escolhidos e agendamento enviado), de forma anônima, sem nome, WhatsApp, endereço IP nem cookies de rastreamento. Esses registros ficam ligados ao estúdio da página e não são enviados ao PostHog. Se a página apresentar um erro, o relatório de erro (sem dados de quem está agendando) pode ser enviado ao Sentry.',
         ],
         'Biometria: o login por digital ou Face ID é feito inteiramente pelo sistema do seu aparelho. Nunca recebemos nem armazenamos sua impressão digital ou imagem do rosto.',
       ],
@@ -85,6 +86,7 @@ export const PRIVACY: LegalDocument = {
           'Gerenciar planos, período de teste e assinaturas: execução de contrato.',
           'Prevenir fraudes, abusos e acessos indevidos, e manter a segurança do serviço: legítimo interesse (art. 7º, IX) e proteção ao crédito, quando aplicável.',
           'Entender como o app é usado (onde as pessoas encontram dificuldade, quais etapas são abandonadas) para melhorar a usabilidade: legítimo interesse (art. 7º, IX), usando apenas os registros de uso descritos acima, sem dados das clientes do estúdio. Você pode se opor a esse uso pelo contato da seção 12.',
+          'Identificar, investigar e corrigir erros e lentidão do app, usando os relatórios de erro e de desempenho descritos acima: legítimo interesse (art. 7º, IX).',
           'Cumprir obrigações legais e regulatórias, como a guarda de registros de acesso e documentos fiscais: cumprimento de obrigação legal (art. 7º, II).',
           'Dados sensíveis registrados em anotações técnicas: tratados somente para a finalidade definida pelo estúdio, que é responsável por obter o consentimento específico da cliente ou por se apoiar em outra hipótese do art. 11 da LGPD.',
         ],
@@ -98,6 +100,8 @@ export const PRIVACY: LegalDocument = {
         [
           'Supabase: banco de dados, autenticação, armazenamento de arquivos e funções do servidor;',
           'Expo (EAS): envio de notificações e hospedagem da versão web e das páginas de agendamento;',
+          'Sentry (Functional Software, Inc.): recebimento dos relatórios de erro e de desempenho do app;',
+          'PostHog (PostHog, Inc.): análise dos registros de uso do app logado, sem dados das clientes do estúdio;',
           'Apple e Google: distribuição do app e, quando houver, processamento das assinaturas pelas lojas;',
           'provedores de pagamento que venham a ser usados para cobrança das assinaturas.',
         ],
@@ -108,7 +112,8 @@ export const PRIVACY: LegalDocument = {
     {
       heading: '5. Transferência internacional',
       body: [
-        'Alguns fornecedores armazenam dados em servidores fora do Brasil. Nesses casos, a transferência segue o art. 33 da LGPD, com cláusulas contratuais e garantias de proteção compatíveis com a lei brasileira.',
+        'Alguns fornecedores armazenam dados em servidores fora do Brasil, principalmente nos Estados Unidos (por exemplo, Supabase, Expo, Sentry e PostHog). Nesses casos, a transferência segue o art. 33 da LGPD, com cláusulas contratuais e garantias de proteção compatíveis com a lei brasileira.',
+        'Para o Sentry e o PostHog, enviamos apenas o mínimo descrito na seção 2: o código interno da conta, o plano e registros técnicos e de uso já sem e-mail, nome, CPF/CNPJ, telefone, endereço ou anotações.',
       ],
     },
     {

@@ -18,9 +18,12 @@ import { effectivePlan, planHas } from '@/hooks/usePlanAccess';
 import { StoreProvider, useStore } from '@/data/store';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { registerForPushAsync, useNotificationNavigation } from '@/services/notifications';
+import { TelemetryService } from '@/services/telemetry';
 import { colors } from '@/theme/colors';
 
 SplashScreen.preventAutoHideAsync();
+// Sentry (erros e desempenho) o quanto antes; sem EXPO_PUBLIC_SENTRY_DSN não faz nada
+TelemetryService.init();
 
 /** Rotas abertas a qualquer pessoa, com ou sem login */
 const PUBLIC_ROUTES = ['agendar', 'termos', 'privacidade', 'redefinir-senha', '+not-found', '_sitemap'];
@@ -150,6 +153,12 @@ function AppStack() {
   }, [loading, isPublic]);
 
   const loggedIn = !!session;
+  // Telemetria: associa a sessão ao id interno da conta e ao plano (nunca e-mail); ao sair, desassocia
+  const userId = session?.user.id ?? null;
+  const plan = profile.id ? effectivePlan(profile) : undefined;
+  useEffect(() => {
+    TelemetryService.identifyUser(userId, plan ? { plan } : undefined);
+  }, [userId, plan]);
   // Conta nova: passa pelos 3 passos iniciais antes de ver a agenda
   // (=== false: perfis antigos no cache, sem o campo, não caem no onboarding)
   const needsOnboarding = loggedIn && !loadingData && profile.onboardingCompleted === false;

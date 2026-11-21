@@ -38,6 +38,7 @@ import {
 } from '@/services/offlineSync';
 import { generateOccurrences, type SeriesScope } from '@/lib/recurrence';
 import { friendlyError, supabase } from '@/lib/supabase';
+import { TelemetryService } from '@/services/telemetry';
 import { DEFAULT_THEME_COLOR } from '@/theme/palette';
 import type {
   Appointment,
@@ -447,6 +448,8 @@ function fail(error: { code?: string; message?: string } | null) {
     );
     return false;
   }
+  // Regras do banco escritas para o usuário (P0001) e conflito de horário (23P01) são esperadas; o resto vai ao Sentry
+  if (error && error.code !== 'P0001' && error.code !== '23P01') TelemetryService.captureError(error, { where: 'store_save', code: error?.code });
   notify('Não foi possível salvar', friendlyError(error));
   return false;
 }
@@ -670,6 +673,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // Qualquer outra falha também mantém a tela como está: aplicar uma carga pela metade
     // zerava a lista que falhou (ex: os pacotes sumiam) e ainda gravava isso no aparelho
     if (firstError) {
+      TelemetryService.captureError(firstError, { where: 'store_reload', code: firstError.code });
       notify('Erro ao carregar dados', friendlyError(firstError));
       return false;
     }
@@ -741,7 +745,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const [item, ...rest] = outboxRef.current;
           const error = await runOp(item.op);
           if (error && isNetworkError(error)) break; // continua offline: tenta depois
-          if (error) dropped.push(`${describeOp(item.op)} (${friendlyError(error)})`);
+          if (error) {
+            dropped.push(`${describeOp(item.op)} (${friendlyError(error)})`);
+            TelemetryService.captureError(error, { where: 'outbox_sync', op: item.op.kind, code: error.code });
+          }
           else sent++;
           writeOutbox(rest);
         }

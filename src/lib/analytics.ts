@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 
 import { isValidEventName, sanitizeProps, type EventProps } from '@/lib/analytics-props';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { TelemetryService } from '@/services/telemetry';
 
 export type { EventProps } from '@/lib/analytics-props';
 
@@ -73,6 +74,8 @@ function schedule() {
 export function track(name: string, props?: EventProps) {
   try {
     if (!isSupabaseConfigured || !isValidEventName(name)) return;
+    // Mesmo evento, mesmas regras: também vai para o PostHog e vira breadcrumb no Sentry (se configurados)
+    TelemetryService.trackEvent(name, props);
     queue.push({
       name,
       props: sanitizeProps(props),
