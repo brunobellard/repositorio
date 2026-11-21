@@ -89,3 +89,24 @@ from appointments group by 1 order by 1;
 - Tabela `app_events` (`account_id`, `name`, `props`, `platform`, `app_version`, `session_id`, `is_public`, `created_at`), só gravação pelo app; leitura no SQL Editor. Retenção de 13 meses com `purge_old_app_events()`.
 - Nomes e propriedades reais diferem um pouco da seção 2: `appointment_edited` existe; `public_details_viewed` não é disparado (use `public_datetime_selected`); todo evento do app leva `queued_s` (atraso da fila).
 - Consultas prontas, uma por pergunta da seção 1: [consultas-eventos.sql](consultas-eventos.sql). Elas excluem a conta de QA (link começando com `qa-`).
+
+## 7. PostHog e Sentry (commits eab8b92 e 8636033, 21/11/2026)
+- O mesmo `track()` manda cada evento do app logado também ao **PostHog** (região US), com o mesmo nome e as mesmas props, identificado pelo id interno da conta e pelo plano (`plan`). Sem gravação de tela, sem autocapture, sem geoip. O app celular só envia depois de uma build nova.
+- O **funil do link público continua só em `app_events`** (não vai ao PostHog): para ele, use a consulta 10 de [consultas-eventos.sql](consultas-eventos.sql).
+- Erros vão ao **Sentry** (não é medição de UX, mas ajuda a explicar abandonos: cruzar `appointment_form_abandoned` com erros na mesma sessão).
+- A Política de Privacidade já cita os dois fornecedores e a transferência internacional (seções 2, 4 e 5).
+
+**Painéis sugeridos no PostHog** (equivalentes às consultas SQL; a conta de QA deve ser filtrada pela propriedade da pessoa ou pelo id):
+| Insight | Tipo no PostHog | Eventos / filtro | Pergunta (seção 1) |
+|---|---|---|---|
+| Conclusão do Novo agendamento | Funil | `appointment_form_opened` → `appointment_saved` (janela 30 min), quebrar por `origin` | UX-03 |
+| O que falta ao tocar em "Agendar" | Tendência | `appointment_save_blocked`, quebrar por `missing` | UX-03 |
+| Tempo para marcar | Tendência (mediana de propriedade) | `appointment_saved`, mediana de `duration_ms` | eficiência |
+| Concluir depois do atendimento | Tendência (mediana) | `appointment_completed`, mediana de `minutes_after_end` | UX-01 |
+| Cancelamentos desfeitos | Tendência | `appointment_status_reverted` × `appointment_status_changed` com `to = cancelado` | UX-02 |
+| Resposta aos pedidos online | Tendência (mediana) | `online_booking_confirmed`, mediana de `minutes_since_request` | UX-07 |
+| Divulgação do link | Funil por pessoa | 1º evento → `booking_link_shared` ou `booking_link_copied` em 7 dias | UX-09 |
+| Retenção | Retenção | evento inicial: qualquer; retorno: `appointment_saved`; semanal | hábito |
+| Plano × uso | Qualquer acima, quebrado por `plan` | — | produto |
+
+**A conferir pelo responsável:** a retenção de dados configurada no PostHog deve bater com os "até 13 meses" da Política (o padrão do PostHog pode ser maior, conforme o plano contratado).
