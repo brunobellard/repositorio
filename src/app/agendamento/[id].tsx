@@ -365,6 +365,12 @@ export default function AgendamentoDetalhe() {
                 {completing === m ? (
                   <ActivityIndicator size="small" color={colors.onPrimary} style={{ marginRight: 6 }} />
                 ) : null}
+                <Text className="text-[14px] font-semibold text-on-primary">{paymentLabels[m]}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Card>
+      ) : null}
 
       {/* Status (controle secundário) */}
       <SectionLabel>Mudar status</SectionLabel>
@@ -389,13 +395,6 @@ export default function AgendamentoDetalhe() {
           );
         })}
       </View>
-
-                <Text className="text-[14px] font-semibold text-on-primary">{paymentLabels[m]}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Card>
-      ) : null}
 
       {appt.status === 'concluido' && income ? (
         <View className="mt-3 flex-row items-center rounded-2xl bg-status-concluido-bg px-4 py-3">
