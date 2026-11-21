@@ -234,7 +234,8 @@ Resta só o campo de digitar a confirmação, nomeado pelo texto de exemplo "EXC
 **Evidência:** produção, 20/11/2026, navegador embutido (conta de teste).
 **Correção:** commit 662c9ee (sessão principal): `Toggle` exige `label` e repassa como `accessibilityLabel`; o passo 2 do primeiro acesso usa o limite do plano no texto ("3 serviços" no Free).
 **Reteste (21/11/2026, produção, conta de teste, árvore de acessibilidade):** Ajustes → `switch "Avisar agendamentos online"`; Horário de funcionamento → `"Segunda aberto"` … `"Domingo aberto"`; Serviços e preços → `"<serviço> ativo"` (8 interruptores, ex.: "Manicure ativo"). ✅
-Não vistos nesta conta (só aparecem em outra situação; nomes conferidos no código): "Aprovação automática" (link online, plano Intermediário), "Região ativa" (atendimento a domicílio), "Entrar com digital/Face ID" (só no celular), "Pausa para almoço" (primeiro acesso).
+Dados do estúdio, com a conta de volta no Pro → `"Aprovação automática"`. ✅
+Não vistos nesta conta (só aparecem em outra situação; nomes conferidos no código): "Região ativa" (atendimento a domicílio), "Entrar com digital/Face ID" (só no celular), "Pausa para almoço" (primeiro acesso).
 **Status:** fechado.
 
 ---
