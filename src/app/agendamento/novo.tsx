@@ -689,7 +689,20 @@ export default function NovoAgendamento() {
         ))}
 
         {/* 3. Data */}
-        <SectionLabel>Data</SectionLabel>
+        {/* "Outra data" fora da faixa: ao fechar o calendário, o navegador devolvia o foco ao botão
+            (último item da faixa) e rolava até o fim, escondendo o dia escolhido (UX-05) */}
+        <View className="flex-row items-end justify-between">
+          <SectionLabel>Data</SectionLabel>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Escolher outra data no calendário"
+            onPress={() => setPickDate(true)}
+            hitSlop={8}
+            className="mb-2 flex-row items-center py-1 active:opacity-60">
+            <Ionicons name="calendar-outline" size={15} color={colors.primaryDark} />
+            <Text className="ml-1 text-[13px] font-medium text-primary-dark">Outra data</Text>
+          </Pressable>
+        </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -725,14 +738,6 @@ export default function NovoAgendamento() {
               </Pressable>
             );
           })}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Escolher outra data no calendário"
-            onPress={() => setPickDate(true)}
-            className="mr-2 w-16 items-center justify-center rounded-2xl border border-dashed border-line bg-surface py-2 active:opacity-70">
-            <Ionicons name="calendar-outline" size={18} color={colors.primaryDark} />
-            <Text className="mt-0.5 text-[11px] font-medium text-primary-dark">Outra data</Text>
-          </Pressable>
           <View className="w-8" />
         </ScrollView>
 

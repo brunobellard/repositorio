@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { CalendarHeader, type CalendarMode } from '@/components/agenda/calendar-header';
@@ -13,6 +13,7 @@ import { confirmAction } from '@/lib/confirm';
 import { GettingStarted } from '@/components/agenda/getting-started';
 import { OnlineRequestsBanner } from '@/components/agenda/online-requests';
 import { ShareLinkButton } from '@/components/share-link-button';
+import { preloadAppointmentRoutes } from '@/lib/preload-routes';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
 import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
@@ -41,6 +42,10 @@ export default function AgendaScreen() {
   const selected = pick.param !== dateParam ? dayFromParam(dateParam) : pick.day;
   const setSelected = (day: Date) => setPick({ param: dateParam, day });
   const [mode, setMode] = useState<CalendarMode>('semana');
+  // Web: baixa em segundo plano o código das telas de agendamento (UX-15)
+  useEffect(() => {
+    preloadAppointmentRoutes();
+  }, []);
 
   const clientsById = new Map(clients.map((c) => [c.id, c]));
 
