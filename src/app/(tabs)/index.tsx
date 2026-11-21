@@ -60,12 +60,20 @@ export default function AgendaScreen() {
     if (!hoursForDay(d, businessHours).isOpen) blockedDays.add(d.toDateString());
   }
 
-  const dayAppts = appointments.filter((a) => isSameDay(new Date(a.startsAt), selected));
+  // Tudo o que ocupa este dia, inclusive o que começou na véspera e passa da meia-noite (BUG-016)
+  const dayStartMs = selected.getTime();
+  const dayEndMs = addDays(selected, 1).getTime();
+  const dayAppts = appointments.filter(
+    (a) => new Date(a.startsAt).getTime() < dayEndMs && new Date(a.endsAt).getTime() > dayStartMs,
+  );
   const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
   const allDayBlock = dayBlocks.find((b) => b.allDay);
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
   // O que o pacote já pagou na venda não entra no "previsto" do dia (só extras e deslocamento)
-  const expected = active.reduce((t, a) => t + amountDue(a, packages), 0);
+  // O valor entra só no dia em que o atendimento começa (não conta duas vezes o que atravessa a meia-noite)
+  const expected = active
+    .filter((a) => isSameDay(new Date(a.startsAt), selected))
+    .reduce((t, a) => t + amountDue(a, packages), 0);
   const dayHours = hoursForDay(selected, businessHours);
   const dayOff = timeOffOn(selected, blocks);
   const closedDay = !dayHours.isOpen || !!dayOff;

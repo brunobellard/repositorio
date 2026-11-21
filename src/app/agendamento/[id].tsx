@@ -19,7 +19,7 @@ import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { requireFeature } from '@/lib/upgrade';
 import { confirmAction, notify } from '@/lib/confirm';
 import { amountDue, availableCredits, packageCovered } from '@/lib/packages';
-import { formatDayTitle, formatDuration, formatTime } from '@/lib/dates';
+import { formatDayTitle, formatDuration, formatTime, isSameDay } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
 import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
 import { colors, paymentLabels, statusInfo } from '@/theme/colors';
@@ -200,7 +200,8 @@ export default function AgendamentoDetalhe() {
           <View>
             <Text className="text-[15px] font-semibold text-ink">{formatDayTitle(start)}</Text>
             <Text className="text-[13px] text-muted">
-              {formatTime(start)} – {formatTime(appt.endsAt)} · {formatDuration(duration)}
+              {formatTime(start)} – {formatTime(appt.endsAt)}
+              {isSameDay(start, new Date(appt.endsAt)) ? '' : ' do dia seguinte'} · {formatDuration(duration)}
             </Text>
           </View>
           <StatusPill status={appt.status} size="md" />
