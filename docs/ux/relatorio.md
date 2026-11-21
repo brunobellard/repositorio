@@ -178,3 +178,12 @@ Conta de teste, tela 375×812 no navegador embutido. Nada foi salvo nem apagado;
 | UX-18 | ✅ Cancelado: "Atendimento cancelado: lembretes e confirmação não se aplicam." e "Mudar status" disponível. |
 | UX-19 | ✅ A linha da hora atual passa por trás do cartão; o nome não parece mais riscado. |
 | UX-20 | ✅ Campo lido como "Observações (opcional)" (código e árvore de acessibilidade). |
+
+## Reteste das correções finais e da medição (21/11/2026, commit faab3b2)
+| Item | Resultado |
+|---|---|
+| Financeiro em 375 px | ✅ Título "Financeiro" em uma linha; "Exportar" e "Vender pacote" numa linha abaixo ([reteste3-financeiro-titulo-ok.jpg](evidencias/reteste3-financeiro-titulo-ok.jpg)). |
+| BUG-018 | ✅ Ajustes mostra "Aparência e cores · Rosé Antigo"; na tela de Aparência, "Rosé Antigo" aparece marcada. |
+| UX-05 (faixa de dias) | ❌ Continua: depois de escolher 18/12 em "Outra data", o dia fica selecionado, mas a faixa termina no fim (scrollLeft 2009 de 2009, mostrando 22–25/12). Causa provável: ao fechar o calendário, o navegador devolve o foco ao botão "Outra data", que fica no fim da faixa, e rola até ele. |
+| UX-15 (tela em branco) | ⚠️ Medido: tocando no cartão, o cabeçalho "Agendamento" aparece na hora e o conteúdo ~0,3 s depois; abrindo direto pela URL, ~0,7 s depois de a página carregar (~1,2 s no total). Causa: o código da tela (`[id]-….js`) só é baixado no primeiro toque (divisão do código por rota na web). Medição com o painel do navegador oculto; no celular nativo não acontece. |
+| Medição de uso | ✅ Eventos chegando: depois de abrir o Novo agendamento, tocar em "Agendar" vazio e voltar, o app enviou o lote para `app_events` com resposta 201 e a fila do aparelho ficou vazia. Consultas de análise em [consultas-eventos.sql](consultas-eventos.sql). |

@@ -84,3 +84,8 @@ from appointments group by 1 order by 1;
    - só na sessão → pode ser efeito do ambiente de teste; acompanhar;
    - só nos dados → chamar 1–2 usuárias para uma conversa curta e entender.
 3. Depois de cada correção, comparar a métrica antes × depois (ex.: conclusão do Novo agendamento, tempo até concluir).
+
+## 6. Implementado (commit faab3b2, 21/11/2026)
+- Tabela `app_events` (`account_id`, `name`, `props`, `platform`, `app_version`, `session_id`, `is_public`, `created_at`), só gravação pelo app; leitura no SQL Editor. Retenção de 13 meses com `purge_old_app_events()`.
+- Nomes e propriedades reais diferem um pouco da seção 2: `appointment_edited` existe; `public_details_viewed` não é disparado (use `public_datetime_selected`); todo evento do app leva `queued_s` (atraso da fila).
+- Consultas prontas, uma por pergunta da seção 1: [consultas-eventos.sql](consultas-eventos.sql). Elas excluem a conta de QA (link começando com `qa-`).
