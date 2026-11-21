@@ -109,4 +109,4 @@ from appointments group by 1 order by 1;
 | Retenção | Retenção | evento inicial: qualquer; retorno: `appointment_saved`; semanal | hábito |
 | Plano × uso | Qualquer acima, quebrado por `plan` | — | produto |
 
-**A conferir pelo responsável:** a retenção de dados configurada no PostHog deve bater com os "até 13 meses" da Política (o padrão do PostHog pode ser maior, conforme o plano contratado).
+**Retenção (resolvido no commit ee6a7de):** a Política (seção 6) passa a dizer a retenção de cada lugar: banco até 13 meses; PostHog até 12 meses (plano grátis, sem ajuste; a limpeza mensal pode levar até ~2 meses a mais); Sentry até 90 dias. Ao excluir a conta, a função `delete-account` apaga também a pessoa e os eventos no PostHog. **Pendente do responsável:** cadastrar os segredos `POSTHOG_PERSONAL_API_KEY` e `POSTHOG_PROJECT_ID` da função e publicar a web com a Política nova.
