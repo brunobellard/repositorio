@@ -124,7 +124,7 @@ Esforço: P = pequeno (horas), M = médio (1–3 dias), G = grande.
 4. **P2** priorizado pelo que o teste confirmar.
 
 ## Encaminhado à sessão principal
-Aprovado pelo responsável em 21/11/2026: os 8 itens P1 (marcados). Os demais esperam o teste com usuárias.
+Aprovado pelo responsável em 21/11/2026: os 8 itens P1 e, depois, os 5 itens P2 (marcados). Os P3 esperam o teste com usuárias.
 - [x] UX-01 Botão principal "Concluir e receber" no detalhe do agendamento
 - [x] UX-02 Desfazer (ou confirmar) ao cancelar; motivo opcional
 - [x] UX-03 Dizer o que falta ao tocar em "Agendar" (e nos outros formulários)
@@ -133,11 +133,11 @@ Aprovado pelo responsável em 21/11/2026: os 8 itens P1 (marcados). Os demais es
 - [x] UX-13 Validar WhatsApp da nova cliente criada no agendamento
 - [x] UX-08 Ícone de status nos cartões curtos
 - [x] UX-17 Voltar para o dia do agendamento salvo
-- [ ] UX-09 "Compartilhar meu link"
-- [ ] UX-05 "Outra data" com calendário
-- [ ] UX-06 Sugerir próximo horário livre
-- [ ] UX-11 Melhorias do Financeiro
-- [ ] UX-10 Primeiros passos + remover exemplos
+- [x] UX-09 "Compartilhar meu link"
+- [x] UX-05 "Outra data" com calendário
+- [x] UX-06 Sugerir próximo horário livre
+- [x] UX-11 Melhorias do Financeiro
+- [x] UX-10 Primeiros passos + remover exemplos
 - [ ] Severidade 1 (UX-12, 14, 15, 16, filtros)
 - [ ] Instrumentação de eventos (metricas.md, opção A)
 
