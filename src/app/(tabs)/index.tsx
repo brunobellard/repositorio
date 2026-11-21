@@ -158,7 +158,12 @@ export default function AgendaScreen() {
             <Ionicons name="moon-outline" size={18} color={colors.muted} />
             <View className="ml-2 flex-1">
               <Text className="text-[14px] font-semibold text-ink">{allDayBlock.reason ?? 'Dia bloqueado'}</Text>
-              <Text className="text-xs text-muted">Dia inteiro sem atendimentos · toque para liberar</Text>
+              <Text className="text-xs text-muted">
+                {/* Pode haver atendimento neste dia: o da véspera que passa da meia-noite ou um marcado fora do expediente */}
+                {active.length
+                  ? `${active.length} ${active.length === 1 ? 'atendimento' : 'atendimentos'} mesmo assim · toque para liberar o dia`
+                  : 'Dia inteiro sem atendimentos · toque para liberar'}
+              </Text>
             </View>
           </Pressable>
         ) : !dayHours.isOpen ? (
