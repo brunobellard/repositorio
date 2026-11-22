@@ -497,7 +497,11 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 **Esperado:** texto em português, por exemplo "Sua sessão expirou. Entre de novo.", e, de preferência, renovar a sessão (`refreshSession`) ou levar ao login.
 **Correção sugerida:** tratar `PGRST301`/`PGRST302`/`PGRST303` em `friendlyError` como sessão expirada; no `store_reload`, com esses códigos, tentar `supabase.auth.refreshSession()` antes de avisar.
 **Observação:** na prática acontece com token adulterado ou chave do projeto trocada (rotação de JWT). Um token só vencido é renovado pelo cliente antes da chamada.
-**Status:** aberto (sessão principal).
+**Reteste (22/11/2026, b8ce8ec, produção web, mesmo passo a passo):**
+- Sessão renovável (login novo, 13:42): ✅ as leituras dão 401, o app chama `refreshSession` (200), busca tudo de novo (todas 200) e mostra a agenda sem aviso; nenhum erro vai ao Sentry.
+- Sessão que não renova (refresh token já recusado pelo servidor, `refresh_token_not_found`, 13:39–13:41): ✅ uma única tentativa de renovar (400) e o aviso "Erro ao carregar dados · Sua sessão expirou. Entre de novo."; os dados guardados continuam na tela.
+- Observação: o refresh token da sessão aberta às ~13:31 já estava invalidado no servidor às 13:39, sem saída de conta pelo app. Causa não identificada (pode ser login em outro lugar); não se repetiu com a sessão nova.
+**Status:** fechado.
 
 ---
 
@@ -562,6 +566,8 @@ As três camadas ficam: no app, `infer_ip: never` e `ip_address: null` (2a52e73)
 Resto (22/11, evento fac14e87): nos breadcrumbs, a chave `__span` (não termina em "id") ainda leva "[numero]" em alguns valores (ex.: `8a58a[numero]ea`, `bf98a[numero]`). Não gera "Processing Error": é só referência do breadcrumb. Melhoria: incluir `__span` nas chaves de id. Ver também: `js_no_source`, sem source maps da web.
 
 Reteste do resto (22/11, af4d41c, evento das 13:33, erro controlado): ✅ nenhum "[numero]" no JSON do evento; os `__span` vêm inteiros. Source maps da web (5e7baab): ainda não estão no ar (produção serve o build das 10:24, gerado sem mapas); retestar o stack trace com `src/…` no próximo deploy feito com `npm run export:web`.
+
+Source maps da web retestados (22/11, deploy b8ce8ec via `npm run export:web`, evento das 13:41): ✅ o stack trace mostra o código original (`src/services/telemetry.ts:81` em `toError`, `src/data/store.tsx:690` em `reload`, a linha do `captureError` de `store_reload`). O `.js.map` não é servido (a URL cai no fallback da SPA e devolve a página inicial).
 **Status:** fechado.
 
 ---
