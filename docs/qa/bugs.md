@@ -532,7 +532,19 @@ A opção impede guardar o IP, mas a localização é calculada antes, a partir 
 2. Ou no Sentry: regra em Advanced Data Scrubbing para remover `$user.geo`, como reforço.
 
 Depois, repetir o erro controlado e conferir que Geography some.
-**Status:** aberto (sessão Logs & Analytics).
+**Tentativa 2:** commit 2a52e73 (sessão Logs & Analytics), `user.ip_address = null` no scrubEvent e no setUser.
+**Reteste (22/11/2026, ~10:15, evento fac14e87, JSON bruto enviado pelo usuário):**
+- `sdk.settings.infer_ip = "never"`: a correção do app chegou ✅.
+- O `user` veio sem `ip_address` ✅.
+- Mesmo assim: `"user": {"id": "05ee8f63-…", "geo": {"country_code": "BR", "city": "Ubatuba", "subdivision": "São Paulo", "region": "Brazil"}}`. ❌
+
+Conclusão: o próprio Sentry calcula a localização no servidor a partir do IP da conexão, mesmo com `infer_ip: never` e "Prevent Storing of IP Addresses". O IP não é guardado, mas a cidade fica. O app não tem mais o que fazer.
+**Próximo passo (painel do Sentry, usuário):** Project Settings > Security & Privacy > Advanced Data Scrubbing > Add Rule: Method **Remove**, Data Type **Anything**, Source **`$user.geo.**`**. Depois, repetir o erro controlado.
+Se o Sentry não remover a geo nem assim: aceitar e citar na Política (seção 2) que o Sentry registra a cidade aproximada a partir da conexão, sem guardar o IP.
+**Correção 3 (22/11, usuário, painel do Sentry):** regra em Project Settings > Security & Privacy > Advanced Data Scrubbing: dataset "Errors, Transactions, Attachments", Method Remove, Data Type Anything, Source `$user.geo.**`.
+**Reteste (22/11/2026, ~10:21):** erro controlado de novo (envelope 200; token devolvido, app normal). O usuário conferiu o evento novo: `user` sem `geo`, só o id. ✅
+As três camadas ficam: no app, `infer_ip: never` e `ip_address: null` (2a52e73); no Sentry, "Prevent Storing of IP Addresses" e a regra que remove `$user.geo`.
+**Status:** fechado.
 
 ---
 
@@ -547,6 +559,7 @@ Depois, repetir o erro controlado e conferir que Geography some.
 - No Sentry, evento d82f8829 (2º do issue "Erro PGRST301"): sem o aviso "Processing Error" ao lado do ID; Trace ID completo (`48abb677…452b0`), sem "[numero]"; usuário só com o UUID. ✅
 - No celular, a correção só chega na próxima build.
 
+Resto (22/11, evento fac14e87): nos breadcrumbs, a chave `__span` (não termina em "id") ainda leva "[numero]" em alguns valores (ex.: `8a58a[numero]ea`, `bf98a[numero]`). Não gera "Processing Error": é só referência do breadcrumb. Melhoria: incluir `__span` nas chaves de id. Ver também: `js_no_source`, sem source maps da web.
 **Status:** fechado.
 
 ---
