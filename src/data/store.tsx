@@ -511,6 +511,9 @@ async function runOp(op: OutboxOp): Promise<{ code?: string; message?: string } 
   }
 }
 
+/** Erros de token do PostgREST: o banco não aceitou o login guardado */
+const isAuthTokenError = (e: { code?: string }) => e.code === 'PGRST301' || e.code === 'PGRST302' || e.code === 'PGRST303';
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -640,7 +643,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!userId) return false;
     // Atendimentos e lançamentos: só a janela recente, a não ser que o histórico completo já tenha sido pedido
     const since = fullHistory.current ? null : historyWindowStart();
-    const [p, s, c, a, b, t, m, h, pk, ar, ch] = await Promise.all([
+    const fetchEverything = () => Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       fetchAll(() => supabase.from('services').select('*').order('name').order('id')),
       fetchAll(() => supabase.from('clients').select('*').order('name').order('id')),
@@ -665,9 +668,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Sem a função (migração pendente): resumo vazio, o app usa só os 12 meses carregados
       supabase.rpc('client_history_summary'),
     ]);
+    const errorOf = (r: Awaited<ReturnType<typeof fetchEverything>>) =>
+      [r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[8]].find((x) => x.error)?.error;
+    let results = await fetchEverything();
+    // Login recusado pelo banco (token inválido/vencido): renova a sessão uma vez e busca de novo (BUG-022).
+    // Não sai da conta sozinho: sair apagaria a fila de alterações feitas sem internet.
+    const authError = errorOf(results);
+    if (authError && isAuthTokenError(authError) && activeUser.current === userId) {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (!refreshError) results = await fetchEverything();
+    }
+    const [p, s, c, a, b, t, m, h, pk, ar, ch] = results;
     // Saiu ou trocou de conta enquanto carregava: descarta (não mistura dados de contas diferentes)
     if (activeUser.current !== userId) return false;
-    const firstError = [p, s, c, a, b, t, m, pk].find((r) => r.error)?.error;
+    const firstError = errorOf(results);
     // Sem internet: não mexe nos dados da tela (o cache continua valendo)
     if (firstError && isNetworkError(firstError)) return false;
     // Qualquer outra falha também mantém a tela como está: aplicar uma carga pela metade

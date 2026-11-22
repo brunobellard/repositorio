@@ -70,6 +70,10 @@ export function friendlyError(error: { code?: string; message?: string } | null 
       return 'Esta conta está bloqueada. Fale com o suporte.';
     case 'otp_expired':
       return 'O link expirou. Peça um novo e-mail.';
+    // Token de acesso inválido ou vencido recusado pelo banco (PostgREST), ex.: chave do projeto trocada (BUG-022)
+    case 'PGRST301':
+    case 'PGRST302':
+    case 'PGRST303':
     case 'session_expired':
     case 'session_not_found':
     case 'refresh_token_not_found':
