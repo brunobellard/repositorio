@@ -156,9 +156,11 @@ function AppStack() {
   // Telemetria: associa a sessão ao id interno da conta e ao plano (nunca e-mail); ao sair, desassocia
   const userId = session?.user.id ?? null;
   const plan = profile.id ? effectivePlan(profile) : undefined;
+  // Contas de QA (link "qa-…") entram na coorte de teste do PostHog e saem dos painéis de uso real
+  const isTestAccount = !!profile.id && (profile.slug ?? '').toLowerCase().startsWith('qa-');
   useEffect(() => {
-    TelemetryService.identifyUser(userId, plan ? { plan } : undefined);
-  }, [userId, plan]);
+    TelemetryService.identifyUser(userId, plan ? { plan, ...(isTestAccount ? { isTestAccount } : {}) } : undefined);
+  }, [userId, plan, isTestAccount]);
   // Conta nova: passa pelos 3 passos iniciais antes de ver a agenda
   // (=== false: perfis antigos no cache, sem o campo, não caem no onboarding)
   const needsOnboarding = loggedIn && !loadingData && profile.onboardingCompleted === false;

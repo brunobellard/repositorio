@@ -36,6 +36,12 @@ let identifiedAs: string | null = null;
 export interface UserTraits {
   /** Plano em vigor (free, basic, intermediate, enterprise) */
   plan?: string;
+  /**
+   * Conta interna ou de teste (link do estúdio começando com "qa-"). Só o PostHog recebe, como
+   * $internal_or_test_user: true, para a coorte "Internal / Test users" filtrar os painéis.
+   * Contas reais não mandam nada (nem false).
+   */
+  isTestAccount?: boolean;
   [key: string]: string | number | boolean | null | undefined;
 }
 
@@ -109,13 +115,15 @@ export const TelemetryService = {
         posthog?.reset();
         return;
       }
-      const props = safeProps({ ...traits, platform, app_version: appVersion });
+      const { isTestAccount, ...rest } = traits ?? {};
+      const props = safeProps({ ...rest, platform, app_version: appVersion });
       if (sentryOn) {
         Sentry.setUser({ id: userId });
         if (typeof props.plan === 'string') Sentry.setTag('plan', props.plan);
       }
       const ph = getPostHog();
-      if (ph) ph.identify(userId, { $set: props });
+      // Propriedade reservada do PostHog (com "$", que o safeProps não deixa passar): só o booleano true
+      if (ph) ph.identify(userId, { $set: isTestAccount === true ? { ...props, $internal_or_test_user: true } : props });
       identifiedAs = userId;
     } catch {
       // ignora
