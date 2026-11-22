@@ -25,7 +25,7 @@ const MAX_TEXT = 500;
 // Identificadores técnicos (trace_id, span_id, event_id…): hexadecimal de 16 a 32 caracteres ou UUID.
 // Passam intactos, senão o LONG_NUMBER estraga os dígitos e o Sentry rejeita o trace (BUG-024).
 // Telefone, CPF ou CNPJ não têm esse formato (no máximo 14 dígitos).
-const ID_KEY = /(^|_)id$/i;
+const ID_KEY = /(^|_)(id|span)$/i; // inclui o __span dos breadcrumbs
 const HEX_ID = /^([0-9a-f]{16,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
 /** Troca e-mails, documentos, telefones, tokens e filtros de URL por marcadores. */

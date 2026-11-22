@@ -66,6 +66,9 @@ describe('telemetria sem dados sensíveis', () => {
       trace: { trace_id: '4bf92f3577b34da6a3ce929d0e0e4736', span_id: '979ed12345678d01', parent_span_id: '00f067aa0ba902b7' },
       app: { client_id: '[numero]' },
     });
+    expect(scrubBreadcrumb({ category: 'fetch', data: { __span: '8a58a12345678eab' } })?.data).toEqual({
+      __span: '8a58a12345678eab',
+    });
   });
 
   it('evento do Sentry: usuário só com id, sem request/cookies/IP, textos e extras limpos', () => {
