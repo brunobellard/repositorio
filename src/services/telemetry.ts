@@ -28,6 +28,13 @@ const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posth
 const platform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
 const appVersion = Constants.expoConfig?.version ?? undefined;
 
+// Build de produção servido no próprio computador (npx expo serve, localhost): conta como desenvolvimento,
+// para os erros de testes locais não se misturarem com os de produção no Sentry.
+const isLocalWeb =
+  platform === 'web' &&
+  typeof window !== 'undefined' &&
+  /^(localhost|127\.0\.0\.1|\[::1\]|.+\.localhost)$/.test(window.location?.hostname ?? '');
+
 let started = false;
 let sentryOn = false;
 let posthog: PostHog | null = null;
@@ -85,7 +92,7 @@ export const TelemetryService = {
       if (!SENTRY_DSN) return;
       Sentry.init({
         dsn: SENTRY_DSN,
-        environment: __DEV__ ? 'development' : 'production',
+        environment: __DEV__ || isLocalWeb ? 'development' : 'production',
         sendDefaultPii: false, // sem IP, cookies nem dados do usuário automáticos
         tracesSampleRate: __DEV__ ? 1 : 0.2, // desempenho: 20% das sessões em produção
         attachScreenshot: false, // a tela pode mostrar dados das clientes
