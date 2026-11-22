@@ -91,7 +91,7 @@ from appointments group by 1 order by 1;
 - Consultas prontas, uma por pergunta da seção 1: [consultas-eventos.sql](consultas-eventos.sql). Elas excluem a conta de QA (link começando com `qa-`).
 
 ## 7. PostHog e Sentry (commits eab8b92 e 8636033, 21/11/2026)
-- O mesmo `track()` manda cada evento do app logado também ao **PostHog** (região US), com o mesmo nome e as mesmas props, identificado pelo id interno da conta e pelo plano (`plan`). Sem gravação de tela, sem autocapture, sem geoip. O app celular só envia depois de uma build nova.
+- O mesmo `track()` manda cada evento do app logado também ao **PostHog** (região US), com o mesmo nome e as mesmas props, identificado pelo id interno da conta e pelo plano (`plan`). Sem gravação de tela, sem autocapture, sem geoip. Desde 22/11 o Android (build preview) também envia; separe web e Android pela propriedade `platform` ou `$os`. O projeto descarta o IP dos eventos (Settings › Privacy › Discard client IP data, ligado em 22/11).
 - O **funil do link público continua só em `app_events`** (não vai ao PostHog): para ele, use a consulta 10 de [consultas-eventos.sql](consultas-eventos.sql).
 - Erros vão ao **Sentry** (não é medição de UX, mas ajuda a explicar abandonos: cruzar `appointment_form_abandoned` com erros na mesma sessão).
 - A Política de Privacidade já cita os dois fornecedores e a transferência internacional (seções 2, 4 e 5).
