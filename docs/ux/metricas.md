@@ -110,3 +110,21 @@ from appointments group by 1 order by 1;
 | Plano × uso | Qualquer acima, quebrado por `plan` | — | produto |
 
 **Retenção (resolvido no commit ee6a7de):** a Política (seção 6) passa a dizer a retenção de cada lugar: banco até 13 meses; PostHog até 12 meses (plano grátis, sem ajuste; a limpeza mensal pode levar até ~2 meses a mais); Sentry até 90 dias. Ao excluir a conta, a função `delete-account` apaga também a pessoa e os eventos no PostHog. **Pendente do responsável:** cadastrar os segredos `POSTHOG_PERSONAL_API_KEY` e `POSTHOG_PROJECT_ID` da função e publicar a web com a Política nova.
+
+### Painel criado no PostHog (22/11/2026)
+**UX — Agenda Beleza** (projeto padrão, US): https://us.posthog.com/project/757373/dashboard/2395715 — 9 gráficos, todos com "filtrar contas de teste" ligado.
+
+| Gráfico | Tipo | Período | O que olhar |
+|---|---|---|---|
+| Conclusão do Novo agendamento | Funil por sessão (abrir → salvar em 30 min), por `origin` | 30 dias | Meta ≥ 85% (UX-03) |
+| O que falta ao tocar em Agendar | Barras por `missing` | 30 dias | Campo que mais trava (UX-03) |
+| Tempo para marcar um horário | Linha semanal, mediana e p90 de `duration_ms` em segundos | 90 dias | Mediana ≤ 60 s |
+| Concluir depois do atendimento | Linha semanal, mediana de `minutes_after_end` | 90 dias | > 120 min = esquecem de concluir (UX-01); valor negativo = concluído antes do fim |
+| Cancelamentos e desfeitos | Barras semanais | 90 dias | Desfeitos > 3% dos cancelados (UX-02) |
+| Resposta aos pedidos do link | Linha semanal, mediana de `minutes_since_request` | 90 dias | > 240 min (UX-07) |
+| Divulgação do link | Barras por `place` (profissionais que copiaram ou compartilharam) | 30 dias | Onde o botão é usado (UX-09) |
+| Uso por plano e aparelho | Barras semanais por `plan` e `$os` | 90 dias | Uso por plano; web × Android |
+| Retenção semanal de quem agenda | Retenção (1º agendamento → volta a agendar) | 60 dias | Hábito |
+
+**Conferido na criação:** os 9 rodam sem erro. Por enquanto só há eventos de teste (ex.: funil 6 → 1 por sessão; conclusão com medianas negativas porque o QA concluiu atendimentos futuros).
+**A corrigir pelo responsável:** o filtro de contas de teste do projeto (coorte 746789) **não exclui a conta de QA** — os eventos dela aparecem no painel. Incluir a conta de QA nessa coorte (Pessoas › Coortes) para os números reais não se misturarem com os testes.
