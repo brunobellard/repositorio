@@ -127,4 +127,4 @@ from appointments group by 1 order by 1;
 | Retenção semanal de quem agenda | Retenção (1º agendamento → volta a agendar) | 60 dias | Hábito |
 
 **Conferido na criação:** os 9 rodam sem erro. Por enquanto só há eventos de teste (ex.: funil 6 → 1 por sessão; conclusão com medianas negativas porque o QA concluiu atendimentos futuros).
-**A corrigir pelo responsável:** o filtro de contas de teste do projeto (coorte 746789) **não exclui a conta de QA** — os eventos dela aparecem no painel. Incluir a conta de QA nessa coorte (Pessoas › Coortes) para os números reais não se misturarem com os testes.
+**Contas de teste (corrigido em 22/11):** a coorte "Internal / Test users" (746789) usa a propriedade de pessoa `$internal_or_test_user = true`. Ela foi marcada na pessoa da conta de QA (estúdio `qa-estudio`) e a coorte recalculada (1 pessoa); o painel deixou de contar os eventos dela. Ainda aparecem eventos de 2 contas descartáveis já excluídas, até o PostHog terminar de apagá-los. **Contas de teste novas** (ex.: descartáveis do QA) precisam ser marcadas do mesmo jeito: Pessoas › a pessoa › propriedade `$internal_or_test_user` = true.
