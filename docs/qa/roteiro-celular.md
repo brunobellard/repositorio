@@ -57,3 +57,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11, web) Apagar dados de uma cliente com histórico → consegue cadastrar outra (removidas não contam).
 - [x] ✅ (20/11, web) Conta nova com Dados do estúdio vazios → Carregar dados de exemplo → Dados do estúdio continuam vazios e o link público não mostra endereço (BUG-006); nenhum exemplo no domingo nem fora do expediente (BUG-010).
 - [x] ✅ (20/11, web) Carregar dados de exemplo duas vezes → 2ª vez: "Exemplos já carregados" (a confirmação aparece antes do aviso: melhoria).
+
+## H. Telemetria (próxima build EAS instalada)
+- [ ] CT-TEL-11 Provocar um erro controlado no app instalado (como provocar: combinar com a sessão Logs & Analytics) → no Sentry, o evento chega com platform nativa (android/ios), `user` só com id, `ip_address` null e sem geo, e o stack trace mostra `src/…`.
+- [ ] CT-TEL-07 (mobile) O mesmo evento não tem e-mail, nome nem telefone e traz a tag `where`.

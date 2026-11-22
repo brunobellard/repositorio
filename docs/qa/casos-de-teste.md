@@ -150,4 +150,6 @@
 | CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ✅ web (22/11, evento chegou sem dados pessoais; achados BUG-023 e BUG-024); mobile ⬜ |
 | CT-TEL-08 | Conta com link "qa-…" marcada como teste no PostHog (118de57) | `$set` com `$internal_or_test_user: true`; conta real sem a propriedade | P2 | M (web) | ✅ conta qa-estudio (22/11); conta real não testada (o código só acrescenta com "qa-") |
 | CT-TEL-09 | Web em localhost vai ao Sentry como "development" (2617e53) | localhost → development; domínio de produção → production | P3 | M (web) | ✅ produção = production (eventos de 22/11); localhost conferido pela sessão Logs & Analytics |
+| CT-TEL-10 | Web: erro no Sentry com source maps (`npm run export:web`, 5e7baab) | Stack trace com `src/…` e linhas do código original; `.js.map` não servido pelo site | P2 | M (web) | ✅ (22/11, evento das 13:41: `src/data/store.tsx:690`) |
+| CT-TEL-11 | Android/iOS (próxima build EAS): erro controlado no Sentry | platform nativa; user só com id, `ip_address` null, sem geo; stack trace com `src/…` (mapas nativos enviados no EAS Build) | P2 | M (Android/iOS) | ⬜ aguarda build nova |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |
