@@ -195,3 +195,16 @@ Conta de teste, tela 375×812 no navegador embutido. Nada foi salvo nem apagado;
 | UX-15 | ✅ Saindo da Agenda: os arquivos do detalhe e do Novo agendamento são baixados ~2,5 s depois que a Agenda abre; tocando no cartão, o conteúdo aparece em ~50 ms (antes, ~300 ms com a tela em branco). Abrindo o detalhe direto pela URL, o intervalo continua (aceito: caso raro e só na web). |
 
 **Situação:** todos os itens do relatório (P1, P2, P3, UX-18 a 20, BUG-018) e a medição de uso estão em produção e conferidos. Próximo passo: teste com as profissionais ([plano-teste-usabilidade.md](plano-teste-usabilidade.md)) e as consultas de [consultas-eventos.sql](consultas-eventos.sql) quando houver uso real.
+
+## Medição de uso: privacidade e exclusão de conta (22/11/2026)
+Com os eventos indo também ao PostHog e os erros ao Sentry (commits eab8b92, 8636033 e ee6a7de), foi conferido que a promessa da Política de Privacidade vale na prática.
+
+| Verificação | Resultado |
+|---|---|
+| Política no ar (`/privacidade`) | ✅ "Última atualização: 21 de novembro de 2026". A seção 6 traz a retenção de cada lugar: banco até 13 meses; PostHog até 12 meses (+ limpeza mensal); Sentry até 90 dias. |
+| Segredos da função `delete-account` | ✅ `POSTHOG_PERSONAL_API_KEY` e `POSTHOG_PROJECT_ID` cadastrados (21/11, 14:20 UTC). A primeira chave dava 401 (BUG-021); trocada por uma com escrita em pessoas, só no projeto padrão. |
+| Função publicada | ✅ `delete-account` versão 5, publicada 21/11 às 14:20:54 UTC, depois do código novo. |
+| Exclusão apaga no PostHog (CT-TEL-04, QA) | ✅ Conta descartável: eventos enviados, pessoa encontrada em Persons, exclusão com resposta 200, pessoa removida de Persons. Os eventos são apagados pelo PostHog em segundo plano. |
+| Nada sobra no banco | ✅ VAL-17 (dados sem perfil) = 0 e VAL-18 (perfil sem login) = 0, rodadas em produção em transação somente leitura. |
+
+Detalhes do teste em `docs/qa/bugs.md` (BUG-021) e no caso CT-TEL-04.
