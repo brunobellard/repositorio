@@ -148,4 +148,6 @@
 | CT-TEL-05 | PostHog descarta o IP (Settings > Privacy > Discard client IP data, 22/11) | Evento novo, depois de 22/11, sem `$ip` nas propriedades guardadas, na web e no Android | P1 | M (PostHog) | ✅ (22/11, conferido pelo usuário: evento novo sem $ip) |
 | CT-TEL-06 | Android (build preview): eventos no PostHog | distinct_id = UUID; $geoip_disable; sem dados pessoais | P1 | M (Android) | ✅ (22/11, conferido pela sessão Logs & Analytics: 28 eventos, 2 aparelhos) |
 | CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ✅ web (22/11, evento chegou sem dados pessoais; achados BUG-023 e BUG-024); mobile ⬜ |
+| CT-TEL-08 | Conta com link "qa-…" marcada como teste no PostHog (118de57) | `$set` com `$internal_or_test_user: true`; conta real sem a propriedade | P2 | M (web) | ✅ conta qa-estudio (22/11); conta real não testada (o código só acrescenta com "qa-") |
+| CT-TEL-09 | Web em localhost vai ao Sentry como "development" (2617e53) | localhost → development; domínio de produção → production | P3 | M (web) | ✅ produção = production (eventos de 22/11); localhost conferido pela sessão Logs & Analytics |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

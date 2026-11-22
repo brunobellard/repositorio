@@ -524,7 +524,15 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 **Obtido (22/11/2026, evento 988c0e79):** Contexts > User > Geography = "Ubatuba, Brazil".
 **Esperado:** nem IP nem localização. A Política (seção 2) descreve o que vai ao Sentry e não cita localização; com o PostHog, o IP já é descartado (CT-TEL-05).
 **Correção sugerida:** no Sentry, Settings > Security & Privacy (da organização ou do projeto), ligar "Prevent Storing of IP Addresses". Depois, conferir num evento novo que Geography some.
-**Status:** aberto (usuário / sessão Logs & Analytics).
+**Tentativa 1 (22/11, usuário):** ligado "Prevent Storing of IP Addresses" (organização > Security & Privacy > Data Scrubbing).
+**Reteste (22/11/2026, ~10:05):** erro controlado de novo; evento novo no issue "Erro PGRST301" (Trace ID 87a782…). Contexts > User continua com "Geography: Ubatuba, Brazil (BR)". ❌
+A opção impede guardar o IP, mas a localização é calculada antes, a partir do IP da conexão, e fica no evento.
+**Próximos passos sugeridos:**
+1. No código (sessão Logs & Analytics): `Sentry.setUser({ id, ip_address: null })`. Em eventos `javascript`, o Sentry só deduz o IP da conexão quando `ip_address` não vem no evento. Com null, ele não deduz, e sem IP não há localização.
+2. Ou no Sentry: regra em Advanced Data Scrubbing para remover `$user.geo`, como reforço.
+
+Depois, repetir o erro controlado e conferir que Geography some.
+**Status:** aberto (sessão Logs & Analytics).
 
 ---
 
