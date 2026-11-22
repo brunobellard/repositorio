@@ -79,7 +79,9 @@ describe('telemetria sem dados sensíveis', () => {
       breadcrumbs: [{ category: 'touch', message: 'Ana' }, { category: 'event', message: 'appointment_saved' }],
       server_name: 'meu-pc',
     });
-    expect(ev.user).toEqual({ id: 'uuid-1' });
+    expect(ev.user).toEqual({ id: 'uuid-1', ip_address: null });
+    // Sem login também: o Sentry não pode deduzir o IP da conexão (BUG-023)
+    expect(scrubEvent<{ message: string; user?: { ip_address?: string | null } }>({ message: 'x' }).user).toEqual({ ip_address: null });
     expect(ev.request).toEqual({ url: 'https://app/agendar/estudio' });
     expect(ev.server_name).toBeUndefined();
     expect(ev.message).toBe('erro com [email]');

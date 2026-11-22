@@ -125,7 +125,7 @@ export const TelemetryService = {
       const { isTestAccount, ...rest } = traits ?? {};
       const props = safeProps({ ...rest, platform, app_version: appVersion });
       if (sentryOn) {
-        Sentry.setUser({ id: userId });
+        Sentry.setUser({ id: userId, ip_address: null }); // null: o Sentry não deduz o IP nem a cidade
         if (typeof props.plan === 'string') Sentry.setTag('plan', props.plan);
       }
       const ph = getPostHog();

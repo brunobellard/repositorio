@@ -84,7 +84,7 @@ export interface ScrubBreadcrumb {
 
 interface ScrubEvent {
   message?: string;
-  user?: { id?: string | number };
+  user?: { id?: string | number; ip_address?: string | null };
   request?: { url?: string };
   exception?: { values?: { value?: string }[] };
   extra?: Record<string, unknown>;
@@ -114,8 +114,9 @@ export function scrubBreadcrumb<T extends ScrubBreadcrumb>(b: T): T | null {
 
 /** Evento do Sentry (erro ou transação) limpo antes do envio. Muta e devolve o mesmo objeto. */
 export function scrubEvent<T extends ScrubEvent>(event: T): T {
-  // Usuário: só o id interno da conta (nada de e-mail, nome ou IP)
-  event.user = event.user?.id != null ? { id: event.user.id } : undefined;
+  // Usuário: só o id interno da conta (nada de e-mail, nome ou IP). ip_address: null explícito, mesmo
+  // sem login: sem ele, o Sentry deduz o IP da conexão e calcula a cidade (BUG-023)
+  event.user = event.user?.id != null ? { id: event.user.id, ip_address: null } : { ip_address: null };
   if (event.request) {
     event.request = { url: event.request.url ? scrubUrl(event.request.url) : undefined };
   }
