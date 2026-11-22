@@ -147,5 +147,5 @@
 | CT-TEL-04 | Excluir a conta apaga a pessoa e os eventos no PostHog | Pessoa some de Persons; conta excluída mesmo se o PostHog falhar | P1 | M (web) | ✅ (21/11, depois do BUG-021: pessoa sumiu de Persons; VAL-17/18 = 0 em 22/11) |
 | CT-TEL-05 | PostHog descarta o IP (Settings > Privacy > Discard client IP data, 22/11) | Evento novo, depois de 22/11, sem `$ip` nas propriedades guardadas, na web e no Android | P1 | M (PostHog) | ✅ (22/11, conferido pelo usuário: evento novo sem $ip) |
 | CT-TEL-06 | Android (build preview): eventos no PostHog | distinct_id = UUID; $geoip_disable; sem dados pessoais | P1 | M (Android) | ✅ (22/11, conferido pela sessão Logs & Analytics: 28 eventos, 2 aparelhos) |
-| CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ⬜ |
+| CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ✅ web (22/11, evento chegou sem dados pessoais; achados BUG-023 e BUG-024); mobile ⬜ |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

@@ -483,6 +483,60 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 
 ---
 
+## BUG-022 · Baixa · Token de acesso inválido mostra erro técnico em inglês ("No suitable key or wrong key type")
+**Onde:** `src/lib/supabase.ts`, `friendlyError`. Os erros de JWT do PostgREST (`PGRST301` inválido, `PGRST303` expirado) não estão no `switch` e caem no `return error.message`, em inglês.
+**Passos (22/11/2026, produção web, navegador embutido, conta de teste):**
+1. Logada, alterar só a assinatura do `access_token` guardado (`sb-…-auth-token`), mantendo o refresh token.
+2. Recarregar a página.
+
+**Obtido:**
+- Todas as leituras e gravações do carregamento dão 401.
+- O app mantém a tela com os dados guardados (certo) e mostra o aviso "Erro ao carregar dados · No suitable key or wrong key type".
+- Não pede para entrar de novo nem tenta renovar a sessão.
+
+**Esperado:** texto em português, por exemplo "Sua sessão expirou. Entre de novo.", e, de preferência, renovar a sessão (`refreshSession`) ou levar ao login.
+**Correção sugerida:** tratar `PGRST301`/`PGRST302`/`PGRST303` em `friendlyError` como sessão expirada; no `store_reload`, com esses códigos, tentar `supabase.auth.refreshSession()` antes de avisar.
+**Observação:** na prática acontece com token adulterado ou chave do projeto trocada (rotação de JWT). Um token só vencido é renovado pelo cliente antes da chamada.
+**Status:** aberto (sessão principal).
+
+---
+
+## CT-TEL-07 · Erro real chegando ao Sentry (web) · 22/11/2026
+- Mesmo teste do BUG-022: o carregamento falhou com 401 e o app chamou `captureError(…, { where: "store_reload", code })`.
+- O navegador enviou um envelope a `https://o…ingest.de.sentry.io/api/…/envelope/` (região UE), com resposta 200. ✅
+- O token original foi devolvido e a página recarregada: carregamento normal, sem nenhum 401. A sessão continuou válida.
+- **Conferido pelo usuário no Sentry (Issues, evento 988c0e79):**
+  - título "Erro PGRST301 · No suitable key or wrong key type", nível error, `handled: yes`;
+  - tags `where: store_reload`, `plan: pro`, `platform: web`, `environment: production`, `release: 1.0.0`;
+  - usuário só com o id 05ee8f63-…; dado extra só `code: PGRST301`;
+  - breadcrumbs com as chamadas 401 ao Supabase (URLs com o id da conta, sem dados de clientes);
+  - sem e-mail, nome ou telefone. ✅
+- **Achados no evento:**
+  - BUG-023: localização pelo IP (Ubatuba).
+  - BUG-024: span_id estragado pelo filtro.
+  - O stack trace está minificado (`__common-….js`): sem source maps da web. O 8636033 cuida só das builds nativas.
+- Mobile: não testado (precisa de build com o Sentry nativo).
+
+---
+
+## BUG-023 · Baixa · Sentry guarda a localização pelo IP ("Ubatuba, Brazil")
+**Onde:** configurações do projeto no Sentry (não é código). `sendDefaultPii: false` não impede o Sentry de calcular a localização pelo IP de quem envia.
+**Obtido (22/11/2026, evento 988c0e79):** Contexts > User > Geography = "Ubatuba, Brazil".
+**Esperado:** nem IP nem localização. A Política (seção 2) descreve o que vai ao Sentry e não cita localização; com o PostHog, o IP já é descartado (CT-TEL-05).
+**Correção sugerida:** no Sentry, Settings > Security & Privacy (da organização ou do projeto), ligar "Prevent Storing of IP Addresses". Depois, conferir num evento novo que Geography some.
+**Status:** aberto (usuário / sessão Logs & Analytics).
+
+---
+
+## BUG-024 · Baixa · O filtro de dados estraga o id do trace no Sentry ("Processing Error")
+**Onde:** `src/lib/telemetry-scrub.ts`, l.116–125 e l.33. `scrubEvent` passa `scrubValue` em todos os `event.contexts`, inclusive `contexts.trace` (span_id e trace_id em hexadecimal), e a regra de números longos troca trechos com 8 ou mais dígitos por "[numero]".
+**Obtido (22/11/2026, evento 988c0e79):** "Event Processing Errors: Discarded invalid value · contexts.trace.span_id · 979ed[numero]d · not a valid span id". O erro fica sem ligação com o trace de desempenho.
+**Esperado:** ids técnicos (trace_id, span_id, parent_span_id, event_id) passam sem filtro.
+**Correção sugerida:** pular `contexts.trace` (ou as chaves `*_id` em hexadecimal) no `scrubValue` e incluir um teste em `__tests__/unit/telemetry-scrub-test.ts` com um span_id como "979ed12345678d".
+**Status:** aberto (sessão Logs & Analytics).
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅
