@@ -93,7 +93,7 @@ from appointments group by 1 order by 1;
 ## 7. PostHog e Sentry (commits eab8b92 e 8636033, 21/11/2026)
 - O mesmo `track()` manda cada evento do app logado também ao **PostHog** (região US), com o mesmo nome e as mesmas props, identificado pelo id interno da conta e pelo plano (`plan`). Sem gravação de tela, sem autocapture, sem geoip. Desde 22/11 o Android (build preview) também envia; separe web e Android pela propriedade `platform` ou `$os`. O projeto descarta o IP dos eventos (Settings › Privacy › Discard client IP data, ligado em 22/11).
 - O **funil do link público continua só em `app_events`** (não vai ao PostHog): para ele, use a consulta 10 de [consultas-eventos.sql](consultas-eventos.sql).
-- Erros vão ao **Sentry** (não é medição de UX, mas ajuda a explicar abandonos: cruzar `appointment_form_abandoned` com erros na mesma sessão).
+- Erros vão ao **Sentry** (não é medição de UX, mas ajuda a explicar abandonos: cruzar `appointment_form_abandoned` com erros na mesma sessão). Chegam sem dados de cliente, sem IP e sem cidade; os erros da web mostram o código original (source maps), e os da web em localhost vêm como `development`, separados da produção. No celular, o primeiro erro real ainda será conferido na próxima build.
 - A Política de Privacidade já cita os dois fornecedores e a transferência internacional (seções 2, 4 e 5).
 
 **Painéis sugeridos no PostHog** (equivalentes às consultas SQL; a conta de QA deve ser filtrada pela propriedade da pessoa ou pelo id):
@@ -109,7 +109,7 @@ from appointments group by 1 order by 1;
 | Retenção | Retenção | evento inicial: qualquer; retorno: `appointment_saved`; semanal | hábito |
 | Plano × uso | Qualquer acima, quebrado por `plan` | — | produto |
 
-**Retenção (resolvido no commit ee6a7de):** a Política (seção 6) passa a dizer a retenção de cada lugar: banco até 13 meses; PostHog até 12 meses (plano grátis, sem ajuste; a limpeza mensal pode levar até ~2 meses a mais); Sentry até 90 dias. Ao excluir a conta, a função `delete-account` apaga também a pessoa e os eventos no PostHog. **Pendente do responsável:** cadastrar os segredos `POSTHOG_PERSONAL_API_KEY` e `POSTHOG_PROJECT_ID` da função e publicar a web com a Política nova.
+**Retenção (resolvido no commit ee6a7de):** a Política (seção 6) passa a dizer a retenção de cada lugar: banco até 13 meses; PostHog até 12 meses (plano grátis, sem ajuste; a limpeza mensal pode levar até ~2 meses a mais); Sentry até 90 dias. Ao excluir a conta, a função `delete-account` apaga também a pessoa e os eventos no PostHog. Os segredos da função estão cadastrados, e a exclusão foi testada em produção em 22/11: a pessoa e os eventos dela somem do PostHog.
 
 ### Painel criado no PostHog (22/11/2026)
 **UX — Agenda Beleza** (projeto padrão, US): https://us.posthog.com/project/757373/dashboard/2395715 — 9 gráficos, todos com "filtrar contas de teste" ligado.
