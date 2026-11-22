@@ -476,6 +476,7 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 - O usuário achou a pessoa em Persons.
 - Ajustes > Dados do estúdio > Excluir minha conta > EXCLUIR → `delete-account` 200 e volta ao login.
 - O usuário recarregou Persons: a pessoa sumiu. ✅
+- SQL depois das duas exclusões (22/11, pelo usuário): VAL-17 (dados sem perfil) = 0 e VAL-18 (perfil sem login) = 0. ✅
 - Os eventos o PostHog apaga em segundo plano.
 
 **Status:** fechado.

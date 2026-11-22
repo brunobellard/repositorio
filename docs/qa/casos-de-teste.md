@@ -144,5 +144,5 @@
 | CT-TEL-01 | Link público e tela de login sem conta | Nenhuma chamada a *.posthog.com nem ao Sentry | P1 | M (web) | ✅ (21/11) |
 | CT-TEL-02 | Payload do PostHog com login (/batch, identify) | distinct_id = UUID da conta; $geoip_disable true; sem e-mail, nome, telefone, CPF ou texto digitado | P1 | M (web) | ✅ (21/11) |
 | CT-TEL-03 | Sair da conta | Nenhum evento enviado ao PostHog depois | P1 | M (web) | ✅ (21/11, depois do BUG-020: sem /flags e nada depois de sair) |
-| CT-TEL-04 | Excluir a conta apaga a pessoa e os eventos no PostHog | Pessoa some de Persons; conta excluída mesmo se o PostHog falhar | P1 | M (web) | ✅ (21/11, depois do BUG-021: pessoa sumiu de Persons) |
+| CT-TEL-04 | Excluir a conta apaga a pessoa e os eventos no PostHog | Pessoa some de Persons; conta excluída mesmo se o PostHog falhar | P1 | M (web) | ✅ (21/11, depois do BUG-021: pessoa sumiu de Persons; VAL-17/18 = 0 em 22/11) |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |
