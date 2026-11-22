@@ -22,6 +22,12 @@ const URL_QUERY = /(https?:\/\/[^\s?#"']+)[?#][^\s"']*/g;
 
 const MAX_TEXT = 500;
 
+// Identificadores técnicos (trace_id, span_id, event_id…): hexadecimal de 16 a 32 caracteres ou UUID.
+// Passam intactos, senão o LONG_NUMBER estraga os dígitos e o Sentry rejeita o trace (BUG-024).
+// Telefone, CPF ou CNPJ não têm esse formato (no máximo 14 dígitos).
+const ID_KEY = /(^|_)id$/i;
+const HEX_ID = /^([0-9a-f]{16,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
 /** Troca e-mails, documentos, telefones, tokens e filtros de URL por marcadores. */
 export function scrubText(text: string): string {
   return text
@@ -48,6 +54,10 @@ export function scrubValue(value: unknown, depth = 0): unknown {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       if (isSensitiveKey(k)) continue;
+      if (ID_KEY.test(k) && typeof v === 'string' && HEX_ID.test(v)) {
+        out[k] = v;
+        continue;
+      }
       out[k] = /url$/i.test(k) && typeof v === 'string' ? scrubUrl(v) : scrubValue(v, depth + 1);
     }
     return out;

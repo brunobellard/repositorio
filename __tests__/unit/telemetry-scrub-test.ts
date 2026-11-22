@@ -55,6 +55,19 @@ describe('telemetria sem dados sensíveis', () => {
     expect(b?.data).toEqual({ url: 'https://x.supabase.co/rest/v1/clients', method: 'GET' });
   });
 
+  it('mantém ids de trace e span intactos, mas não números com chave de id (BUG-024)', () => {
+    const ev = scrubEvent({
+      contexts: {
+        trace: { trace_id: '4bf92f3577b34da6a3ce929d0e0e4736', span_id: '979ed12345678d01', parent_span_id: '00f067aa0ba902b7' },
+        app: { client_id: '(11) 98765-4321' },
+      },
+    });
+    expect(ev.contexts).toEqual({
+      trace: { trace_id: '4bf92f3577b34da6a3ce929d0e0e4736', span_id: '979ed12345678d01', parent_span_id: '00f067aa0ba902b7' },
+      app: { client_id: '[numero]' },
+    });
+  });
+
   it('evento do Sentry: usuário só com id, sem request/cookies/IP, textos e extras limpos', () => {
     const ev = scrubEvent({
       message: 'erro com joao@x.com',
