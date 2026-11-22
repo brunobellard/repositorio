@@ -560,6 +560,8 @@ As três camadas ficam: no app, `infer_ip: never` e `ip_address: null` (2a52e73)
 - No celular, a correção só chega na próxima build.
 
 Resto (22/11, evento fac14e87): nos breadcrumbs, a chave `__span` (não termina em "id") ainda leva "[numero]" em alguns valores (ex.: `8a58a[numero]ea`, `bf98a[numero]`). Não gera "Processing Error": é só referência do breadcrumb. Melhoria: incluir `__span` nas chaves de id. Ver também: `js_no_source`, sem source maps da web.
+
+Reteste do resto (22/11, af4d41c, evento das 13:33, erro controlado): ✅ nenhum "[numero]" no JSON do evento; os `__span` vêm inteiros. Source maps da web (5e7baab): ainda não estão no ar (produção serve o build das 10:24, gerado sem mapas); retestar o stack trace com `src/…` no próximo deploy feito com `npm run export:web`.
 **Status:** fechado.
 
 ---
