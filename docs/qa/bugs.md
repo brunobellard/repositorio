@@ -533,7 +533,13 @@ Produção web, navegador embutido, conta de teste. Registrador de `fetch`/XHR/s
 **Obtido (22/11/2026, evento 988c0e79):** "Event Processing Errors: Discarded invalid value · contexts.trace.span_id · 979ed[numero]d · not a valid span id". O erro fica sem ligação com o trace de desempenho.
 **Esperado:** ids técnicos (trace_id, span_id, parent_span_id, event_id) passam sem filtro.
 **Correção sugerida:** pular `contexts.trace` (ou as chaves `*_id` em hexadecimal) no `scrubValue` e incluir um teste em `__tests__/unit/telemetry-scrub-test.ts` com um span_id como "979ed12345678d".
-**Status:** aberto (sessão Logs & Analytics).
+**Correção:** commit 5b8d380 (sessão Logs & Analytics). Chaves terminadas em "id" passam sem filtro quando o valor é hexadecimal de 16 a 32 caracteres ou UUID. Teste novo; 87 unitários ✅.
+**Reteste (22/11/2026, produção web):**
+- Mesmo erro controlado (assinatura do access_token alterada, recarga, token devolvido) às 09:47. Envelope ao Sentry com status 200.
+- No Sentry, evento d82f8829 (2º do issue "Erro PGRST301"): sem o aviso "Processing Error" ao lado do ID; Trace ID completo (`48abb677…452b0`), sem "[numero]"; usuário só com o UUID. ✅
+- No celular, a correção só chega na próxima build.
+
+**Status:** fechado.
 
 ---
 

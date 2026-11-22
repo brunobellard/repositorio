@@ -30,7 +30,12 @@ Interface no celular: ver [.maestro/README.md](../../.maestro/README.md).
 ## Criar a conta de teste (uma vez)
 1. No site ou no app, **Criar conta** com um e-mail só para testes (ex.: `seuemail+qa@gmail.com`) e uma senha gerada pelo gerenciador de senhas. Confirmar o e-mail se pedido.
 2. Primeiro acesso: estúdio **"QA Estúdio"**, fuso America/Sao_Paulo, aceitar os Termos. Não carregar dados reais.
-3. Ajustes > Link de agendamento: escolher um link como `qa-estudio-teste` (é o `QA_STUDIO_SLUG`).
+   O **link de agendamento precisa começar com `qa-`** já no primeiro acesso. Com o nome "QA Estúdio", o link sugerido já sai `qa-estudio`.
+3. Ajustes > Link de agendamento: confira que o link começa com `qa-` (ex.: `qa-estudio`). Ele é o `QA_STUDIO_SLUG`.
+
+**Por que `qa-`:** com o link começando por `qa-`, o app manda ao PostHog `$internal_or_test_user: true`, e a conta sai dos painéis de uso real (coorte "Internal / Test users"). Contas reais não mandam essa marca, e o Sentry não recebe nada dela.
+- Vale também para **contas descartáveis**: no primeiro acesso, use um nome que gere o link `qa-…` (ex.: "QA Descartável") ou digite o link à mão.
+- Se o link for trocado para `qa-…` depois, o app marca a conta de novo, mas os eventos de antes da troca ficam fora do filtro.
 4. SQL Editor: deixar o plano Pro ativo de vez (senão vira Free quando o teste grátis de 14 dias acabar e os casos de pacote/link são pulados):
    ```sql
    update profiles set plan_tier = 'pro', subscription_status = 'active'
