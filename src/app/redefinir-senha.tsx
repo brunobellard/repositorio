@@ -6,6 +6,7 @@ import { ActivityIndicator, Platform, ScrollView, Text, View } from 'react-nativ
 import { Button, Field } from '@/components/ui';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { colors } from '@/theme/colors';
+import { AppLogo } from '@/components/app-logo';
 
 type Phase = 'checking' | 'form' | 'done' | 'invalid';
 
@@ -63,8 +64,8 @@ export default function RedefinirSenha() {
       <Stack.Screen options={{ title: 'Redefinir senha' }} />
       <View className="w-full max-w-[420px] self-center">
         <View className="mb-6 items-center">
-          <View className="mb-3 h-14 w-14 items-center justify-center rounded-3xl bg-primary">
-            <Text className="text-2xl">💅</Text>
+          <View className="mb-3">
+            <AppLogo size={56} />
           </View>
           <Text className="text-[22px] font-bold tracking-tight text-ink">Esmero</Text>
         </View>

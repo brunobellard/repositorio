@@ -8,6 +8,7 @@ import { LEGAL_INFO, type LegalDocument } from '@/constants/legal';
 import { useAuth } from '@/data/auth';
 import { useStore } from '@/data/store';
 import { colors } from '@/theme/colors';
+import { AppLogo } from '@/components/app-logo';
 
 /** Abre os Termos ou a Política dentro do app (rota pública, com ou sem login). */
 export function openLegal(kind: 'terms' | 'privacy') {
@@ -83,9 +84,7 @@ export function LegalPage({ doc, current }: { doc: LegalDocument; current: 'term
                 <Ionicons name="chevron-back" size={24} color={colors.ink} />
               </Pressable>
             ) : null}
-            <View className="h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <Text className="text-lg">💅</Text>
-            </View>
+            <AppLogo size={36} />
             <Text className="ml-2.5 flex-1 text-[16px] font-bold text-ink">{LEGAL_INFO.appName}</Text>
             <Link
               href={{ pathname: current === 'terms' ? '/privacidade' : '/termos', params: from ? { from } : {} }}

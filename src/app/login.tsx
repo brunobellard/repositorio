@@ -9,6 +9,7 @@ import { useAuth } from '@/data/auth';
 import { useBiometricLock } from '@/data/biometric-lock';
 import { isValidEmail } from '@/lib/format';
 import { takeNextLoginMode } from '@/lib/login-mode';
+import { AppLogo } from '@/components/app-logo';
 
 export default function Login() {
   const { signIn, signUp } = useAuth();
@@ -55,8 +56,8 @@ export default function Login() {
         contentContainerStyle={{ padding: 24, paddingTop: insets.top + 48, flexGrow: 1 }}
         keyboardShouldPersistTaps="handled">
         <View className="mb-8 items-center">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-3xl bg-primary">
-            <Text className="text-3xl">💅</Text>
+          <View className="mb-4">
+            <AppLogo size={64} />
           </View>
           <Text className="text-[28px] font-bold tracking-tight text-ink">Esmero</Text>
           <Text className="mt-1 text-center text-[14px] text-muted">
