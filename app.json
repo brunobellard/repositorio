@@ -8,12 +8,11 @@
     "scheme": "projetoappbeleza",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.brunobellard.projetoappbeleza"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F7EBED",
+        "backgroundColor": "#C5768E",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -37,7 +36,7 @@
         {
           "backgroundColor": "#FAF8F6",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 120
         }
       ],
       [

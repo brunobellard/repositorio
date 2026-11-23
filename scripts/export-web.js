@@ -48,7 +48,8 @@ function listMaps(dir) {
 }
 
 // 1. Web com source maps
-run('expo/bin/cli', ['export', '--platform', 'web', '--source-maps'], process.env);
+// --clear: sem ele, o cache do Metro pode manter o app.json antigo embutido na web (ex.: nome do app antes da troca)
+run('expo/bin/cli', ['export', '--platform', 'web', '--source-maps', '--clear'], process.env);
 
 // 2. Envio ao Sentry
 const token = process.env.SENTRY_AUTH_TOKEN || fromEnvLocal('SENTRY_AUTH_TOKEN');
