@@ -575,3 +575,13 @@ Source maps da web retestados (22/11, deploy b8ce8ec via `npm run export:web`, e
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅
+
+---
+
+## Regressão: app renomeado para Esmero (commit ae3be2e) · 23/11/2026
+Produção web, navegador embutido, conta de teste.
+- Sem login: título da aba, login, redefinição de senha, /termos e /privacidade mostram "Esmero"; o link público (qa-estudio) não mostra nome do app. ✅
+- Código publicado: PRODID do .ics = `-//Esmero//PT-BR` e UID segue `…@agenda-beleza` (de propósito); rodapé do relatório = "Gerado pelo Esmero em …". ✅
+- Com login: agenda, clientes, financeiro e ajustes sem "Agenda Beleza". O cache `agenda-beleza:cache:v1:<id>` continua sendo usado (chaves não mudaram). A fila offline usa as mesmas chaves; ela foi testada no Android em 22/11 (CT-OFF-02/03) e o commit não mexe no store. ✅
+- Exportar o financeiro: não deu para abrir na conta de teste (plano Intermediário; o relatório é do Empresarial). O texto do rodapé foi conferido no código publicado.
+- Observação (baixa, invisível): o manifesto embutido no código da web (`Constants.manifest`/`expoConfig`) ainda traz `name`, `web.name` e `web.shortName` = "Agenda Beleza", embora o app.json diga "Esmero". Nenhuma tela usa esses campos. Provável config em cache no export. Repassado à sessão principal.
