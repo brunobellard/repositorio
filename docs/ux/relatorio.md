@@ -1,4 +1,4 @@
-# Relatório de UX — Agenda Beleza
+# Relatório de UX — Esmero
 
 **Data:** 21/11/2026 · **Base:** [avaliação heurística](avaliacao-heuristica.md) (Nielsen + ABNT NBR ISO 9241-11 + NBR 17060), achados de QA (`docs/qa/`) e percurso em produção com a conta de teste. **Ainda sem sessões com usuárias**: as severidades são hipóteses a confirmar com o [plano de teste](plano-teste-usabilidade.md); depois, medir com os [eventos propostos](metricas.md).
 

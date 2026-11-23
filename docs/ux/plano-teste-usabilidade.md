@@ -13,7 +13,7 @@
 **Critérios (todas):**
 - Trabalha com beleza (manicure, lash, sobrancelha, cabelo, estética) e atende pelo menos 15 clientes por mês.
 - Marca horários hoje por WhatsApp, caderno, agenda do celular ou outro app.
-- Usa o próprio celular todo dia. Não conhece o Agenda Beleza (nem participou do desenvolvimento).
+- Usa o próprio celular todo dia. Não conhece o Esmero (nem participou do desenvolvimento).
 
 **Misturar, se der:** 1 que atende a domicílio; 1 que usa outro app de agenda; 1 com Android simples; 1 acima de 40 anos.
 
@@ -119,9 +119,9 @@ Ler o cenário em voz alta e entregar o celular. Cronometrar **do fim da leitura
 4. Quanto pagaria por mês por isso? (só para orientar o produto)
 
 ## 8. Termo de consentimento (LGPD)
-> **Termo de participação em teste do app Agenda Beleza**
+> **Termo de participação em teste do app Esmero**
 >
-> Eu, ______________________, aceito participar de um teste de uso do app Agenda Beleza, de responsabilidade de DataCore Intelligence (CNPJ 68.947.841/0001-44).
+> Eu, ______________________, aceito participar de um teste de uso do app Esmero, de responsabilidade de DataCore Intelligence (CNPJ 68.947.841/0001-44).
 >
 > 1. **O que vai acontecer:** vou usar o app em tarefas do dia a dia, falando em voz alta o que penso, por cerca de 50 minutos.
 > 2. **O que será gravado:** a tela do celular e o áudio. Meu rosto não será gravado.

@@ -1,5 +1,5 @@
 -- =====================================================================
--- Agenda Beleza — Consultas de análise dos eventos de uso (somente leitura)
+-- Esmero — Consultas de análise dos eventos de uso (somente leitura)
 -- Base: docs/ux/metricas.md · tabela app_events (migração 20261207000000_eventos_de_uso.sql)
 --
 -- Como usar: Supabase Dashboard > SQL Editor > colar UMA consulta por vez e executar.

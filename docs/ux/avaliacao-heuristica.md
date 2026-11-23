@@ -1,4 +1,4 @@
-# Avaliação heurística — Agenda Beleza
+# Avaliação heurística — Esmero
 
 **Data:** 21/11/2026 · **Avaliador:** sessão de UX (1 avaliador; recomenda-se repetir com mais 2 pessoas para cobrir ~75% dos problemas, segundo Nielsen)
 **Versão avaliada:** produção (https://projeto-app-beleza.expo.app), commit `8577ac6`, conta de teste com dados de exemplo, tela de celular 375×812 no navegador embutido + leitura do código em `src/app/` e `src/components/`.

@@ -1,4 +1,4 @@
-# UX — Agenda Beleza
+# UX — Esmero
 
 | Documento | Para quê |
 |---|---|
