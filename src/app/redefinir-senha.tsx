@@ -66,7 +66,7 @@ export default function RedefinirSenha() {
           <View className="mb-3 h-14 w-14 items-center justify-center rounded-3xl bg-primary">
             <Text className="text-2xl">💅</Text>
           </View>
-          <Text className="text-[22px] font-bold tracking-tight text-ink">Agenda Beleza</Text>
+          <Text className="text-[22px] font-bold tracking-tight text-ink">Esmero</Text>
         </View>
 
         {phase === 'checking' ? (

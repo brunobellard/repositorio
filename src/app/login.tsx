@@ -58,7 +58,7 @@ export default function Login() {
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-3xl bg-primary">
             <Text className="text-3xl">💅</Text>
           </View>
-          <Text className="text-[28px] font-bold tracking-tight text-ink">Agenda Beleza</Text>
+          <Text className="text-[28px] font-bold tracking-tight text-ink">Esmero</Text>
           <Text className="mt-1 text-center text-[14px] text-muted">
             Agenda, clientes e financeiro do seu estúdio em um só lugar
           </Text>

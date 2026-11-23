@@ -249,7 +249,7 @@ function financeHtml(d: FinanceData, p: Period): string {
     <tfoot><tr><td colspan="4">Resultado do período</td><td class="r">${formatBRL(s.gross - s.expenses)}</td><td class="r">${formatBRL(s.fees)}</td><td class="r">${formatBRL(s.profit)}</td></tr></tfoot>
   </table>
 
-  <div class="foot">Gerado pelo Agenda Beleza em ${ddmmyyyy(new Date())}</div>
+  <div class="foot">Gerado pelo Esmero em ${ddmmyyyy(new Date())}</div>
 </body></html>`;
 }
 

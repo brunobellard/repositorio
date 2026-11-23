@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Agenda Beleza",
+    "name": "Esmero",
     "slug": "projeto_app_beleza",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -43,13 +43,13 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Permita que o Agenda Beleza use o Face ID para desbloquear o app."
+          "faceIDPermission": "Permita que o Esmero use o Face ID para desbloquear o app."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permita que o Agenda Beleza acesse suas fotos para escolher o logo do estúdio.",
+          "photosPermission": "Permita que o Esmero acesse suas fotos para escolher o logo do estúdio.",
           "cameraPermission": false,
           "microphonePermission": false
         }
@@ -57,7 +57,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Permita que o Agenda Beleza use o Face ID para desbloquear o app."
+          "faceIDPermission": "Permita que o Esmero use o Face ID para desbloquear o app."
         }
       ],
       "expo-sharing",

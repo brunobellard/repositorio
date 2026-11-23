@@ -177,7 +177,7 @@ function LockScreen({
       <View className="mb-5 h-20 w-20 items-center justify-center rounded-full bg-primary-soft">
         <Ionicons name={support.icon} size={40} color={colors.primaryDark} />
       </View>
-      <Text className="mb-1 text-xl font-semibold text-ink">Agenda Beleza</Text>
+      <Text className="mb-1 text-xl font-semibold text-ink">Esmero</Text>
       <Text className="mb-8 text-center text-[14px] text-muted">
         {failed ? `Não foi possível confirmar sua ${support.label}.` : `Use sua ${support.label} para entrar.`}
       </Text>
