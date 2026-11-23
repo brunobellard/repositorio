@@ -123,7 +123,7 @@
 | CT-OFF-02 | Wi-Fi sem internet | Vai para a fila em vez de perder | P1 | M | ✅ (celular Android, Expo Go, 21/11) |
 | CT-API-06 | Fila envia agendamento + serviços juntos, sem duplicar | 1 agendamento com serviço | P1 | API | ✅ (CI) |
 | CT-API-07 | Fila sem serviço | Recusado | P2 | API | ✅ (CI) |
-| CT-OFF-03 | Item recusado na sincronização | Aviso e some da tela | P2 | M | ⬜ |
+| CT-OFF-03 | Item recusado na sincronização | Aviso e some da tela | P2 | M | ✅ (22/11, Android build 17fcae9: marcado offline em 23/11 14:00, mesmo horário ocupado pela web; ao sincronizar, aviso e o item sumiu) |
 
 ## 9. Segurança e permissões
 | ID | Cenário | Resultado esperado | Pri | Tipo | Status |
@@ -147,9 +147,9 @@
 | CT-TEL-04 | Excluir a conta apaga a pessoa e os eventos no PostHog | Pessoa some de Persons; conta excluída mesmo se o PostHog falhar | P1 | M (web) | ✅ (21/11, depois do BUG-021: pessoa sumiu de Persons; VAL-17/18 = 0 em 22/11) |
 | CT-TEL-05 | PostHog descarta o IP (Settings > Privacy > Discard client IP data, 22/11) | Evento novo, depois de 22/11, sem `$ip` nas propriedades guardadas, na web e no Android | P1 | M (PostHog) | ✅ (22/11, conferido pelo usuário: evento novo sem $ip) |
 | CT-TEL-06 | Android (build preview): eventos no PostHog | distinct_id = UUID; $geoip_disable; sem dados pessoais | P1 | M (Android) | ✅ (22/11, conferido pela sessão Logs & Analytics: 28 eventos, 2 aparelhos) |
-| CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ✅ web (22/11, evento chegou sem dados pessoais; achados BUG-023 e BUG-024); mobile ⬜ |
+| CT-TEL-07 | Sentry recebe um erro real (web e mobile) | Erro chega sem e-mail, nome ou telefone; com tag `where` | P2 | M | ✅ web (22/11, evento chegou sem dados pessoais; achados BUG-023 e BUG-024); ✅ Android (22/11, evento `outbox_sync` do CT-OFF-03, sem dados pessoais) |
 | CT-TEL-08 | Conta com link "qa-…" marcada como teste no PostHog (118de57) | `$set` com `$internal_or_test_user: true`; conta real sem a propriedade | P2 | M (web) | ✅ conta qa-estudio (22/11); conta real não testada (o código só acrescenta com "qa-") |
 | CT-TEL-09 | Web em localhost vai ao Sentry como "development" (2617e53) | localhost → development; domínio de produção → production | P3 | M (web) | ✅ produção = production (eventos de 22/11); localhost conferido pela sessão Logs & Analytics |
 | CT-TEL-10 | Web: erro no Sentry com source maps (`npm run export:web`, 5e7baab) | Stack trace com `src/…` e linhas do código original; `.js.map` não servido pelo site | P2 | M (web) | ✅ (22/11, evento das 13:41: `src/data/store.tsx:690`) |
-| CT-TEL-11 | Android/iOS (próxima build EAS): erro controlado no Sentry | platform nativa; user só com id, `ip_address` null, sem geo; stack trace com `src/…` (mapas nativos enviados no EAS Build) | P2 | M (Android/iOS) | ⬜ aguarda build nova |
+| CT-TEL-11 | Android/iOS (próxima build EAS): erro controlado no Sentry | platform nativa; user só com id, `ip_address` null, sem geo; stack trace com `src/…` (mapas nativos enviados no EAS Build) | P2 | M (Android/iOS) | ✅ Android (22/11, build preview 17fcae9, evento `outbox_sync` do CT-OFF-03); iOS ⬜ |
 | CT-SEG-10 | Rota inexistente no site | Página própria, sem expor o mapa de rotas | P2 | M (web) | ✅ corrigido (local) |

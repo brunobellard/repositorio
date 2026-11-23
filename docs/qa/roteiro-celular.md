@@ -43,7 +43,7 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11) 🔁 CT-OFF-01 Modo avião → criar cliente, criar agendamento, concluir outro → avisos "salvo no aparelho".
 - [x] ✅ (20/11) 🔁 Desligar o modo avião → "Sincronizado com a nuvem" → agendamento aparece com o serviço (conferir VAL-05 = 0).
 - [x] ✅ (21/11, Android) CT-OFF-02 Wi-Fi ligado mas sem internet (roteador sem cabo) → criar agendamento → vai para a fila ("Agendamento salvo no aparelho"; ao religar, "Sincronizado com a nuvem").
-- [ ] CT-OFF-03 Offline, marcar no mesmo horário de um agendamento feito por outro aparelho → ao sincronizar, aviso de conflito e o item some da tela.
+- [x] ✅ (22/11, Android 17fcae9) CT-OFF-03 Offline, marcar no mesmo horário de um agendamento feito por outro aparelho → ao sincronizar, aviso de conflito e o item some da tela.
 
 ## F. Link público (pelo celular de outra pessoa ou aba anônima)
 - [x] ✅ (20/11) 🔁 Escolher 7 serviços → para no 6º com aviso.
@@ -59,5 +59,5 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 - [x] ✅ (20/11, web) Carregar dados de exemplo duas vezes → 2ª vez: "Exemplos já carregados" (a confirmação aparece antes do aviso: melhoria).
 
 ## H. Telemetria (próxima build EAS instalada)
-- [ ] CT-TEL-11 Provocar um erro controlado no app instalado (como provocar: combinar com a sessão Logs & Analytics) → no Sentry, o evento chega com platform nativa (android/ios), `user` só com id, `ip_address` null e sem geo, e o stack trace mostra `src/…`.
-- [ ] CT-TEL-07 (mobile) O mesmo evento não tem e-mail, nome nem telefone e traz a tag `where`.
+- [x] ✅ (22/11, Android 17fcae9) CT-TEL-11 Provocar um erro controlado no app instalado (usar o conflito do CT-OFF-03: o item recusado vai ao Sentry como `outbox_sync`) → no Sentry, o evento chega com platform nativa (android/ios), `user` só com id, `ip_address` null e sem geo, e o stack trace mostra `src/…`.
+- [x] ✅ (22/11, Android) CT-TEL-07 (mobile) O mesmo evento não tem e-mail, nome nem telefone e traz a tag `where`.
