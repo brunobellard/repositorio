@@ -61,3 +61,4 @@ Itens com 🔁 são de **regressão**: repetir a cada versão.
 ## H. Telemetria (próxima build EAS instalada)
 - [x] ✅ (22/11, Android 17fcae9) CT-TEL-11 Provocar um erro controlado no app instalado (usar o conflito do CT-OFF-03: o item recusado vai ao Sentry como `outbox_sync`) → no Sentry, o evento chega com platform nativa (android/ios), `user` só com id, `ip_address` null e sem geo, e o stack trace mostra `src/…`.
 - [x] ✅ (22/11, Android) CT-TEL-07 (mobile) O mesmo evento não tem e-mail, nome nem telefone e traz a tag `where`.
+- [ ] iOS: CT-TEL-11 e CT-TEL-07 no iPhone. ⏸ Pendente: sem conta Apple Developer, sem build de iOS (não é falha). Refazer com o mesmo conflito do CT-OFF-03 quando houver build.
