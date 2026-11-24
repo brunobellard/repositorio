@@ -709,3 +709,36 @@ Web de produção (`entry-576d994c…`), 398 px, conta de teste. Dados criados e
 | 9 | Recibo de horário pendente dizia "Total pago" | ✅ Pendente: "Total R$ 50,00" na tela e "💳 *Total: R$ 50,00*" no WhatsApp, com o aviso "Este atendimento ainda não foi marcado como concluído." Concluído continua "Total pago R$ 35,00" / "*Total pago: R$ 35,00* (Crédito)". |
 
 **Status:** as 9 observações baixas dos testes de 2060753, f2ca6fb e 11931c5 estão fechadas. Segue sem teste apenas a sobreposição lado a lado na grade (não há atendimentos sobrepostos na conta).
+
+## Regressão: nome Bellaflow (00cbec0, 9dd757b) e deslocamento aplicado aos já marcados (f1455a1) · 24/11/2026
+
+Web de produção (`entry-42bf09a3…`, `__common-b8c2943a…`), 398 px, conta de teste (plano Pro, modo Híbrido). SQL `20261211000000_deslocamento_aplicar_marcados.sql` rodado pelo usuário antes do deploy.
+
+### A) Nome Bellaflow
+
+| Item | Resultado |
+|---|---|
+| Título da página | ✅ "Bellaflow" (HTML servido e aba). |
+| Login, redefinir senha, Termos, Privacidade | ✅ Todos mostram "Bellaflow" (Termos e Privacidade também no texto: "uso do Bellaflow", "marca Bellaflow"). |
+| Rodapé do relatório do Financeiro | ⚠️ Não deu para gerar pela tela: na conta de teste (Pro) "Exportar" mostra a oferta do plano Empresarial. O texto "Gerado pelo Bellaflow em" está no bundle publicado (`__common`). |
+| "Esmero" / "Agenda Plena" | ✅ Zero ocorrências no HTML e em todos os JS carregados (runtime, common, entry, layout, login, redefinir-senha, termos, privacidade). No código, só restam em `docs/ux/` e em comentários de migrações antigas (não chegam ao usuário). |
+
+### B) Deslocamento: "Aplicar aos já marcados?"
+
+Estado inicial da conta: Híbrido, "Sem deslocamento", 1 atendimento a domicílio já existente (hoje 15:45, confirmado, de outra cliente). Criei 6 atendimentos a domicílio para a cliente fictícia "QA Telefone Colado" (endereço fictício), sextas e sábados 27–28/11.
+
+| # | Passo | Resultado |
+|---|---|---|
+| 5 | Trocar e escolher "Voltar" | ✅ 0 → 30 min: "Você tem 1 atendimento a domicílio marcado com outro tempo de deslocamento…"; com "Voltar" o ajuste ficou 30 e o atendimento existente seguiu +0. Repetido 30 → 45 com "Voltar": depois do F5 o servidor devolveu 45 min e todos os atendimentos como estavam. |
+| 1 | Criar a domicílio com 30 min | ✅ Formulário mostra "Das 09:00 às 10:00 … + 30 min de deslocamento"; `busy_until` = fim + 30. |
+| 2 | 30 → 15 min + "Aplicar" | ✅ Pergunta com a contagem certa (5: os 4 de teste + o existente), toast "Deslocamento atualizado · 5 atendimentos atualizados." Agenda (Dia, 27/11) mostra "Deslocamento · 15 min" nos dois atendimentos. |
+| 3 | "Sem deslocamento" + "Aplicar" | ✅ Toast "5 atendimentos atualizados."; o bloco "Deslocamento" sumiu da agenda. |
+| 4 | Voltar a 30 min com um atendimento colado (27/11 09:00–10:00 e 10:15) | ✅ Pergunta com 6; toast "5 atendimentos atualizados. 1 ficaram como estavam, porque o novo tempo encostaria no atendimento seguinte." O das 09:00 ficou +0, os outros +30. |
+| 6 | Cancelados, concluídos e passados não mudam | ✅ O cancelado (28/11 16:00) ficou +30 em todas as trocas e nunca entrou na contagem. Concluído e passado não testados na tela (concluir lançaria receita no Financeiro; não havia atendimento a domicílio passado); o filtro está na função (`status in ('pendente','confirmado') and starts_at >= now()`). |
+| 7 | Padrão da coluna `travel_buffer_minutes` = 0 | ⏳ Depende do SQL Editor (sem acesso). Consulta para o usuário: `select column_default from information_schema.columns where table_name='profiles' and column_name='travel_buffer_minutes'` (esperado `0`). |
+
+Limpeza: os 5 atendimentos de teste ativos foram cancelados; o ajuste voltou a "Sem deslocamento" com "Aplicar" (1 atendimento atualizado: o existente voltou a +0); modo Híbrido mantido; o endereço fictício salvo na ficha da cliente de teste foi apagado.
+
+Observações (baixa):
+- Texto da pergunta com "Sem deslocamento": "Quer deixar eles com sem deslocamento também?" (melhor: "Quer deixar eles sem deslocamento também?").
+- Toast com 1 pulado: "1 ficaram como estavam" (singular: "1 ficou como estava").
