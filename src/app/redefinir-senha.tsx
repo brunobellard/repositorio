@@ -67,7 +67,7 @@ export default function RedefinirSenha() {
           <View className="mb-3">
             <AppLogo size={56} />
           </View>
-          <Text className="text-[22px] font-bold tracking-tight text-ink">Esmero</Text>
+          <Text className="text-[22px] font-bold tracking-tight text-ink">Agenda Plena</Text>
         </View>
 
         {phase === 'checking' ? (

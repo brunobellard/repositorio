@@ -60,7 +60,7 @@ export default function ImportarContatos() {
         <EmptyState
           icon="phone-portrait-outline"
           text="Disponível no app do celular"
-          subtitle="Abra o Esmero no Android ou iPhone para escolher contatos da agenda e cadastrar como clientes."
+          subtitle="Abra a Agenda Plena no Android ou iPhone para escolher contatos da agenda e cadastrar como clientes."
         />
       </View>
     );
@@ -84,7 +84,7 @@ export default function ImportarContatos() {
           text={denied ? 'Sem acesso aos contatos' : 'Não deu para ler os contatos'}
           subtitle={
             denied
-              ? 'Para importar, permita que o Esmero leia seus contatos nos ajustes do celular. Ele só lê: nada é alterado na sua agenda.'
+              ? 'Para importar, permita que a Agenda Plena leia seus contatos nos ajustes do celular. Ela só lê: nada é alterado na sua agenda.'
               : 'Tente de novo em instantes.'
           }
           actionLabel={denied ? 'Abrir ajustes do celular' : 'Tentar de novo'}

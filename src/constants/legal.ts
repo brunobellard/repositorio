@@ -4,7 +4,7 @@
 // (razão social, CNPJ e e-mail de contato). Revisão por um advogado é recomendada.
 
 export const LEGAL_INFO = {
-  appName: 'Esmero',
+  appName: 'Agenda Plena',
   /** Razão social ou nome de quem oferece o app (controlador dos dados da conta) */
   company: 'DataCore Intelligence',
   /** CNPJ ou CPF do responsável (deixe vazio para não exibir) */
