@@ -3,9 +3,12 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   busyEndMs,
+  closedRRule,
   generateOccurrences,
+  isOpenEnded,
   MAX_OCCURRENCES,
   seriesTargets,
+  seriesToExtend,
   sessionPosition,
   slotConflict,
   toRRule,
@@ -160,5 +163,53 @@ describe('conflitos de horário', () => {
   it('CT-AGE-10 domicílio novo reserva o deslocamento depois dele', () => {
     const next = appt({ startsAt: local(2030, 3, 4, 10, 15).toISOString(), endsAt: local(2030, 3, 4, 11).toISOString() });
     expect(slotConflict(local(2030, 3, 4, 9), 60, { ...ctx, appointments: [next], travelBufferMin: 30, home: true })).toBe('Horário ocupado');
+  });
+});
+
+describe('série sem data para acabar', () => {
+  const start = local(2030, 3, 4, 10); // segunda
+  const never = rule({ freq: 'weekly', end: { type: 'never' } });
+
+  it('CT-REC-20 cria 1 ano de sessões e salva a regra sem COUNT/UNTIL', () => {
+    const dates = generateOccurrences(start, never);
+    expect(dates).toHaveLength(MAX_OCCURRENCES);
+    expect(dates[dates.length - 1].getTime()).toBeLessThan(start.getTime() + 366 * 86_400_000);
+    const rrule = toRRule(start, never)!;
+    expect(rrule).toBe('FREQ=WEEKLY;INTERVAL=1;BYDAY=MO');
+    expect(isOpenEnded(rrule)).toBe(true);
+    expect(isOpenEnded('FREQ=WEEKLY;INTERVAL=1;COUNT=6')).toBe(false);
+  });
+
+  it('CT-REC-21 estende a série perto do fim, pulando datas ocupadas', () => {
+    const now = local(2030, 3, 1, 9);
+    const last = appt({
+      id: 'last',
+      recurrenceGroupId: 'g1',
+      recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO',
+      startsAt: start.toISOString(),
+      endsAt: local(2030, 3, 4, 11).toISOString(),
+    });
+    // Outro compromisso na segunda seguinte, no mesmo horário
+    const other = appt({ id: 'other', startsAt: local(2030, 3, 11, 10).toISOString(), endsAt: local(2030, 3, 11, 11).toISOString() });
+    const [plan] = seriesToExtend([last, other], { blocks: [], businessHours: weekHours }, now);
+    expect(plan.groupId).toBe('g1');
+    expect(plan.dates[0].getTime()).toBe(local(2030, 3, 18, 10).getTime());
+    expect(plan.dates.every((d) => d.getDay() === 1 && d.getTime() > start.getTime())).toBe(true);
+  });
+
+  it('CT-REC-22 não estende série encerrada, com fim ou ainda longe do fim', () => {
+    const now = local(2030, 3, 1, 9);
+    const base = { recurrenceGroupId: 'g1', startsAt: start.toISOString(), endsAt: local(2030, 3, 4, 11).toISOString() };
+    const ctx = { blocks: [], businessHours: weekHours };
+    expect(seriesToExtend([appt({ ...base, recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO', status: 'cancelado' })], ctx, now)).toEqual([]);
+    expect(seriesToExtend([appt({ ...base, recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;UNTIL=20300304' })], ctx, now)).toEqual([]);
+    const far = local(2030, 12, 2, 10);
+    expect(
+      seriesToExtend([appt({ ...base, recurrenceRule: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO', startsAt: far.toISOString(), endsAt: far.toISOString() })], ctx, now),
+    ).toEqual([]);
+  });
+
+  it('CT-REC-23 encerrar a série troca o fim aberto por UNTIL no dia anterior', () => {
+    expect(closedRRule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO', local(2030, 3, 18, 10))).toBe('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;UNTIL=20300317');
   });
 });

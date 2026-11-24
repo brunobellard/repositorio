@@ -18,11 +18,14 @@ export interface RecurrenceRule {
   /** Só para 'custom': a cada N dias/semanas */
   interval: number;
   unit: 'days' | 'weeks';
-  end: { type: 'count'; count: number } | { type: 'until'; date: Date };
+  /** never = sem data para acabar: cria 1 ano e o app vai criando as próximas sozinho */
+  end: { type: 'count'; count: number } | { type: 'until'; date: Date } | { type: 'never' };
 }
 
 /** Limite de segurança: no máximo 1 ano de sessões. */
 export const MAX_OCCURRENCES = 52;
+/** Série sem fim: quantos dias à frente ficam sempre criados */
+export const OPEN_SERIES_HORIZON_DAYS = 365;
 
 const WEEKDAY_NAMES = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -70,7 +73,12 @@ function stepDays(rule: RecurrenceRule): number | null {
 export function generateOccurrences(start: Date, rule: RecurrenceRule): Date[] {
   if (rule.freq === 'none') return [start];
   const minutes = minutesOfDay(start);
-  const until = rule.end.type === 'until' ? startOfDay(rule.end.date).getTime() + 86_400_000 : Infinity;
+  const until =
+    rule.end.type === 'until'
+      ? startOfDay(rule.end.date).getTime() + 86_400_000
+      : rule.end.type === 'never'
+        ? startOfDay(start).getTime() + OPEN_SERIES_HORIZON_DAYS * 86_400_000
+        : Infinity;
   const count = rule.end.type === 'count' ? Math.min(rule.end.count, MAX_OCCURRENCES) : MAX_OCCURRENCES;
   const withTime = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, minutes);
 
@@ -110,7 +118,7 @@ export function toRRule(start: Date, rule: RecurrenceRule): string | null {
     parts.push('FREQ=MONTHLY', `BYDAY=${weekdayOrdinal(start)}${RRULE_DAYS[start.getDay()]}`);
   }
   if (rule.end.type === 'count') parts.push(`COUNT=${rule.end.count}`);
-  else {
+  else if (rule.end.type === 'until') {
     const u = rule.end.date;
     parts.push(`UNTIL=${u.getFullYear()}${String(u.getMonth() + 1).padStart(2, '0')}${String(u.getDate()).padStart(2, '0')}`);
   }
@@ -157,6 +165,9 @@ const ADJECTIVE: Partial<Record<RecurrenceFreq, string>> = {
 export function summarize(dates: Date[], rule: RecurrenceRule): string {
   if (dates.length <= 1) return 'Só este agendamento será criado.';
   const kind = ADJECTIVE[rule.freq] ?? `(${describeFrequency(dates[0], rule).toLowerCase()})`;
+  if (rule.end.type === 'never') {
+    return `Sem data para acabar: serão criados ${dates.length} agendamentos ${kind} (1 ano, até ${formatDateShort(dates[dates.length - 1])}), e o app cria os próximos sozinho. Para parar, cancele "este e os próximos".`;
+  }
   return `Serão criados ${dates.length} agendamentos ${kind}, de ${formatDateShort(dates[0])} até ${formatDateShort(dates[dates.length - 1])}.`;
 }
 
@@ -271,4 +282,77 @@ export function sessionPosition(appt: Appointment, appointments: Appointment[]):
   const all = seriesOf(appt, appointments);
   if (all.length <= 1) return null;
   return `Sessão ${all.findIndex((a) => a.id === appt.id) + 1} de ${all.length}`;
+}
+
+// ---------------------------------------------------------------------
+// Séries sem fim (sem COUNT nem UNTIL): o app cria as próximas sessões sozinho
+// ---------------------------------------------------------------------
+
+/** A regra salva é "sem data para acabar"? */
+export function isOpenEnded(rrule: string | undefined): boolean {
+  return !!rrule && !/(^|;)(COUNT|UNTIL)=/.test(rrule);
+}
+
+/** Converte o RRULE salvo de volta para a regra da tela (só a frequência; o fim fica "sem fim"). */
+export function parseRRule(rrule: string): RecurrenceRule | null {
+  const p = Object.fromEntries(rrule.split(';').map((kv) => kv.split('=')));
+  const interval = Math.max(1, Number(p.INTERVAL ?? 1));
+  const end = { type: 'never' } as const;
+  if (p.FREQ === 'WEEKLY') return { freq: 'custom', interval, unit: 'weeks', end };
+  if (p.FREQ === 'DAILY') return { freq: 'custom', interval, unit: 'days', end };
+  if (p.FREQ === 'MONTHLY' && p.BYMONTHDAY) return { freq: 'monthly_day', interval: 1, unit: 'days', end };
+  if (p.FREQ === 'MONTHLY') return { freq: 'monthly_weekday', interval: 1, unit: 'days', end };
+  return null;
+}
+
+/** Quando a última sessão criada fica a menos disto de hoje, a série ganha mais um ano */
+export const OPEN_SERIES_EXTEND_WHEN_DAYS = 180;
+
+/**
+ * Séries sem fim que precisam de mais sessões, com as datas a criar (até 1 ano à frente de hoje).
+ * Não estende a série cuja última sessão foi cancelada ("este e os próximos" cancelados = série encerrada).
+ * As datas que já têm outro compromisso ficam de fora (ctx: agenda, bloqueios e expediente).
+ */
+export function seriesToExtend(
+  appointments: Appointment[],
+  ctx: Omit<AvailabilityContext, 'appointments' | 'ignoreIds' | 'home'>,
+  now = new Date(),
+): { groupId: string; dates: Date[] }[] {
+  const latest = new Map<string, Appointment>();
+  for (const a of appointments) {
+    if (!a.recurrenceGroupId) continue;
+    const cur = latest.get(a.recurrenceGroupId);
+    if (!cur || a.startsAt > cur.startsAt) latest.set(a.recurrenceGroupId, a);
+  }
+  const horizon = startOfDay(now).getTime() + OPEN_SERIES_HORIZON_DAYS * 86_400_000;
+  const result: { groupId: string; dates: Date[] }[] = [];
+  for (const [groupId, last] of latest) {
+    if (last.status === 'cancelado' || !isOpenEnded(last.recurrenceRule)) continue;
+    const lastStart = new Date(last.startsAt);
+    if (lastStart.getTime() - now.getTime() > OPEN_SERIES_EXTEND_WHEN_DAYS * 86_400_000) continue;
+    const rule = parseRRule(last.recurrenceRule!);
+    if (!rule) continue;
+    const minutes = (new Date(last.endsAt).getTime() - lastStart.getTime()) / 60_000;
+    const dates = generateOccurrences(lastStart, { ...rule, end: { type: 'until', date: new Date(horizon) } })
+      .slice(1)
+      .filter((d) => d.getTime() > now.getTime())
+      .filter(
+        (d) =>
+          !slotConflict(d, minutes, {
+            ...ctx,
+            appointments,
+            home: last.locationType === 'home_service',
+          }),
+      )
+      .slice(0, MAX_OCCURRENCES);
+    if (dates.length) result.push({ groupId, dates });
+  }
+  return result;
+}
+
+/** Regra da série sem fim encerrada: termina no dia anterior a `from` (as sessões a partir dele saíram). */
+export function closedRRule(rrule: string, from: Date): string {
+  const u = addDays(startOfDay(from), -1);
+  const until = `${u.getFullYear()}${String(u.getMonth() + 1).padStart(2, '0')}${String(u.getDate()).padStart(2, '0')}`;
+  return `${rrule.replace(/;?(COUNT|UNTIL)=[^;]*/g, '')};UNTIL=${until}`;
 }

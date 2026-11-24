@@ -36,7 +36,7 @@ import {
   type OutboxOp,
   type Snapshot,
 } from '@/services/offlineSync';
-import { generateOccurrences, type SeriesScope } from '@/lib/recurrence';
+import { closedRRule, generateOccurrences, isOpenEnded, seriesToExtend, type SeriesScope } from '@/lib/recurrence';
 import { friendlyError, supabase } from '@/lib/supabase';
 import { TelemetryService } from '@/services/telemetry';
 import { DEFAULT_THEME_COLOR } from '@/theme/palette';
@@ -304,6 +304,11 @@ interface Store {
     changes: AppointmentChanges,
     scope: SeriesScope,
   ) => Promise<boolean>;
+  /**
+   * Série sem fim encerrada (cancelou "este e os próximos" ou separou as próximas numa série nova):
+   * a regra das sessões que ficam no grupo ganha UNTIL, e o app não cria mais sessões nela.
+   */
+  closeOpenSeries: (groupId: string, from: Date) => Promise<void>;
   /** Agendamento avulso vira a 1ª sessão de uma série; cria as próximas datas. Devolve quantas criou. */
   extendIntoSeries: (appointmentId: string, nextStarts: string[], recurrenceRule: string) => Promise<number>;
   cancelAppointments: (ids: string[]) => Promise<boolean>;
@@ -788,6 +793,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // "Tentar de novo" em vez de abrir com dados vazios (e pular o primeiro acesso)
   const [failedFor, setFailedFor] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  // Conta já sincronizada com o servidor nesta abertura (para estender as séries sem fim)
+  const [syncedFor, setSyncedFor] = useState<string | null>(null);
 
   // Abertura do app: mostra o cache na hora, depois sincroniza com o Supabase
   useEffect(() => {
@@ -817,11 +824,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       setFailedFor(null);
       setLoadedFor(userId);
+      if (loaded) setSyncedFor(userId);
     })();
     return () => {
       cancelled = true;
     };
   }, [userId, ensureDefaults, reload, applySnapshot, flushOutbox, loadAttempt]);
+
+  // Séries sem data para acabar: depois de sincronizar com o servidor, cria as próximas sessões
+  // das que estão chegando ao fim (uma vez por abertura do app). Erro aqui nunca aparece na tela.
+  const extendedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!userId || syncedFor !== userId || extendedFor.current === userId) return;
+    extendedFor.current = userId;
+    const pending = seriesToExtend(appointments, {
+      blocks,
+      businessHours,
+      travelBufferMin: profile.travelBufferMinutes,
+    });
+    if (!pending.length) return;
+    (async () => {
+      const created: Appointment[] = [];
+      for (const { groupId, dates } of pending) {
+        const { data, error } = await supabase.rpc('continue_series', {
+          p_group: groupId,
+          p_starts_at: dates.map((d) => d.toISOString()),
+        });
+        if (error) {
+          TelemetryService.captureError(error, { where: 'continue_series', code: error.code });
+          continue;
+        }
+        const ids = ((data as any[]) ?? []).map((r) => r.id as string);
+        if (!ids.length) continue;
+        const { data: full } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
+        if (full) created.push(...full.map(toAppointment));
+      }
+      if (created.length && activeUser.current === userId) {
+        setAppointments((list) => [...list.filter((a) => !created.some((c) => c.id === a.id)), ...created]);
+      }
+    })();
+  }, [userId, syncedFor, appointments, blocks, businessHours, profile.travelBufferMinutes]);
 
   // Quando a internet volta: envia a fila e atualiza os dados
   useEffect(() => {
@@ -831,6 +873,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await reload();
     });
   }, [userId, reload, flushOutbox]);
+
+  /** Encerra a série sem fim: as sessões do grupo com a regra aberta passam a ter UNTIL (dia antes de `from`). */
+  async function closeGroupRule(groupId: string, openRule: string, from: Date) {
+    const rule = closedRRule(openRule, from);
+    const { error } = await supabase
+      .from('appointments')
+      .update({ recurrence_rule: rule })
+      .eq('recurrence_group_id', groupId)
+      .eq('recurrence_rule', openRule);
+    if (error) {
+      TelemetryService.captureError(error, { where: 'close_open_series', code: error.code });
+      return;
+    }
+    setAppointments((list) =>
+      list.map((a) => (a.recurrenceGroupId === groupId && a.recurrenceRule === openRule ? { ...a, recurrenceRule: rule } : a)),
+    );
+  }
 
   async function refreshAppointment(id: string) {
     const { data } = await supabase.from('appointments').select(APPT_SELECT).eq('id', id).single();
@@ -1256,7 +1315,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
       const fresh = new Map((data ?? []).map((r) => [r.id as string, toAppointment(r)]));
       setAppointments((list) => list.map((a) => fresh.get(a.id) ?? a));
+      // Série sem fim separada em "este e os próximos": a parte antiga passa a terminar antes desta sessão
+      // (senão o app continuaria criando sessões nela, duplicando as da série nova)
+      const edited = appointments.find((a) => a.id === editedId);
+      if (scope === 'following' && (shiftMs || serviceIds) && edited?.recurrenceGroupId && isOpenEnded(edited.recurrenceRule)) {
+        await closeGroupRule(edited.recurrenceGroupId, edited.recurrenceRule!, new Date(edited.startsAt));
+      }
       return true;
+    },
+
+    async closeOpenSeries(groupId, from) {
+      const sample = appointments.find((a) => a.recurrenceGroupId === groupId && isOpenEnded(a.recurrenceRule));
+      if (sample?.recurrenceRule) await closeGroupRule(groupId, sample.recurrenceRule, from);
     },
 
     async extendIntoSeries(appointmentId, nextStarts, recurrenceRule) {

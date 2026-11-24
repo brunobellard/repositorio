@@ -9,6 +9,7 @@ import { Avatar, Button, Card, SectionLabel, StatusPill } from '@/components/ui'
 import {
   describeRRule,
   hasOpenSiblings,
+  isOpenEnded,
   type SeriesScope,
   seriesTargets,
   sessionPosition,
@@ -44,6 +45,7 @@ export default function AgendamentoDetalhe() {
     setAppointmentStatus,
     completeAppointment,
     cancelAppointments,
+    closeOpenSeries,
     packages,
     loading,
   } = useStore();
@@ -196,6 +198,10 @@ export default function AgendamentoDetalhe() {
     if (self) await setAppointmentStatus(appt!.id, 'cancelado');
     const ids = seriesTargets(appt!, appointments, scope).filter((x) => x !== appt!.id || !self);
     const ok = ids.length ? await cancelAppointments(ids) : true;
+    // Série sem fim: cancelar "este e os próximos" (ou todos) encerra a série; o app não cria mais sessões
+    if (ok && appt!.recurrenceGroupId && isOpenEnded(appt!.recurrenceRule)) {
+      await closeOpenSeries(appt!.recurrenceGroupId, scope === 'all' ? new Date(0) : new Date(appt!.startsAt));
+    }
     const total = ids.length + (self ? 1 : 0);
     if (ok) notify('Sessões canceladas', `${total} ${total === 1 ? 'sessão cancelada' : 'sessões canceladas'}.`);
   }
@@ -217,7 +223,8 @@ export default function AgendamentoDetalhe() {
             onPress: () => onStatus('concluido'),
           }
         : null;
-  const repeatLabel = describeRRule(appt.recurrenceRule, start);
+  const baseRepeat = describeRRule(appt.recurrenceRule, start);
+  const repeatLabel = baseRepeat && isOpenEnded(appt.recurrenceRule) ? `${baseRepeat}, sem data para acabar` : baseRepeat;
   const position = sessionPosition(appt, appointments);
 
   async function whatsapp(kind: 'lembrete' | 'confirmacao' | 'recibo') {

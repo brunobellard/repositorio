@@ -79,7 +79,9 @@ export function RecurrencePicker({
             <Text className="text-xs text-muted">
               {value.end.type === 'count'
                 ? `${value.end.count} sessões`
-                : `Até ${formatDateShort(value.end.date)}`}
+                : value.end.type === 'until'
+                  ? `Até ${formatDateShort(value.end.date)}`
+                  : 'Sem data para acabar'}
             </Text>
           ) : null}
         </View>
@@ -150,15 +152,23 @@ export function RecurrencePicker({
                     end:
                       type === 'count'
                         ? { type: 'count', count: 6 }
-                        : { type: 'until', date: addDays(start, 90) },
+                        : type === 'until'
+                          ? { type: 'until', date: addDays(start, 90) }
+                          : { type: 'never' },
                   })
                 }
                 options={[
                   { value: 'count', label: 'Nº de sessões' },
                   { value: 'until', label: 'Até uma data' },
+                  { value: 'never', label: 'Sem fim' },
                 ]}
               />
-              {value.end.type === 'count' ? (
+              {value.end.type === 'never' ? (
+                <Text className="mt-2 text-[13px] leading-5 text-muted">
+                  O app cria 1 ano de sessões e, conforme o tempo passa, vai criando as próximas sozinho. Para
+                  parar, cancele uma sessão e escolha &quot;Cancelar este e os próximos&quot;.
+                </Text>
+              ) : value.end.type === 'count' ? (
                 <View className="mt-3 flex-row flex-wrap items-center">
                   {COUNTS.map((c) => (
                     <Chip
