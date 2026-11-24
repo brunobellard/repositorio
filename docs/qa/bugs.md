@@ -735,7 +735,7 @@ Estado inicial da conta: Híbrido, "Sem deslocamento", 1 atendimento a domicíli
 | 3 | "Sem deslocamento" + "Aplicar" | ✅ Toast "5 atendimentos atualizados."; o bloco "Deslocamento" sumiu da agenda. |
 | 4 | Voltar a 30 min com um atendimento colado (27/11 09:00–10:00 e 10:15) | ✅ Pergunta com 6; toast "5 atendimentos atualizados. 1 ficaram como estavam, porque o novo tempo encostaria no atendimento seguinte." O das 09:00 ficou +0, os outros +30. |
 | 6 | Cancelados, concluídos e passados não mudam | ✅ O cancelado (28/11 16:00) ficou +30 em todas as trocas e nunca entrou na contagem. Concluído e passado não testados na tela (concluir lançaria receita no Financeiro; não havia atendimento a domicílio passado); o filtro está na função (`status in ('pendente','confirmado') and starts_at >= now()`). |
-| 7 | Padrão da coluna `travel_buffer_minutes` = 0 | ⏳ Depende do SQL Editor (sem acesso). Consulta para o usuário: `select column_default from information_schema.columns where table_name='profiles' and column_name='travel_buffer_minutes'` (esperado `0`). |
+| 7 | Padrão da coluna `travel_buffer_minutes` = 0 | ✅ O usuário rodou no SQL Editor `select column_default from information_schema.columns where table_name='profiles' and column_name='travel_buffer_minutes'`: voltou `0` (contas novas começam "Sem deslocamento"). |
 
 Limpeza: os 5 atendimentos de teste ativos foram cancelados; o ajuste voltou a "Sem deslocamento" com "Aplicar" (1 atendimento atualizado: o existente voltou a +0); modo Híbrido mantido; o endereço fictício salvo na ficha da cliente de teste foi apagado.
 
