@@ -634,3 +634,17 @@ Web de produção (build `__common-2b71177f…`, `entry-db1b0835…`), conta de 
 - 5. Pacote Manicure + Pedicure, 4 sessões: valor cheio R$ 300,00 (4x R$ 75,00); 10% → − R$ 30,00, total R$ 270,00, R$ 67,50 por sessão; R$ 25,00 → total R$ 275,00, R$ 68,75 por sessão. Nome sugerido "Pacote 4x Manicure + Pedicure". Venda OK (`sell_package_services` 200, SQL aplicado), lançada no Financeiro. No agendamento, o pacote não aparece só com Manicure e aparece com Manicure + Pedicure ("Restam 4 de 4 sessões"). ✅ (Pacote excluído depois; a receita saiu junto.)
 - 6. Editar um avulso (26/11 09:00) e ligar Repetir semanal, 4 sessões: aviso "Este agendamento vira a 1ª sessão da série", toast "Série criada · 4 agendamentos na série (este e mais 3)"; criados 03/12, 10/12 e 17/12 no mesmo grupo. ✅ (Série cancelada depois.)
 - Observação: no web, o aviso da pausa é o `window.confirm` do navegador.
+
+## Regressão: link para a cliente confirmar ou cancelar (commit 2060753) · 24/11/2026
+
+Web de produção (build `__common-bfc02418…`, `entry-85ab18a9…`), conta de teste "QA Estúdio", cliente de teste "QA Telefone Colado". Criados 2 agendamentos pendentes em 26/11 (09:00 e 11:00).
+
+- 1. Mensagens: "Enviar confirmação no WhatsApp" e "Enviar lembrete no WhatsApp" (URL do wa.me lida sem abrir) terminam com "Confirme ou cancele seu horário: https://projeto-app-beleza.expo.app/confirmar/<código>", com o código do agendamento. O texto do recibo não leva o link. ✅
+- 2. Link aberto sem login (sessão retirada do navegador e devolvida depois): mostra logo/iniciais e nome do estúdio, "Olá, QA!" (só o primeiro nome), "Quinta, 26 de novembro", "09:00 às 09:45" e "Manicure". Sem telefone e sem valores. A função `public_appointment` só devolve dados do estúdio, primeiro nome, horário, situação, local e serviços. O local não aparece porque o estúdio de teste não tem endereço (não deu para ver essa linha). ✅
+- 3. "Confirmar presença" → "Horário confirmado. Até lá!"; no app, o 09:00 aparece como Confirmado (ícone verde). ✅
+- 4. No 11:00, "Não vou poder ir · cancelar" pergunta "Cancelar o horário? Quinta, 26 de novembro, 11:00. O estúdio será avisado na agenda."; depois mostra "Este horário foi cancelado." e o horário some da agenda do app. ✅
+- 5. Código aleatório e texto qualquer → "Link não encontrado · Confira o endereço com o estúdio." Horário passado ainda pendente → "Este horário já passou.", sem botões. Concluído → "Atendimento concluído. Obrigada pela visita!", sem botões. ✅
+- 6. Ajustes › Mensagens: Confirmação e Lembrete listam `{link}` e a explicação "{link} é o endereço em que a cliente confirma ou cancela o horário…"; Recibo e os outros não. ✅
+- Console da build nova sem erros. Limpeza: o 09:00 foi cancelado no app; o 11:00 já tinha sido cancelado pelo link.
+- Observação (baixa): trocando de um link para outro sem recarregar a página (navegação interna do app), a tela continua com "Link não encontrado" do código anterior; abrindo do zero, cada link aparece certo. A cliente sempre abre do zero, então não afeta o uso real.
+- Observação (baixa, já existia): sem endereço cadastrado, a confirmação sai com a linha "📍 QA Estúdio – " vazia no fim. E o texto do recibo de um horário ainda pendente diz "Total pago".
