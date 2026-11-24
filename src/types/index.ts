@@ -192,7 +192,8 @@ export type PackageStatus = 'active' | 'completed';
 export interface ClientPackage {
   id: string;
   clientId: string;
-  serviceId: string;
+  /** Serviços do pacote: andam juntos (cada visita usa 1 sessão e tem todos eles) */
+  serviceIds: string[];
   name: string;
   totalSessions: number;
   usedSessions: number;

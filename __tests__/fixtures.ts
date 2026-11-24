@@ -23,7 +23,7 @@ export function pkg(p: Partial<ClientPackage> = {}): ClientPackage {
   return {
     id: 'p1',
     clientId: 'c1',
-    serviceId: 's1',
+    serviceIds: ['s1'],
     name: 'Pacote 4x Manicure',
     totalSessions: 4,
     usedSessions: 0,

@@ -193,7 +193,7 @@ const toTransaction = (r: any): Transaction => ({
 const toPackage = (r: any): ClientPackage => ({
   id: r.id,
   clientId: r.client_id,
-  serviceId: r.service_id,
+  serviceIds: r.service_ids?.length ? r.service_ids : [r.service_id],
   name: r.name,
   totalSessions: r.total_sessions,
   usedSessions: r.used_sessions,
@@ -236,7 +236,7 @@ export interface NewAppointment {
 
 export interface NewPackage {
   clientId: string;
-  serviceId: string;
+  serviceIds: string[];
   name: string;
   totalSessions: number;
   totalPaid: number;
@@ -303,6 +303,8 @@ interface Store {
     changes: AppointmentChanges,
     scope: SeriesScope,
   ) => Promise<boolean>;
+  /** Agendamento avulso vira a 1ª sessão de uma série; cria as próximas datas. Devolve quantas criou. */
+  extendIntoSeries: (appointmentId: string, nextStarts: string[], recurrenceRule: string) => Promise<number>;
   cancelAppointments: (ids: string[]) => Promise<boolean>;
   /** true se gravou (false: erro já avisado na tela) */
   setAppointmentStatus: (id: string, status: Exclude<AppointmentStatus, 'concluido'>) => Promise<boolean>;
@@ -898,9 +900,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     businessHours,
 
     async sellPackage(p) {
-      const { data: sold, error } = await supabase.rpc('sell_package', {
+      const { data: sold, error } = await supabase.rpc('sell_package_services', {
         p_client_id: p.clientId,
-        p_service_id: p.serviceId,
+        p_service_ids: p.serviceIds,
         p_name: p.name,
         p_total_sessions: p.totalSessions,
         p_total_paid: p.totalPaid,
@@ -1254,6 +1256,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const fresh = new Map((data ?? []).map((r) => [r.id as string, toAppointment(r)]));
       setAppointments((list) => list.map((a) => fresh.get(a.id) ?? a));
       return true;
+    },
+
+    async extendIntoSeries(appointmentId, nextStarts, recurrenceRule) {
+      if (!(await isOnline())) {
+        notify('Sem conexão', 'Para repetir o agendamento é preciso estar com internet.');
+        return 0;
+      }
+      const { data, error } = await supabase.rpc('extend_into_series', {
+        p_appointment_id: appointmentId,
+        p_starts_at: nextStarts,
+        p_recurrence_rule: recurrenceRule,
+      });
+      if (error) {
+        fail(error);
+        return 0;
+      }
+      const ids = (data as any[]).map((r) => r.id as string);
+      const { data: full } = await supabase.from('appointments').select(APPT_SELECT).in('id', ids);
+      if (full) {
+        const fresh = full.map(toAppointment);
+        setAppointments((list) => [...list.filter((a) => !ids.includes(a.id)), ...fresh]);
+      }
+      return ids.length - 1;
     },
 
     async cancelAppointments(ids) {

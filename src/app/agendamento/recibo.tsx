@@ -61,10 +61,10 @@ export default function Comprovante() {
     : 0;
   const remaining = pkg ? Math.min(pkg.totalSessions, pkg.totalSessions - pkg.usedSessions + usedLater) : 0;
   const method = income?.paymentMethod;
-  // Pacote paga uma sessão do serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
+  // Pacote paga uma sessão de cada serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
   const due = amountDue(appt, packages);
-  const pkgItem = pkg ? appt.services.find((s) => s.serviceId === pkg.serviceId) : undefined;
-  const priceLabel = (s: (typeof appt.services)[number]) => (s === pkgItem ? 'pacote' : formatBRL(s.price));
+  const priceLabel = (s: (typeof appt.services)[number]) =>
+    pkg?.serviceIds.includes(s.serviceId) ? 'pacote' : formatBRL(s.price);
   const address = formatAddress(profile);
   const contact = [formatPhone(profile.phone), profile.instagram ? `@${profile.instagram}` : '']
     .filter(Boolean)

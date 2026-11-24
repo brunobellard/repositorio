@@ -10,7 +10,7 @@ import { confirmAction, notify } from '@/lib/confirm';
 import { requireFeature } from '@/lib/upgrade';
 import { formatDateShort, formatTime } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
-import { amountDue, availableCredits, isExpired, scheduledSessions } from '@/lib/packages';
+import { amountDue, availableCredits, isExpired, packageServicesLabel, scheduledSessions } from '@/lib/packages';
 import { colors } from '@/theme/colors';
 
 function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string }) {
@@ -187,7 +187,7 @@ export default function FichaCliente() {
                   {p.status === 'active' && !expired ? ` · ${credits} para agendar` : ''}
                 </Text>
                 <Text className="text-xs text-muted">
-                  {services.find((s) => s.id === p.serviceId)?.name ?? 'Serviço'} · {formatBRL(p.totalPaid)}
+                  {packageServicesLabel(p, services)} · {formatBRL(p.totalPaid)}
                   {p.expiresAt ? ` · vence ${p.expiresAt.split('-').reverse().join('/')}` : ''}
                 </Text>
               </Pressable>

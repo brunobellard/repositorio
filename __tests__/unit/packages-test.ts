@@ -72,7 +72,7 @@ describe('créditos', () => {
   it('CT-PAC-09 pacote utilizável: mesma cliente, serviço, ativo, válido e com crédito', () => {
     const ok = pkg({ id: 'ok' });
     const outraCliente = pkg({ id: 'oc', clientId: 'c2' });
-    const outroServico = pkg({ id: 'os', serviceId: 's9' });
+    const outroServico = pkg({ id: 'os', serviceIds: ['s9'] });
     const encerrado = pkg({ id: 'en', status: 'completed' });
     const vencido = pkg({ id: 've', expiresAt: '2000-01-01' });
     const semCredito = pkg({ id: 'sc', totalSessions: 1, usedSessions: 1 });
@@ -109,6 +109,19 @@ describe('valor a receber de sessão de pacote', () => {
 
   it('CT-PAC-13 sem pacote cobra o total', () => {
     expect(amountDue(appt({ totalPrice: 80 }), packages)).toBe(80);
+  });
+
+  it('CT-PAC-15 pacote com vários serviços cobre todos eles e só vale com todos no atendimento', () => {
+    const maoEPe = pkg({ id: 'mp', serviceIds: ['s1', 's2'] });
+    const both = [
+      { serviceId: 's1', name: 'Manicure', price: 50, durationMin: 60 },
+      { serviceId: 's2', name: 'Pedicure', price: 40, durationMin: 45 },
+    ];
+    expect(usablePackages('c1', ['s1', 's2', 's3'], [maoEPe], []).map((p) => p.id)).toEqual(['mp']);
+    expect(usablePackages('c1', ['s1'], [maoEPe], [])).toEqual([]);
+    const a = appt({ clientPackageId: 'mp', services: both, travelFee: 15, totalPrice: 105 });
+    expect(packageCovered(a, [maoEPe])).toBe(90);
+    expect(amountDue(a, [maoEPe])).toBe(15);
   });
 
   it('CT-PAC-14 pacote que não cobre os serviços não desconta', () => {

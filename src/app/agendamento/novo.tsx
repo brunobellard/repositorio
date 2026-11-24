@@ -23,7 +23,7 @@ import {
   summarize,
   toRRule,
 } from '@/lib/recurrence';
-import { availableCredits, usablePackages } from '@/lib/packages';
+import { availableCredits, coversPackage, usablePackages } from '@/lib/packages';
 import { openUpgrade, requireFeature } from '@/lib/upgrade';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import {
@@ -57,6 +57,7 @@ export default function NovoAgendamento() {
     addAppointment,
     addClient,
     updateAppointments,
+    extendIntoSeries,
     packages,
     online,
     serviceAreas,
@@ -296,7 +297,9 @@ export default function NovoAgendamento() {
 
   // Datas da série (a primeira é o horário escolhido)
   const firstStart = time !== null ? atMinutes(day, time) : null;
-  const occurrences = firstStart && !editing ? generateOccurrences(firstStart, rule) : [];
+  // Na edição, um agendamento avulso (fora de série, ainda não concluído) também pode passar a repetir
+  const canRepeatEdit = !!editing && !editing.recurrenceGroupId && editing.status !== 'concluido' && editing.status !== 'cancelado';
+  const occurrences = firstStart && (!editing || canRepeatEdit) ? generateOccurrences(firstStart, rule) : [];
 
   function toggleService(id: string) {
     setServiceIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -367,6 +370,8 @@ export default function NovoAgendamento() {
   /** Cria as sessões informadas (todas ou só as livres, depois do aviso de conflito). */
   async function create(dates: Date[]) {
     setConflicts(null);
+    // Edição que passou a repetir: salva a mudança e cria as próximas datas
+    if (editing) return applyEdit('one', dates.slice(1));
     if (!dates.length || submitting.current) return;
     submitting.current = true;
     setSaving(true);
@@ -416,8 +421,11 @@ export default function NovoAgendamento() {
     closeToDay(firstStart);
   }
 
-  /** Edição: aplica a mudança na sessão (ou nas sessões) escolhida(s). */
-  async function applyEdit(scope: SeriesScope) {
+  /**
+   * Edição: aplica a mudança na sessão (ou nas sessões) escolhida(s).
+   * nextDates: agendamento avulso que passou a repetir — datas das próximas sessões a criar.
+   */
+  async function applyEdit(scope: SeriesScope, nextDates: Date[] = []) {
     setAskScope(false);
     if (!editing || !firstStart) return;
     const servicesChanged = serviceIds.join() !== editServiceIds.join();
@@ -459,8 +467,9 @@ export default function NovoAgendamento() {
       }
     }
     const notesChanged = notes.trim() !== (editing.notes ?? '');
+    const changed = !!shiftMs || servicesChanged || notesChanged;
     // Nada mudou: só fecha
-    if (!shiftMs && !servicesChanged && !notesChanged) {
+    if (!changed && !nextDates.length) {
       closeModal();
       return;
     }
@@ -468,17 +477,29 @@ export default function NovoAgendamento() {
     submitting.current = true;
     setSaving(true);
     let ok = false;
+    let added = 0;
     try {
-      ok = await updateAppointments(
-        editing.id,
-        targets,
-        {
-          shiftMs,
-          serviceIds: servicesChanged ? serviceIds : undefined,
-          notes: notesChanged ? notes.trim() : undefined,
-        },
-        scope,
-      );
+      ok = !changed
+        ? true
+        : await updateAppointments(
+            editing.id,
+            targets,
+            {
+              shiftMs,
+              serviceIds: servicesChanged ? serviceIds : undefined,
+              notes: notesChanged ? notes.trim() : undefined,
+            },
+            scope,
+          );
+      if (ok && nextDates.length) {
+        added = await extendIntoSeries(
+          editing.id,
+          nextDates.map((d) => d.toISOString()),
+          toRRule(firstStart, rule) ?? '',
+        );
+        // A mudança foi salva, mas a série não: a tela fica aberta para tentar de novo
+        if (!added) ok = false;
+      }
     } finally {
       setSaving(false);
       // Deu certo: a tela fecha; continua travado para um toque atrasado não mover de novo
@@ -491,7 +512,9 @@ export default function NovoAgendamento() {
         scope,
         moved: !!shiftMs,
         services_changed: servicesChanged,
+        series_count: added ? added + 1 : 0,
       });
+      if (added) notify('Série criada', `${added + 1} agendamentos na série (este e mais ${added}).`);
       closeToDay(firstStart);
     }
   }
@@ -516,15 +539,43 @@ export default function NovoAgendamento() {
         firstStart.getTime() !== editStart!.getTime() || serviceIds.join() !== editServiceIds.join();
       // Em série, pergunta se vale só para esta sessão ou para as próximas também
       const proceed = () => {
+        if (canRepeatEdit && occurrences.length > 1) return repeatEdited();
         if (changedTimeOrServices && hasOpenSiblings(editing, appointments)) setAskScope(true);
         else applyEdit('one');
       };
+      /** Avulso que passou a repetir: confere limites e conflitos das próximas datas antes de salvar. */
+      const repeatEdited = () => {
+        const extra = occurrences.length - 1;
+        if (!requireFeature(access.hasRecurrence, 'recurrence')) return;
+        if (
+          !requireFeature(
+            access.canAddAppointmentThisMonth(access.appointmentsInMonth(day), extra),
+            'unlimitedAppointments',
+          )
+        )
+          return;
+        const ctx = {
+          appointments,
+          blocks,
+          businessHours,
+          ignoreIds: [editing.id],
+          ignoreHours: override,
+          travelBufferMin: buffer,
+          home: needsTravel,
+        };
+        const found = occurrences
+          .slice(1)
+          .map((date) => ({ date, reason: slotConflict(date, duration, ctx) }))
+          .filter((c): c is { date: Date; reason: string } => !!c.reason);
+        if (found.length) setConflicts(found);
+        else applyEdit('one', occurrences.slice(1));
+      };
       // Tirou o serviço do pacote: a sessão deixa de usar o pacote e passa a ser cobrada
       const editPkg = packages.find((p) => p.id === editing.clientPackageId);
-      if (editPkg && !serviceIds.includes(editPkg.serviceId)) {
+      if (editPkg && !coversPackage(editPkg, serviceIds)) {
         confirmAction(
           'Tirar do pacote?',
-          `Sem o serviço do pacote "${editPkg.name}", esta sessão deixa de usar o pacote: o crédito volta para o saldo e o valor dos serviços será cobrado ao concluir.`,
+          `Sem todos os serviços do pacote "${editPkg.name}", esta sessão deixa de usar o pacote: o crédito volta para o saldo e o valor dos serviços será cobrado ao concluir.`,
           proceed,
           'Tirar do pacote',
         );
@@ -875,10 +926,15 @@ export default function NovoAgendamento() {
           );
         })}
 
-        {/* 5. Repetir (só ao criar) */}
-        {!editing ? (
+        {/* 5. Repetir (ao criar, ou ao editar um agendamento avulso) */}
+        {!editing || canRepeatEdit ? (
           <>
             <SectionLabel>Repetir agendamento</SectionLabel>
+            {editing && rule.freq !== 'none' ? (
+              <Text className="mb-2 text-[13px] leading-5 text-muted">
+                Este agendamento vira a 1ª sessão da série; as próximas são criadas a partir dele.
+              </Text>
+            ) : null}
             <RecurrencePicker
               start={firstStart ?? atMinutes(day, 9 * 60)}
               value={rule}

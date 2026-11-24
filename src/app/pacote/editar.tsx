@@ -9,7 +9,7 @@ import { useStore } from '@/data/store';
 import { closeModal, confirmAction, notify } from '@/lib/confirm';
 import { addDays, formatDateShort, startOfDay } from '@/lib/dates';
 import { formatBRL, onlyDigits } from '@/lib/format';
-import { scheduledSessions } from '@/lib/packages';
+import { packageServicesLabel, scheduledSessions } from '@/lib/packages';
 import { colors, paymentLabels } from '@/theme/colors';
 
 const VALIDITY = [
@@ -43,7 +43,7 @@ export default function EditarPacote() {
   const p = pkg;
 
   const client = clients.find((c) => c.id === p.clientId);
-  const service = services.find((s) => s.id === p.serviceId);
+  const servicesLabel = packageServicesLabel(p, services);
   const scheduled = scheduledSessions(p, appointments);
   // Não dá para ter menos sessões do que as já usadas e agendadas
   const minSessions = Math.max(1, p.usedSessions + scheduled);
@@ -98,7 +98,7 @@ export default function EditarPacote() {
         <Card>
           <Text className="text-[15px] font-semibold text-ink">{client?.name ?? 'Cliente'}</Text>
           <Text className="mt-1 text-[13px] text-muted">
-            {service?.name ?? 'Serviço'} · {formatBRL(p.totalPaid)} no {paymentLabels[p.paymentMethod]} · vendido em{' '}
+            {servicesLabel} · {formatBRL(p.totalPaid)} no {paymentLabels[p.paymentMethod]} · vendido em{' '}
             {formatDateShort(sold)}
           </Text>
           <Text className="mt-1 text-[13px] text-muted">

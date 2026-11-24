@@ -43,7 +43,17 @@ export function availableCredits(pkg: ClientPackage, appointments: Appointment[]
   return Math.max(0, pkg.totalSessions - pkg.usedSessions - scheduledSessions(pkg, appointments));
 }
 
-/** Pacotes da cliente que podem pagar este serviço agora. */
+/** O atendimento com estes serviços tem todos os serviços do pacote? (eles andam juntos) */
+export function coversPackage(pkg: ClientPackage, serviceIds: string[]): boolean {
+  return pkg.serviceIds.every((id) => serviceIds.includes(id));
+}
+
+/** Nomes dos serviços do pacote, ex: "Manicure + Pedicure". */
+export function packageServicesLabel(pkg: ClientPackage, services: { id: string; name: string }[]): string {
+  return pkg.serviceIds.map((id) => services.find((s) => s.id === id)?.name ?? 'Serviço').join(' + ');
+}
+
+/** Pacotes da cliente que podem pagar este atendimento agora. */
 export function usablePackages(
   clientId: string | undefined,
   serviceIds: string[],
@@ -55,22 +65,23 @@ export function usablePackages(
     (p) =>
       p.clientId === clientId &&
       p.status === 'active' &&
-      serviceIds.includes(p.serviceId) &&
+      coversPackage(p, serviceIds) &&
       !isExpired(p) &&
       availableCredits(p, appointments) > 0,
   );
 }
 
 /**
- * Quanto do atendimento o pacote já pagou: o preço de UMA sessão do serviço do pacote.
+ * Quanto do atendimento o pacote já pagou: o preço de UMA sessão de cada serviço do pacote.
  * Outros serviços do mesmo horário e a taxa de deslocamento continuam sendo cobrados.
  * (Mesma conta feita no banco ao concluir.)
  */
 export function packageCovered(appt: Appointment, packages: ClientPackage[]): number {
   if (!appt.clientPackageId) return 0;
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
-  const item = pkg ? appt.services.find((s) => s.serviceId === pkg.serviceId) : undefined;
-  return Math.min(appt.totalPrice, item?.price ?? 0);
+  if (!pkg) return 0;
+  const covered = appt.services.filter((s) => pkg.serviceIds.includes(s.serviceId)).reduce((t, s) => t + s.price, 0);
+  return Math.min(appt.totalPrice, covered);
 }
 
 /** Valor que ainda falta receber neste atendimento (total menos o que o pacote cobre). */
