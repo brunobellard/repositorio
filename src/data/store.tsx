@@ -333,6 +333,8 @@ interface Store {
   addBlock: (b: Omit<ScheduleBlock, 'id'>) => Promise<boolean>;
   removeBlock: (id: string) => Promise<void>;
   addClient: (c: Omit<Client, 'id'>) => Promise<Client | null>;
+  /** Cadastra várias clientes de uma vez (importação dos contatos). Precisa de internet. Devolve quantas entraram. */
+  importClients: (list: { name: string; whatsapp?: string }[]) => Promise<number | null>;
   updateClient: (id: string, c: Omit<Client, 'id'>) => Promise<boolean>;
   /**
    * Sem atendimentos: exclui a cliente. Com atendimentos no histórico: apaga os dados
@@ -1523,6 +1525,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const created = toClient(data);
       setClients((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
       return created;
+    },
+
+    async importClients(list) {
+      if (!list.length) return 0;
+      if (!(await isOnline())) {
+        notify('Sem internet', 'Conecte-se à internet para importar os contatos.', 'info');
+        return null;
+      }
+      await flushOutbox();
+      const rows = list.map((c) => ({ id: newId(), name: c.name, whatsapp: c.whatsapp || null }));
+      const { data, error } = await supabase.from('clients').insert(rows).select();
+      if (error) {
+        fail(error);
+        return null;
+      }
+      const created = (data ?? []).map(toClient);
+      setClients((all) => [...all, ...created].sort((a, b) => a.name.localeCompare(b.name)));
+      return created.length;
     },
 
     async updateClient(id, c) {

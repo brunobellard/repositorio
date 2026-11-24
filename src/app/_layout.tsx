@@ -191,6 +191,7 @@ function AppStack() {
         <Stack.Screen name="bloqueio/novo" options={{ presentation: 'modal', title: 'Bloquear horário' }} />
         <Stack.Screen name="clientes/[id]" options={{ title: 'Ficha da cliente' }} />
         <Stack.Screen name="clientes/nova" options={{ presentation: 'modal', title: 'Nova cliente' }} />
+        <Stack.Screen name="clientes/importar" options={{ title: 'Importar contatos' }} />
         <Stack.Screen name="financeiro/despesa" options={{ presentation: 'modal', title: 'Nova despesa' }} />
         <Stack.Screen name="ajustes/mensagens" options={{ title: 'Modelos de mensagem' }} />
         <Stack.Screen name="ajustes/estudio" options={{ title: 'Dados do estúdio' }} />

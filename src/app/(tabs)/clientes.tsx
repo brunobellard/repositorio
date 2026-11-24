@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import { ExportClientsSheet } from '@/components/export-sheets';
 import { ClientsSkeleton } from '@/components/skeleton';
@@ -131,6 +131,17 @@ export default function ClientesScreen() {
             Ajustar prazo
           </Text>
         </Text>
+      ) : null}
+      {/* Importar da agenda do celular (só no app: a web não tem acesso aos contatos) */}
+      {filter === 'todas' && Platform.OS !== 'web' ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/clientes/importar')}
+          className="mb-3 flex-row items-center rounded-card border border-dashed border-primary/40 bg-primary-soft/40 px-4 py-3 active:opacity-70">
+          <Ionicons name="people-circle-outline" size={20} color={colors.primaryDark} />
+          <Text className="ml-2 flex-1 text-[14px] font-semibold text-primary-dark">Importar contatos do celular</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
+        </Pressable>
       ) : null}
     </View>
   );

@@ -1,6 +1,7 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderKeyboardView } from '@/components/keyboard-view';
@@ -106,6 +107,16 @@ export default function NovaCliente() {
     <HeaderKeyboardView>
       {editing ? <Stack.Screen options={{ title: 'Editar cliente' }} /> : null}
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        {!editing && Platform.OS !== 'web' ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace('/clientes/importar')}
+            className="mb-4 flex-row items-center rounded-card border border-dashed border-primary/40 bg-primary-soft/40 px-4 py-3 active:opacity-70">
+            <Ionicons name="people-circle-outline" size={20} color={colors.primaryDark} />
+            <Text className="ml-2 flex-1 text-[14px] font-semibold text-primary-dark">Importar dos contatos do celular</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primaryDark} />
+          </Pressable>
+        ) : null}
         <Field label="Nome completo" value={name} onChangeText={setName} placeholder="Ex: Maria Silva" autoFocus />
         <Field
           label={phoneOk ? 'WhatsApp' : 'WhatsApp — confira o número (DDD + número)'}
