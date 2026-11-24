@@ -165,7 +165,8 @@ export function RecurrencePicker({
               />
               {value.end.type === 'never' ? (
                 <Text className="mt-2 text-[13px] leading-5 text-muted">
-                  O app cria 1 ano de sessões e, conforme o tempo passa, vai criando as próximas sozinho. Para
+                  O app cria as sessões do próximo ano (no máximo 52 de cada vez) e, conforme o tempo passa, vai
+                  criando as próximas sozinho. Para
                   parar, cancele uma sessão e escolha &quot;Cancelar este e os próximos&quot;.
                 </Text>
               ) : value.end.type === 'count' ? (

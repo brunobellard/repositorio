@@ -38,7 +38,7 @@ interface Props {
 }
 
 /** Distribui itens sobrepostos lado a lado. */
-function layoutColumns<T extends { startsAt: string; endsAt: string }>(items: T[]) {
+export function layoutColumns<T extends { startsAt: string; endsAt: string }>(items: T[]) {
   const sorted = [...items].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const result: { item: T; col: number; cols: number }[] = [];
   let group: { item: T; col: number }[] = [];

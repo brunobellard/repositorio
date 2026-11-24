@@ -14,7 +14,8 @@ import {
 } from '@/lib/dates';
 import { colors } from '@/theme/colors';
 
-export type CalendarMode = 'semana' | 'mes';
+/** 'semana' = faixa da semana + o dia escolhido (rótulo Dia); 'grade' = semana em 7 colunas */
+export type CalendarMode = 'semana' | 'grade' | 'mes';
 
 interface Props {
   mode: CalendarMode;
@@ -29,10 +30,10 @@ interface Props {
 
 export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts, blockedDays }: Props) {
   const today = startOfDay(new Date());
-  const days = mode === 'semana' ? weekDays(selected) : monthGrid(selected);
+  const days = mode === 'mes' ? monthGrid(selected) : weekDays(selected);
 
   function shift(dir: 1 | -1) {
-    if (mode === 'semana') onSelect(addDays(selected, 7 * dir));
+    if (mode !== 'mes') onSelect(addDays(selected, 7 * dir));
     else {
       const d = new Date(selected.getFullYear(), selected.getMonth() + dir, 1);
       onSelect(d);
@@ -41,7 +42,7 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
 
   return (
     <View className="mx-4 rounded-card border border-line bg-surface px-3 pb-3 pt-3">
-      <View className="mb-3 flex-row items-center">
+      <View className={`flex-row items-center ${mode === 'grade' ? '' : 'mb-3'}`}>
         <Pressable accessibilityRole="button" accessibilityLabel="Período anterior" onPress={() => shift(-1)} hitSlop={10} className="p-1">
           <Ionicons name="chevron-back" size={20} color={colors.ink} />
         </Pressable>
@@ -51,18 +52,21 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
         <Pressable accessibilityRole="button" accessibilityLabel="Próximo período" onPress={() => shift(1)} hitSlop={10} className="mr-2 p-1">
           <Ionicons name="chevron-forward" size={20} color={colors.ink} />
         </Pressable>
-        <View className="w-40">
+        <View className="w-[168px]">
           <Segmented
             value={mode}
             onChange={onModeChange}
             options={[
-              { value: 'semana', label: 'Semana' },
+              { value: 'semana', label: 'Dia' },
+              { value: 'grade', label: 'Semana' },
               { value: 'mes', label: 'Mês' },
             ]}
           />
         </View>
       </View>
 
+      {mode === 'grade' ? null : (
+      <>
       <View className="flex-row">
         {WEEKDAYS_SHORT.map((w) => (
           <Text key={w} className="flex-1 text-center text-[11px] font-medium text-muted">
@@ -120,6 +124,8 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
         </View>
         ))}
       </View>
+      </>
+      )}
     </View>
   );
 }

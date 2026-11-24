@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { CalendarHeader, type CalendarMode } from '@/components/agenda/calendar-header';
 import { DayTimeline } from '@/components/agenda/day-timeline';
+import { WeekGrid } from '@/components/agenda/week-grid';
 import { AgendaSkeleton } from '@/components/skeleton';
 import { EmptyState, Fab, Screen, ScreenTitle } from '@/components/ui';
 import { usePullToRefresh } from '@/lib/use-pull-to-refresh';
@@ -14,12 +16,15 @@ import { GettingStarted } from '@/components/agenda/getting-started';
 import { OnlineRequestsBanner } from '@/components/agenda/online-requests';
 import { ShareLinkButton } from '@/components/share-link-button';
 import { preloadAppointmentRoutes } from '@/lib/preload-routes';
-import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
+import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay, startOfWeek } from '@/lib/dates';
 import { describeHours, hoursForDay, isWithinOpenHours, overlapsBreak, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
 import { amountDue } from '@/lib/packages';
 import { colors } from '@/theme/colors';
 import type { ScheduleBlock } from '@/types';
+
+/** A última visão escolhida (Dia, Semana ou Mês) fica salva no aparelho */
+const MODE_KEY = 'agenda-beleza:calendar-mode';
 
 function overlapsDay(b: ScheduleBlock, day: Date) {
   const s = startOfDay(day).getTime();
@@ -41,7 +46,18 @@ export default function AgendaScreen() {
   if (pick.param !== dateParam) setPick({ param: dateParam, day: dayFromParam(dateParam) });
   const selected = pick.param !== dateParam ? dayFromParam(dateParam) : pick.day;
   const setSelected = (day: Date) => setPick({ param: dateParam, day });
-  const [mode, setMode] = useState<CalendarMode>('semana');
+  const [mode, setModeState] = useState<CalendarMode>('semana');
+  useEffect(() => {
+    AsyncStorage.getItem(MODE_KEY)
+      .then((v) => {
+        if (v === 'semana' || v === 'grade' || v === 'mes') setModeState(v);
+      })
+      .catch(() => {});
+  }, []);
+  const setMode = (m: CalendarMode) => {
+    setModeState(m);
+    AsyncStorage.setItem(MODE_KEY, m).catch(() => {});
+  };
   // Web: baixa em segundo plano o código das telas de agendamento (UX-15)
   useEffect(() => {
     preloadAppointmentRoutes();
@@ -87,17 +103,31 @@ export default function AgendaScreen() {
   const dayOff = timeOffOn(selected, blocks);
   const closedDay = !dayHours.isOpen || !!dayOff;
 
+  // Visão Semana (grade): tudo o que cai na semana do dia escolhido
+  const weekStartMs = startOfWeek(selected).getTime();
+  const weekEndMs = addDays(startOfWeek(selected), 7).getTime();
+  const weekActive = appointments.filter(
+    (a) =>
+      a.status !== 'cancelado' &&
+      new Date(a.startsAt).getTime() < weekEndMs &&
+      new Date(a.endsAt).getTime() > weekStartMs,
+  );
+  const weekStarting = weekActive.filter((a) => new Date(a.startsAt).getTime() >= weekStartMs);
+  const weekExpected = weekStarting.reduce((t, a) => t + amountDue(a, packages), 0);
+
   /** Toque num horário vazio: avisa se for fora do expediente, folga ou pausa. */
-  function onPressSlot(min: number) {
+  function onPressSlot(min: number, day: Date = selected) {
+    const dayHours = hoursForDay(day, businessHours);
+    const dayOff = timeOffOn(day, blocks);
     const go = (outside: boolean) =>
       router.push({
         pathname: '/agendamento/novo',
-        params: { date: atMinutes(selected, min).toISOString(), ...(outside ? { fora: '1' } : {}) },
+        params: { date: atMinutes(day, min).toISOString(), ...(outside ? { fora: '1' } : {}) },
       });
     const why = dayOff
       ? `Este dia está marcado como "${dayOff.reason ?? 'Folga'}".`
       : !dayHours.isOpen
-        ? `${WEEKDAYS_LONG[selected.getDay()]} está como dia fechado no seu expediente.`
+        ? `${WEEKDAYS_LONG[day.getDay()]} está como dia fechado no seu expediente.`
         : !isWithinOpenHours(dayHours, min, min + 30)
           ? `Esse horário está fora do expediente (${describeHours(dayHours)}).`
           : null;
@@ -154,6 +184,31 @@ export default function AgendaScreen() {
           blockedDays={blockedDays}
         />
 
+        {mode === 'grade' ? (
+          <>
+            <View className="mx-5 mt-4">
+              <Text className="text-[13px] text-muted">
+                {weekStarting.length} {weekStarting.length === 1 ? 'atendimento' : 'atendimentos'} na semana ·{' '}
+                {formatBRL(weekExpected)} previsto
+              </Text>
+            </View>
+            <WeekGrid
+              selected={selected}
+              businessHours={businessHours}
+              appointments={weekActive}
+              blocks={blocks}
+              clientsById={clientsById}
+              onPressAppointment={(a) => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}
+              onPressBlock={onPressBlock}
+              onPressSlot={(day, min) => onPressSlot(min, day)}
+              onPressDay={(day) => {
+                setSelected(startOfDay(day));
+                setMode('semana');
+              }}
+            />
+          </>
+        ) : (
+        <>
         <View className="mx-5 mb-1 mt-5 flex-row items-center justify-between">
           <View>
             <Text className="text-lg font-semibold text-ink">{formatDayTitle(selected)}</Text>
@@ -226,6 +281,8 @@ export default function AgendaScreen() {
           onPressSlot={onPressSlot}
           travelBufferMinutes={profile.travelBufferMinutes}
         />
+        </>
+        )}
       </ScrollView>
       )}
 
