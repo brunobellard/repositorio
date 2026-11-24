@@ -11,6 +11,7 @@ import { formatTime, relativeDayPhrase } from '@/lib/dates';
 import { formatBRL, formatPhone, maskDocument } from '@/lib/format';
 import { formatAddress } from '@/lib/hours';
 import { amountDue } from '@/lib/packages';
+import { webBaseUrl } from '@/lib/web';
 import type { Appointment, Client, ClientPackage, MessageTemplate, Profile } from '@/types';
 
 export interface TemplateVars {
@@ -21,6 +22,14 @@ export interface TemplateVars {
   valor: string;
   estudio: string;
   endereco: string;
+  /** Link para a cliente confirmar ou cancelar (vazio se o agendamento ainda não tem código) */
+  link: string;
+}
+
+/** Endereço em que a cliente confirma ou cancela o horário (null se ainda não sincronizou ou sem site configurado). */
+export function confirmationLink(appt: Appointment): string | null {
+  const base = webBaseUrl();
+  return appt.confirmToken && base ? `${base}/confirmar/${appt.confirmToken}` : null;
 }
 
 /**
@@ -44,6 +53,7 @@ export function buildVars(
     valor: formatBRL(amountDue(appt, packages)),
     estudio: profile.businessName,
     endereco: home ? appt.serviceAddress || client.address || 'no seu endereço' : formatAddress(profile),
+    link: confirmationLink(appt) ?? '',
   };
 }
 
@@ -85,8 +95,27 @@ export async function sendWhatsApp(
   packages: ClientPackage[] = [],
 ) {
   if (!client.whatsapp) throw new Error('Cliente sem WhatsApp cadastrado');
-  const message = fillTemplate(template.body, buildVars(appt, client, profile, packages));
-  await whatsappProvider.send(client.whatsapp, message);
+  await whatsappProvider.send(client.whatsapp, composeWhatsApp(template, appt, client, profile, packages));
+}
+
+/**
+ * Texto final da mensagem. Na confirmação e no lembrete de um horário que ainda vai acontecer,
+ * o link para a cliente confirmar/cancelar vai no lugar de {link} ou, sem ele no modelo, no final.
+ */
+export function composeWhatsApp(
+  template: MessageTemplate,
+  appt: Appointment,
+  client: Client,
+  profile: Profile,
+  packages: ClientPackage[] = [],
+): string {
+  const vars = buildVars(appt, client, profile, packages);
+  const open =
+    (appt.status === 'pendente' || appt.status === 'confirmado') && new Date(appt.startsAt).getTime() > Date.now();
+  const wantsLink = open && (template.kind === 'confirmacao' || template.kind === 'lembrete');
+  const message = fillTemplate(template.body, wantsLink ? vars : { ...vars, link: '' });
+  if (!wantsLink || !vars.link || template.body.includes('{link}')) return message.trim();
+  return `${message.trim()}\n\nConfirme ou cancele seu horário: ${vars.link}`;
 }
 
 // ---------------------------------------------------------------------

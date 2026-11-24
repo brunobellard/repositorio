@@ -165,6 +165,7 @@ const toAppointment = (r: any): Appointment => ({
   serviceAddress: r.service_address ?? undefined,
   travelFee: Number(r.travel_fee ?? 0),
   busyUntil: r.busy_until ? new Date(r.busy_until).toISOString() : undefined,
+  confirmToken: r.confirm_token ?? undefined,
   services: [...(r.appointment_services ?? [])]
     .sort((a: any, b: any) => a.position - b.position)
     .map((s: any) => ({ serviceId: s.service_id, name: s.name, price: Number(s.price), durationMin: s.duration_min })),

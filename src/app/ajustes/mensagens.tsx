@@ -18,6 +18,8 @@ const KIND_LABEL: Record<MessageKind, string> = {
 
 /** Variáveis aceitas por cada tipo de mensagem */
 const KIND_VARS: Partial<Record<MessageKind, string>> = {
+  confirmacao: '{nome} {servico} {data} {hora} {valor} {estudio} {endereco} {link}',
+  lembrete: '{nome} {servico} {data} {hora} {valor} {estudio} {endereco} {link}',
   reativacao: '{nome} {dias} {ultimo_servico} {estudio} {endereco} {instagram}',
   aniversario: '{nome} {estudio} {endereco} {instagram}',
 };
@@ -36,6 +38,12 @@ function TemplateEditor({ template }: { template: MessageTemplate }) {
       <Text className="mb-2 text-[11px] text-muted">
         {KIND_VARS[template.kind] ?? '{nome} {servico} {data} {hora} {valor} {estudio} {endereco}'}
       </Text>
+      {template.channel === 'whatsapp' && (template.kind === 'confirmacao' || template.kind === 'lembrete') ? (
+        <Text className="mb-2 text-[11px] leading-4 text-muted">
+          {'{link}'} é o endereço em que a cliente confirma ou cancela o horário. Se ele não estiver no texto, vai
+          automaticamente no final da mensagem.
+        </Text>
+      ) : null}
       {template.channel === 'email' ? (
         <TextInput
           value={subject}

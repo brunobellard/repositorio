@@ -152,6 +152,8 @@ export interface Appointment {
    * Mudar o deslocamento em Ajustes não altera os já marcados. Vazio enquanto não sincronizou.
    */
   busyUntil?: string;
+  /** Código secreto do link em que a cliente confirma ou cancela (/confirmar/<código>) */
+  confirmToken?: string;
 }
 
 export interface ScheduleBlock {

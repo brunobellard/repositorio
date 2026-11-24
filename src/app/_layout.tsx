@@ -26,7 +26,7 @@ SplashScreen.preventAutoHideAsync();
 TelemetryService.init();
 
 /** Rotas abertas a qualquer pessoa, com ou sem login */
-const PUBLIC_ROUTES = ['agendar', 'termos', 'privacidade', 'redefinir-senha', '+not-found', '_sitemap'];
+const PUBLIC_ROUTES = ['agendar', 'confirmar', 'termos', 'privacidade', 'redefinir-senha', '+not-found', '_sitemap'];
 
 const theme = {
   ...DefaultTheme,
@@ -208,6 +208,7 @@ function AppStack() {
       </Stack.Protected>
       {/* Sempre acessível, com ou sem login. Ficam por último: ao abrir o site sem endereço, o app vai para a primeira tela liberada da lista (login, onboarding ou agenda), nunca para os Termos */}
       <Stack.Screen name="agendar/[slug]" options={{ headerShown: false, title: 'Agendar horário' }} />
+      <Stack.Screen name="confirmar/[token]" options={{ headerShown: false, title: 'Seu horário' }} />
       <Stack.Screen name="termos" options={{ headerShown: false, title: 'Termos de Uso' }} />
       <Stack.Screen name="privacidade" options={{ headerShown: false, title: 'Política de Privacidade' }} />
       <Stack.Screen name="redefinir-senha" options={{ headerShown: false, title: 'Redefinir senha' }} />
