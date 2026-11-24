@@ -55,17 +55,17 @@ export default function Regioes() {
     if (!(await updateProfile({ travelBufferMinutes: m }))) return;
     const differing = upcomingWithOtherBuffer(appointments, m);
     if (!differing) return;
-    const label = m ? `${m} min de deslocamento` : 'sem deslocamento';
+    const label = m ? `com ${m} min de deslocamento` : 'sem deslocamento';
     confirmAction(
       'Aplicar aos já marcados?',
-      `Você tem ${differing} ${differing === 1 ? 'atendimento a domicílio marcado' : 'atendimentos a domicílio marcados'} com outro tempo de deslocamento. Quer deixar ${differing === 1 ? 'ele' : 'eles'} com ${label} também? Se não, a mudança vale só para os próximos agendamentos.`,
+      `Você tem ${differing} ${differing === 1 ? 'atendimento a domicílio marcado' : 'atendimentos a domicílio marcados'} com outro tempo de deslocamento. Quer deixar ${differing === 1 ? 'ele' : 'eles'} ${label} também? Se não, a mudança vale só para os próximos agendamentos.`,
       async () => {
         const res = await applyTravelBufferToUpcoming();
         if (!res) return;
         notify(
           'Deslocamento atualizado',
           res.skipped
-            ? `${res.updated} ${res.updated === 1 ? 'atendimento atualizado' : 'atendimentos atualizados'}. ${res.skipped} ficaram como estavam, porque o novo tempo encostaria no atendimento seguinte.`
+            ? `${res.updated} ${res.updated === 1 ? 'atendimento atualizado' : 'atendimentos atualizados'}. ${res.skipped} ${res.skipped === 1 ? 'ficou como estava, porque o novo tempo encostaria' : 'ficaram como estavam, porque o novo tempo encostaria'} no atendimento seguinte.`
             : `${res.updated} ${res.updated === 1 ? 'atendimento atualizado' : 'atendimentos atualizados'}.`,
           res.skipped ? 'info' : 'success',
         );
