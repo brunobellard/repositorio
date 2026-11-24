@@ -31,6 +31,9 @@ interface Props {
 export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts, blockedDays }: Props) {
   const today = startOfDay(new Date());
   const days = mode === 'mes' ? monthGrid(selected) : weekDays(selected);
+  const first = days[0];
+  const last = days[days.length - 1];
+  const crossMonth = mode !== 'mes' && first.getMonth() !== last.getMonth();
 
   function shift(dir: 1 | -1) {
     if (mode !== 'mes') onSelect(addDays(selected, 7 * dir));
@@ -46,9 +49,23 @@ export function CalendarHeader({ mode, onModeChange, selected, onSelect, counts,
         <Pressable accessibilityRole="button" accessibilityLabel="Período anterior" onPress={() => shift(-1)} hitSlop={10} className="p-1">
           <Ionicons name="chevron-back" size={20} color={colors.ink} />
         </Pressable>
-        <Text numberOfLines={1} className="ml-1 flex-1 text-[15px] font-semibold text-ink">
-          {MONTHS[selected.getMonth()].slice(0, 3)} {selected.getFullYear()}
-        </Text>
+        {crossMonth ? (
+          // Semana que passa de um mês para o outro (ex: 29/11 a 05/12): "Nov–Dez" e o ano embaixo
+          <View className="ml-1 flex-1">
+            <Text numberOfLines={1} className="text-[15px] font-semibold leading-5 text-ink">
+              {MONTHS[first.getMonth()].slice(0, 3)}–{MONTHS[last.getMonth()].slice(0, 3)}
+            </Text>
+            <Text numberOfLines={1} className="text-[11px] leading-3 text-muted">
+              {first.getFullYear() === last.getFullYear()
+                ? first.getFullYear()
+                : `${first.getFullYear()}/${String(last.getFullYear()).slice(2)}`}
+            </Text>
+          </View>
+        ) : (
+          <Text numberOfLines={1} className="ml-1 flex-1 text-[15px] font-semibold text-ink">
+            {MONTHS[selected.getMonth()].slice(0, 3)} {selected.getFullYear()}
+          </Text>
+        )}
         <Pressable accessibilityRole="button" accessibilityLabel="Próximo período" onPress={() => shift(1)} hitSlop={10} className="mr-2 p-1">
           <Ionicons name="chevron-forward" size={20} color={colors.ink} />
         </Pressable>

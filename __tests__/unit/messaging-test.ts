@@ -2,7 +2,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { mockProfile } from '@/data/mock';
-import { composeWhatsApp } from '@/services/messaging';
+import { composeWhatsApp, fillTemplate } from '@/services/messaging';
 import type { MessageTemplate } from '@/types';
 
 import { appt, client } from '../fixtures';
@@ -34,5 +34,11 @@ describe('link de confirmação', () => {
     expect(composeWhatsApp(confirmacao, cancelled, client(), mockProfile)).not.toContain('/confirmar/');
     const noToken = { ...future, confirmToken: undefined };
     expect(composeWhatsApp(confirmacao, noToken, client(), mockProfile)).not.toContain('Confirme ou cancele');
+  });
+
+  it('CT-MSG-04 sem endereço, o separador antes de {endereco} some', () => {
+    const vars = { nome: 'Ana', servico: '', data: '', hora: '', valor: '', estudio: 'Estúdio', endereco: '', link: '' };
+    expect(fillTemplate('📍 {estudio} – {endereco}\nAté lá!', vars)).toBe('📍 Estúdio\nAté lá!');
+    expect(fillTemplate('📍 {estudio} – {endereco}', { ...vars, endereco: 'Rua A, 1' })).toBe('📍 Estúdio – Rua A, 1');
   });
 });

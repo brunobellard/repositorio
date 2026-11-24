@@ -7,6 +7,7 @@ import {
   generateOccurrences,
   isOpenEnded,
   MAX_OCCURRENCES,
+  rruleUntil,
   seriesTargets,
   seriesToExtend,
   sessionPosition,
@@ -98,8 +99,16 @@ describe('ações em série', () => {
   });
 
   it('CT-REC-12 posição da sessão na série', () => {
-    expect(sessionPosition(series[3], series)).toBe('Sessão 4 de 4');
+    // s3 está cancelada e não conta
+    expect(sessionPosition(series[3], series)).toBe('Sessão 3 de 3');
     expect(sessionPosition(appt(), [appt()])).toBeNull();
+  });
+
+  it('CT-REC-24 posição ignora sessões canceladas', () => {
+    const withCancelled = series.map((a, i) => (i === 0 ? { ...a, status: 'cancelado' as const } : a));
+    expect(sessionPosition(withCancelled[1], withCancelled)).toBe('Sessão 1 de 2');
+    expect(sessionPosition(withCancelled[3], withCancelled)).toBe('Sessão 2 de 2');
+    expect(sessionPosition(withCancelled[2], withCancelled)).toBeNull();
   });
 });
 
@@ -211,5 +220,11 @@ describe('série sem data para acabar', () => {
 
   it('CT-REC-23 encerrar a série troca o fim aberto por UNTIL no dia anterior', () => {
     expect(closedRRule('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO', local(2030, 3, 18, 10))).toBe('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;UNTIL=20300317');
+  });
+
+  it('CT-REC-25 lê a data final do UNTIL', () => {
+    expect(rruleUntil('FREQ=WEEKLY;UNTIL=20270701')).toEqual(local(2027, 7, 1));
+    expect(rruleUntil('FREQ=WEEKLY;UNTIL=20270701T235959Z')).toEqual(local(2027, 7, 1));
+    expect(rruleUntil('FREQ=WEEKLY;COUNT=4')).toBeNull();
   });
 });

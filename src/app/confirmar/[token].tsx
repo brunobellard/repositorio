@@ -50,6 +50,11 @@ const REFUSED: Record<string, string> = {
 
 export default function ConfirmarHorario() {
   const { token } = useLocalSearchParams<{ token: string }>();
+  // key: trocar de link (navegação interna) recria a tela do zero, sem mostrar o horário anterior
+  return <ConfirmarConteudo key={token ?? ''} token={token} />;
+}
+
+function ConfirmarConteudo({ token }: { token?: string }) {
   const [appt, setAppt] = useState<PublicAppointment | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState<'confirmar' | 'cancelar' | null>(null);

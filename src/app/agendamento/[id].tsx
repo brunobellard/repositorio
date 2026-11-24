@@ -10,6 +10,7 @@ import {
   describeRRule,
   hasOpenSiblings,
   isOpenEnded,
+  rruleUntil,
   type SeriesScope,
   seriesTargets,
   sessionPosition,
@@ -22,7 +23,7 @@ import { showToast } from '@/components/toast';
 import { track } from '@/lib/analytics';
 import { confirmAction, notify } from '@/lib/confirm';
 import { amountDue, availableCredits, packageCovered } from '@/lib/packages';
-import { formatDayTitle, formatDuration, formatTime, isSameDay } from '@/lib/dates';
+import { formatDateShort, formatDayTitle, formatDuration, formatTime, isSameDay } from '@/lib/dates';
 import { formatBRL, formatPhone } from '@/lib/format';
 import { buildVars, composeEmailHtml, emailProvider, fillTemplate, sendWhatsApp } from '@/services/messaging';
 import { colors, paymentLabels, statusInfo } from '@/theme/colors';
@@ -224,7 +225,14 @@ export default function AgendamentoDetalhe() {
           }
         : null;
   const baseRepeat = describeRRule(appt.recurrenceRule, start);
-  const repeatLabel = baseRepeat && isOpenEnded(appt.recurrenceRule) ? `${baseRepeat}, sem data para acabar` : baseRepeat;
+  const until = rruleUntil(appt.recurrenceRule);
+  const repeatLabel = !baseRepeat
+    ? baseRepeat
+    : isOpenEnded(appt.recurrenceRule)
+      ? `${baseRepeat}, sem data para acabar`
+      : until
+        ? `${baseRepeat}, até ${formatDateShort(until)}/${until.getFullYear()}`
+        : baseRepeat;
   const position = sessionPosition(appt, appointments);
 
   async function whatsapp(kind: 'lembrete' | 'confirmacao' | 'recibo') {

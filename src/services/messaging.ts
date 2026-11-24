@@ -58,7 +58,9 @@ export function buildVars(
 }
 
 export function fillTemplate(text: string, vars: TemplateVars): string {
-  return text.replace(/\{(\w+)\}/g, (match, key: string) =>
+  // Sem endereço cadastrado: some também o separador antes dele ("📍 Estúdio – " vira "📍 Estúdio")
+  const base = vars.endereco ? text : text.replace(/[ \t]*[–—-][ \t]*\{endereco\}/g, '');
+  return base.replace(/\{(\w+)\}/g, (match, key: string) =>
     key in vars ? vars[key as keyof TemplateVars] : match,
   );
 }

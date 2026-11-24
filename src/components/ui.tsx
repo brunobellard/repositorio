@@ -104,6 +104,7 @@ export function Segmented<T extends string>({
           accessibilityRole="tab"
           accessibilityLabel={o.label}
           accessibilityState={{ selected: value === o.value }}
+          aria-selected={value === o.value}
           className={`flex-1 items-center rounded-full px-3 py-1.5 ${value === o.value ? 'bg-surface' : ''}`}>
           <Text className={`text-[13px] font-semibold ${value === o.value ? 'text-ink' : 'text-muted'}`}>
             {o.label}

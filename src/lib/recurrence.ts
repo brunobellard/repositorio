@@ -187,6 +187,12 @@ export function describeRRule(rrule: string | undefined, start: Date): string | 
   return null;
 }
 
+/** Data final de uma regra com UNTIL (ex: "UNTIL=20270701" ou "UNTIL=20270701T235959Z"), ou null. */
+export function rruleUntil(rrule: string | undefined): Date | null {
+  const m = rrule?.match(/(?:^|;)UNTIL=(\d{4})(\d{2})(\d{2})/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
 // ---------------------------------------------------------------------
 // Conflitos
 // ---------------------------------------------------------------------
@@ -279,7 +285,9 @@ export function seriesTargets(appt: Appointment, appointments: Appointment[], sc
 
 /** "Sessão 3 de 6" */
 export function sessionPosition(appt: Appointment, appointments: Appointment[]): string | null {
-  const all = seriesOf(appt, appointments);
+  // Sessões canceladas não contam (nem a posição de uma cancelada faz sentido)
+  if (appt.status === 'cancelado') return null;
+  const all = seriesOf(appt, appointments).filter((a) => a.status !== 'cancelado');
   if (all.length <= 1) return null;
   return `Sessão ${all.findIndex((a) => a.id === appt.id) + 1} de ${all.length}`;
 }

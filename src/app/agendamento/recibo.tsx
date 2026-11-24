@@ -63,6 +63,8 @@ export default function Comprovante() {
   const method = income?.paymentMethod;
   // Pacote paga uma sessão de cada serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
   const due = amountDue(appt, packages);
+  // Antes de concluir ainda não houve pagamento: mostra só "Total"
+  const totalLabel = appt.status === 'concluido' ? 'Total pago' : 'Total';
   const priceLabel = (s: (typeof appt.services)[number]) =>
     pkg?.serviceIds?.includes(s.serviceId) ? 'pacote' : formatBRL(s.price);
   const address = formatAddress(profile);
@@ -83,7 +85,7 @@ export default function Comprovante() {
       appt!.travelFee ? `🚗 Deslocamento — ${formatBRL(appt!.travelFee)}` : '',
       '',
       pkg ? `🎟️ *Descontado do pacote* "${pkg.name}"\nRestam ${remaining} de ${pkg.totalSessions} sessões` : '',
-      !pkg || due > 0 ? `💳 *Total pago: ${formatBRL(due)}*${method ? ` (${paymentLabels[method]})` : ''}` : '',
+      !pkg || due > 0 ? `💳 *${totalLabel}: ${formatBRL(due)}*${method ? ` (${paymentLabels[method]})` : ''}` : '',
       '',
       address ? `📍 ${address}` : '',
       profile.instagram ? `📷 @${profile.instagram}` : '',
@@ -188,7 +190,7 @@ export default function Comprovante() {
           ) : null}
           {!pkg || due > 0 ? (
             <View className={pkg ? 'mt-3' : ''}>
-              <Line label="Total pago" value={formatBRL(due)} strong />
+              <Line label={totalLabel} value={formatBRL(due)} strong />
               <Line label="Forma de pagamento" value={method ? paymentLabels[method] : '—'} />
             </View>
           ) : null}

@@ -84,7 +84,7 @@ export function WeekGrid({
             <Pressable
               key={day.toDateString()}
               accessibilityRole="button"
-              accessibilityLabel={`${day.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}, ${appts.length} atendimentos. Abrir o dia`}
+              accessibilityLabel={`${day.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}, ${appts.length} ${appts.length === 1 ? 'atendimento' : 'atendimentos'}. Abrir o dia`}
               onPress={() => onPressDay(day)}
               className="flex-1 items-center pb-1.5">
               <Text className={`text-[11px] font-medium ${isToday ? 'text-primary-dark' : 'text-muted'}`}>
@@ -180,8 +180,15 @@ export function WeekGrid({
                       accessibilityLabel={`${b.reason ?? 'Bloqueio'}, ${formatTime(b.startsAt)} a ${formatTime(b.endsAt)}`}
                       onPress={() => onPressBlock(b)}
                       style={{ position: 'absolute', top: top + 1, height: Math.max(h - 2, 10), left: 1, right: 1 }}
-                      className="overflow-hidden rounded-md border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-0.5"
-                    />
+                      className="overflow-hidden rounded-md border border-dashed border-[#D9D1CF] bg-[#F3EFED] px-[3px] py-0.5">
+                      {h >= 16 ? (
+                        <Text
+                          numberOfLines={Math.max(1, Math.floor((h - 4) / 12))}
+                          className="text-[9px] font-medium leading-[12px] text-muted">
+                          {b.reason ?? 'Bloqueado'}
+                        </Text>
+                      ) : null}
+                    </Pressable>
                   );
                 })}
 
