@@ -648,3 +648,23 @@ Web de produção (build `__common-bfc02418…`, `entry-85ab18a9…`), conta de 
 - Console da build nova sem erros. Limpeza: o 09:00 foi cancelado no app; o 11:00 já tinha sido cancelado pelo link.
 - Observação (baixa): trocando de um link para outro sem recarregar a página (navegação interna do app), a tela continua com "Link não encontrado" do código anterior; abrindo do zero, cada link aparece certo. A cliente sempre abre do zero, então não afeta o uso real.
 - Observação (baixa, já existia): sem endereço cadastrado, a confirmação sai com a linha "📍 QA Estúdio – " vazia no fim. E o texto do recibo de um horário ainda pendente diz "Total pago".
+
+## Regressão: repetição sem data para acabar (commit f2ca6fb) · 24/11/2026
+
+Web de produção, build `entry-8e6bf803…` / `__common-57d1e7c1…` (a 1ª tentativa achou ainda o build anterior, sem a opção; o deploy foi refeito). SQL `continue_series` já aplicado. Conta de teste, cliente fictícia "QA Telefone Colado", serviço "QA Manicure", sextas às 16:00 a partir de 27/11.
+
+| # | Item | Resultado |
+|---|---|---|
+| 1 | Repetir › Semanal › Termina "Sem fim": texto explicativo e resumo | ✅ Aparece "Sem fim" ao lado de "Nº de sessões" e "Até uma data", com o texto "O app cria 1 ano de sessões e … Para parar, cancele uma sessão e escolha 'Cancelar este e os próximos'". Cabeçalho: "Toda semana (sexta-feira) · Sem data para acabar". Resumo: "serão criados 52 agendamentos semanais (1 ano, até 19/11)". Botão "Agendar 52 sessões". |
+| 1b | Salvar pulando conflito | ✅ Aviso "1 data tem conflito" (01/01, Férias) → "Pular datas com conflito" → 51 sessões de 27/11/2026 a 19/11/2027, todas com regra `FREQ=WEEKLY;INTERVAL=1;BYDAY=FR` (sem COUNT/UNTIL). |
+| 2 | Rótulo da sessão | ✅ "Toda semana, sem data para acabar · Sessão 15 de 51". |
+| 4 | Editar "este e os próximos" (16:00 → 17:00) na sessão 15 (12/03/2027) | ✅ 37 sessões foram para uma série nova às 17:00, ainda sem fim; as 14 anteriores ficaram às 16:00 com `UNTIL=20270311`. Nenhum dia duplicado. |
+| 3 | Cancelar "este e os próximos" na sessão 17 da série nova (02/07/2027) | ✅ 21 sessões canceladas (02/07 a 19/11/2027); as 16 que ficaram ganharam `UNTIL=20270701` e o rótulo perdeu o "sem data para acabar". Depois do F5, o servidor devolveu o mesmo estado (14 + 16 pendentes, 21 canceladas), nenhuma sessão recriada e nenhuma chamada a `continue_series`. |
+| 5 | `continue_series` direto (sem criar nada) | ✅ Série com UNTIL → "Esta série tem data para acabar"; série com a última sessão cancelada → "Série encerrada"; grupo inexistente → "Série não encontrada"; sem login → 401 "permission denied". A extensão automática de verdade (última sessão a menos de 180 dias) não foi testada: exigiria esperar meses ou mexer em datas no banco. |
+
+Limpeza: as 51 sessões foram canceladas pelo app ("Cancelar todos da série" nas duas partes); a cliente de teste ficou sem nada em aberto.
+
+Observações (baixa):
+- Série diária sem fim: o limite `MAX_OCCURRENCES = 52` corta em 52 dias, não 1 ano, e o resumo diria "1 ano". Repassado à sessão principal, que vai corrigir o texto para "no máximo 52 de cada vez" no próximo commit.
+- "Sessão X de N" conta também as canceladas (depois do cancelamento a sessão de 12/03 mostra "Sessão 1 de 37", mas só 16 seguem ativas). Já era assim nas séries com fim.
+- Na parte antiga encerrada (`UNTIL=20270311`) o rótulo mostra só "Toda semana", sem a data de fim.
