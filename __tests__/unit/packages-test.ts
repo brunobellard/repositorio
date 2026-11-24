@@ -124,6 +124,14 @@ describe('valor a receber de sessão de pacote', () => {
     expect(amountDue(a, [maoEPe])).toBe(15);
   });
 
+  it('CT-PAC-16 pacote no formato antigo (sem serviceIds, vindo do cache) não quebra a tela', () => {
+    const old = { ...pkg(), serviceIds: undefined } as unknown as ReturnType<typeof pkg>;
+    const a = appt({ clientPackageId: 'p1', totalPrice: 50 });
+    expect(() => amountDue(a, [old])).not.toThrow();
+    expect(amountDue(a, [old])).toBe(50);
+    expect(usablePackages('c1', ['s1'], [old], [])).toEqual([]);
+  });
+
   it('CT-PAC-14 pacote que não cobre os serviços não desconta', () => {
     const a = appt({ clientPackageId: 'p1', services: [{ serviceId: 's2', name: 'Pedicure', price: 40, durationMin: 45 }], totalPrice: 40 });
     expect(amountDue(a, packages)).toBe(40);

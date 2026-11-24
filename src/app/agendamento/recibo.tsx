@@ -64,7 +64,7 @@ export default function Comprovante() {
   // Pacote paga uma sessão de cada serviço dele; o resto (outros serviços, deslocamento) foi pago à parte
   const due = amountDue(appt, packages);
   const priceLabel = (s: (typeof appt.services)[number]) =>
-    pkg?.serviceIds.includes(s.serviceId) ? 'pacote' : formatBRL(s.price);
+    pkg?.serviceIds?.includes(s.serviceId) ? 'pacote' : formatBRL(s.price);
   const address = formatAddress(profile);
   const contact = [formatPhone(profile.phone), profile.instagram ? `@${profile.instagram}` : '']
     .filter(Boolean)

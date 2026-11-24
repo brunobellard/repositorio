@@ -90,7 +90,14 @@ const outboxKey = (uid: string) => `agenda-beleza:outbox:v1:${uid}`;
 export async function loadSnapshot(uid: string): Promise<Snapshot | null> {
   try {
     const raw = await AsyncStorage.getItem(cacheKey(uid));
-    return raw ? (JSON.parse(raw) as Snapshot) : null;
+    if (!raw) return null;
+    const snap = JSON.parse(raw) as Snapshot;
+    // Cache de antes do pacote com vários serviços: tinha só serviceId (sem isso a agenda abria em branco)
+    snap.packages = (snap.packages ?? []).map((p) => {
+      const old = p as ClientPackage & { serviceId?: string };
+      return Array.isArray(old.serviceIds) ? p : { ...p, serviceIds: old.serviceId ? [old.serviceId] : [] };
+    });
+    return snap;
   } catch {
     return null;
   }

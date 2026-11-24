@@ -45,12 +45,13 @@ export function availableCredits(pkg: ClientPackage, appointments: Appointment[]
 
 /** O atendimento com estes serviços tem todos os serviços do pacote? (eles andam juntos) */
 export function coversPackage(pkg: ClientPackage, serviceIds: string[]): boolean {
-  return pkg.serviceIds.every((id) => serviceIds.includes(id));
+  const ids = pkg.serviceIds ?? [];
+  return ids.length > 0 && ids.every((id) => serviceIds.includes(id));
 }
 
 /** Nomes dos serviços do pacote, ex: "Manicure + Pedicure". */
 export function packageServicesLabel(pkg: ClientPackage, services: { id: string; name: string }[]): string {
-  return pkg.serviceIds.map((id) => services.find((s) => s.id === id)?.name ?? 'Serviço').join(' + ');
+  return (pkg.serviceIds ?? []).map((id) => services.find((s) => s.id === id)?.name ?? 'Serviço').join(' + ');
 }
 
 /** Pacotes da cliente que podem pagar este atendimento agora. */
@@ -80,7 +81,7 @@ export function packageCovered(appt: Appointment, packages: ClientPackage[]): nu
   if (!appt.clientPackageId) return 0;
   const pkg = packages.find((p) => p.id === appt.clientPackageId);
   if (!pkg) return 0;
-  const covered = appt.services.filter((s) => pkg.serviceIds.includes(s.serviceId)).reduce((t, s) => t + s.price, 0);
+  const covered = appt.services.filter((s) => (pkg.serviceIds ?? []).includes(s.serviceId)).reduce((t, s) => t + s.price, 0);
   return Math.min(appt.totalPrice, covered);
 }
 
