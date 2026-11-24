@@ -96,7 +96,7 @@ const toProfile = (r: any): Profile => ({
   // Sem a coluna (migração pendente): não prende ninguém no onboarding
   onboardingCompleted: r.onboarding_completed ?? true,
   serviceMode: r.service_mode ?? 'fixed',
-  travelBufferMinutes: r.travel_buffer_minutes ?? 30,
+  travelBufferMinutes: r.travel_buffer_minutes ?? 0,
   themeColor: r.theme_color ?? DEFAULT_THEME_COLOR,
 });
 const toArea = (r: any): ServiceArea => ({
@@ -356,6 +356,8 @@ interface Store {
   /** false enquanto a migração de Ajustes não foi aplicada no Supabase */
   hoursAvailable: boolean;
   updateProfile: (patch: Partial<Omit<Profile, 'id'>>) => Promise<boolean>;
+  /** Usa o tempo de deslocamento atual nos atendimentos a domicílio já marcados (futuros). */
+  applyTravelBufferToUpcoming: () => Promise<{ updated: number; skipped: number } | null>;
   uploadLogo: (base64: string, mimeType: string) => Promise<boolean>;
   saveService: (s: Omit<Service, 'id' | 'color'> & { id?: string }) => Promise<boolean>;
   setServiceActive: (id: string, active: boolean) => Promise<void>;
@@ -436,7 +438,7 @@ const emptyProfile: Profile = {
   billingCycle: 'monthly',
   onboardingCompleted: true,
   serviceMode: 'fixed',
-  travelBufferMinutes: 30,
+  travelBufferMinutes: 0,
   themeColor: DEFAULT_THEME_COLOR,
 };
 
@@ -1058,6 +1060,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (error) return fail(error);
       setProfile(toProfile(data));
       return true;
+    },
+
+    async applyTravelBufferToUpcoming() {
+      const { data, error } = await supabase.rpc('apply_travel_buffer_to_upcoming');
+      if (error) {
+        fail(error);
+        return null;
+      }
+      const res = (data ?? {}) as { atualizados?: number; pulados?: number };
+      // Recarrega para a agenda mostrar o deslocamento novo de cada atendimento
+      if (res.atualizados) await store.refresh();
+      return { updated: res.atualizados ?? 0, skipped: res.pulados ?? 0 };
     },
 
     async uploadLogo(base64, mimeType) {

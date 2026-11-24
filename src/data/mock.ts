@@ -32,7 +32,7 @@ export const mockProfile: Profile = {
   billingCycle: 'monthly',
   onboardingCompleted: true,
   serviceMode: 'fixed',
-  travelBufferMinutes: 30,
+  travelBufferMinutes: 0,
   themeColor: '#C08497',
 };
 

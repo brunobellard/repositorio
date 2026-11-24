@@ -8,11 +8,11 @@ import { useStore } from '@/data/store';
 import { usePlanAccess } from '@/hooks/usePlanAccess';
 import { openUpgrade, requireFeature } from '@/lib/upgrade';
 import { describeDays } from '@/lib/areas';
-import { confirmAction } from '@/lib/confirm';
+import { confirmAction, notify } from '@/lib/confirm';
 import { WEEKDAYS_SHORT } from '@/lib/dates';
 import { formatBRL, maskBRL } from '@/lib/format';
 import { colors } from '@/theme/colors';
-import type { ServiceArea } from '@/types';
+import type { Appointment, ServiceArea } from '@/types';
 
 /** 0 = sem deslocamento (nada é reservado depois do atendimento) */
 const BUFFERS = [0, 15, 20, 30, 45, 60];
@@ -21,9 +21,22 @@ const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 type Draft = Omit<ServiceArea, 'id'> & { id?: string };
 const emptyDraft = (): Draft => ({ name: '', travelFee: 0, allowedDays: [1, 2, 3, 4, 5, 6], isActive: true });
 
+/** Atendimentos a domicílio futuros e abertos cujo deslocamento gravado é diferente de `minutes`. */
+function upcomingWithOtherBuffer(appointments: Appointment[], minutes: number): number {
+  const now = Date.now();
+  return appointments.filter((a) => {
+    if (a.locationType !== 'home_service' || (a.status !== 'pendente' && a.status !== 'confirmado')) return false;
+    if (new Date(a.startsAt).getTime() < now) return false;
+    const end = new Date(a.endsAt).getTime();
+    const busy = a.busyUntil ? new Date(a.busyUntil).getTime() : end;
+    return busy !== end + minutes * 60_000;
+  }).length;
+}
+
 /** Ajustes › Regiões e taxas de deslocamento (atendimento a domicílio). */
 export default function Regioes() {
-  const { profile, updateProfile, serviceAreas, saveServiceArea, deleteServiceArea } = useStore();
+  const { profile, updateProfile, serviceAreas, saveServiceArea, deleteServiceArea, appointments, applyTravelBufferToUpcoming } =
+    useStore();
   const insets = useSafeAreaInsets();
   const { hasHomeService, hasPublicLink } = usePlanAccess();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -32,6 +45,34 @@ export default function Regioes() {
   const [saving, setSaving] = useState(false);
 
   const canSave = !!draft && draft.name.trim().length >= 2 && draft.allowedDays.length > 0 && !saving;
+
+  /**
+   * Troca o tempo de deslocamento. Se houver atendimentos a domicílio já marcados com outro
+   * tempo, pergunta se é para usar o novo neles também (senão, vale só para os próximos).
+   */
+  async function changeBuffer(m: number) {
+    if (!requireFeature(hasHomeService, 'homeService') || m === profile.travelBufferMinutes) return;
+    if (!(await updateProfile({ travelBufferMinutes: m }))) return;
+    const differing = upcomingWithOtherBuffer(appointments, m);
+    if (!differing) return;
+    const label = m ? `${m} min de deslocamento` : 'sem deslocamento';
+    confirmAction(
+      'Aplicar aos já marcados?',
+      `Você tem ${differing} ${differing === 1 ? 'atendimento a domicílio marcado' : 'atendimentos a domicílio marcados'} com outro tempo de deslocamento. Quer deixar ${differing === 1 ? 'ele' : 'eles'} com ${label} também? Se não, a mudança vale só para os próximos agendamentos.`,
+      async () => {
+        const res = await applyTravelBufferToUpcoming();
+        if (!res) return;
+        notify(
+          'Deslocamento atualizado',
+          res.skipped
+            ? `${res.updated} ${res.updated === 1 ? 'atendimento atualizado' : 'atendimentos atualizados'}. ${res.skipped} ficaram como estavam, porque o novo tempo encostaria no atendimento seguinte.`
+            : `${res.updated} ${res.updated === 1 ? 'atendimento atualizado' : 'atendimentos atualizados'}.`,
+          res.skipped ? 'info' : 'success',
+        );
+      },
+      'Aplicar',
+    );
+  }
 
   async function save() {
     if (!draft || !canSave) return;
@@ -88,9 +129,7 @@ export default function Regioes() {
               key={m}
               label={m ? `${m} min` : 'Sem deslocamento'}
               selected={profile.travelBufferMinutes === m}
-              onPress={() =>
-                requireFeature(hasHomeService, 'homeService') && updateProfile({ travelBufferMinutes: m })
-              }
+              onPress={() => changeBuffer(m)}
             />
           ))}
         </View>
