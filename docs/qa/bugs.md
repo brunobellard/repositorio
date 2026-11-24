@@ -668,3 +668,26 @@ Observações (baixa):
 - Série diária sem fim: o limite `MAX_OCCURRENCES = 52` corta em 52 dias, não 1 ano, e o resumo diria "1 ano". Repassado à sessão principal, que vai corrigir o texto para "no máximo 52 de cada vez" no próximo commit.
 - "Sessão X de N" conta também as canceladas (depois do cancelamento a sessão de 12/03 mostra "Sessão 1 de 37", mas só 16 seguem ativas). Já era assim nas séries com fim.
 - Na parte antiga encerrada (`UNTIL=20270311`) o rótulo mostra só "Toda semana", sem a data de fim.
+
+## Regressão: agenda em grade semanal, Dia | Semana | Mês (commit 11931c5) · 24/11/2026
+
+Web de produção (`projeto-app-beleza.expo.app`, build `entry-76887065…` / `__common-2227da29…`), largura de celular (398 px), conta de teste, semana de 22 a 28/11 (hoje = ter 24).
+
+| # | Item | Resultado |
+|---|---|---|
+| 1 | Seletor e visão Semana | ✅ "Dia \| Semana \| Mês". Semana mostra 7 colunas Dom–Sáb, horas à esquerda e "14 atendimentos na semana · R$ 750,00 previsto" (conferido no cache: 14 ativos, R$ 820,00 brutos menos 2 sessões de pacote de R$ 35,00). |
+| 2 | Blocos de atendimento | ✅ Cor por status (pendente amarelo, confirmado verde, concluído azul), primeiro nome, hora e serviço quando cabem (bloco curto mostra nome e hora; "Fernanda" corta em "Ferna…"). Os 17 cancelados da semana não aparecem. Sobreposição lado a lado **não testada**: não há nenhum par de atendimentos ativos sobrepostos na conta (o banco impede). |
+| 3 | Folga, dia fechado, pausa e linha de agora | ✅ Domingo (fechado) e quarta 25 (folga) com o número riscado e coluna cinza; quarta mostra "FOLGA" no topo. Pausa 12–13 e horas fora do expediente em cinza. Linha de agora na terça às 06:21. A grade começa às 03:00 porque há um atendimento às 03:30 na quarta (dado de teste antigo). |
+| 4a | Toque no bloco | ✅ Abre o atendimento (Amanda, 09:00). |
+| 4b | Toque em horário vago | ✅ Sex 27 às 14:00 abre "Novo agendamento" com "Das 14:00 às 15:00" no dia 27. Na pausa (12:00): "Horário na sua pausa… Quer agendar mesmo assim?" e, aceitando, abre às 12:00. Fora do expediente (07:00): "Fora do expediente (09:00–18:00 · pausa 12:00–13:00)". Domingo: "Domingo está como dia fechado". Quarta: "Este dia está marcado como 'Folga'". |
+| 4c | Toque no número do dia | ✅ Qui 26 abre a visão Dia em "Qui, 26 de novembro · 2 atendimentos · R$ 195,00 previsto". |
+| 4d | Toque num bloqueio de horário | ✅ Criei um bloqueio de teste (sex 27, 15:00–16:00, "Curso"): aparece como caixa cinza tracejada; o toque pergunta "Remover bloqueio? Curso será liberado na agenda." Recusado, ele fica; depois removi o meu bloqueio de teste pelo mesmo diálogo. |
+| 5 | Setas e F5 | ✅ "Próximo período" avança 22–28/11 → 29/11–05/12 → 06–12/12; "Período anterior" volta uma semana. Depois do F5 a agenda voltou em Semana, na semana atual (`agenda-beleza:calendar-mode`). |
+| 6 | Dia e Mês | ✅ Dia igual à antiga Semana (faixa de 7 dias, lista do dia com pausa). Mês com o calendário e os pontinhos de atendimentos, como antes. |
+
+Console: sem erros novos depois de recarregar (só ficou um 400 antigo, das chamadas diretas a `continue_series` do teste anterior).
+
+Observações (baixa):
+- O bloqueio de horário aparece sem o motivo escrito na grade (só no rótulo de acessibilidade); a folga de dia inteiro mostra o motivo.
+- Acessibilidade: o rótulo do número do dia diz "1 atendimentos"; as abas Dia/Semana/Mês não informam qual está selecionada (`aria-selected` vazio).
+- A semana que cruza o mês (29/11–05/12) aparece como "Dez 2026" no cabeçalho.
