@@ -583,7 +583,13 @@ Source maps da web retestados (22/11, deploy b8ce8ec via `npm run export:web`, e
 **Causa:** os pacotes do cache estão no formato antigo (`serviceId`, sem `serviceIds`). O conversor do store só trata o que vem do servidor, então `pkg.serviceIds` fica indefinido e o app quebra ao desenhar a Agenda.
 **Contorno usado no teste:** apagar a chave do cache no navegador e recarregar (a agenda volta e o cache é regravado no formato novo).
 **Correção sugerida:** normalizar os pacotes ao ler o cache (`serviceIds ?? [serviceId]`) ou trocar a chave para `cache:v2`; e proteger `coversPackage`, `packageCovered` e `packageServicesLabel` com `pkg.serviceIds ?? []`.
-**Status:** aberto · repassado à sessão principal (24/11).
+**Correção (24/11, commit 076c182):** pacotes do cache no formato antigo viram `serviceIds` ao ler; `coversPackage`, `packageCovered`, `packageServicesLabel` e o recibo toleram `serviceIds` ausente (CT-PAC-16).
+**Reteste em produção (24/11, build `__common-986fd9a6…`):** cache local regravado com os 2 pacotes no formato antigo (`serviceId`, sem `serviceIds`), recarregando cada tela do zero:
+- Agenda abre; "4 atendimentos · R$ 145,00 previsto", igual ao valor antes do teste (as 2 sessões de hoje pagas pelo pacote não entram no previsto). ✅
+- Ficha da cliente mostra "Pacote 4x Manicure · Ativo · 2 de 4 sessões usadas · Manicure". ✅
+- Recibo da sessão das 11:00 mostra "Descontado do pacote · Pacote 4x Manicure · Restam 3 de 4 sessões". ✅
+- Depois de carregar, o cache é regravado já com `serviceIds`. Nenhum erro no console da build nova; Supabase 200/201/204. ✅
+**Status:** fechado.
 
 ---
 
