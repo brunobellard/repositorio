@@ -1,7 +1,7 @@
 // Agendamentos recorrentes: gera as datas da série, descreve a regra em
 // português e converte para o formato iCalendar (RRULE) salvo no banco.
 import { addDays, formatDateShort, minutesOfDay, startOfDay } from '@/lib/dates';
-import { hoursForDay, isWithinHours, timeOffOn } from '@/lib/hours';
+import { hoursForDay, isWithinOpenHours, timeOffOn } from '@/lib/hours';
 import type { Appointment, BusinessHours, ScheduleBlock } from '@/types';
 
 export type RecurrenceFreq =
@@ -213,7 +213,8 @@ export function slotConflict(start: Date, durationMin: number, ctx: Availability
     const h = hoursForDay(start, ctx.businessHours);
     if (!h.isOpen) return 'Estúdio fechado';
     const s = minutesOfDay(start);
-    if (!isWithinHours(h, s, s + durationMin)) return 'Fora do expediente';
+    // A pausa (almoço) não conta como conflito: quem agenda na pausa já confirmou ao escolher o horário
+    if (!isWithinOpenHours(h, s, s + durationMin)) return 'Fora do expediente';
   }
   const busyBlock = ctx.blocks.find(
     (b) => !b.allDay && new Date(b.startsAt) < end && new Date(b.endsAt) > start,

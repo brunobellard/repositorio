@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Chip, EmptyState, Field, SectionLabel, Toggle } from '@/components/ui';
@@ -14,7 +14,8 @@ import { formatBRL, maskBRL } from '@/lib/format';
 import { colors } from '@/theme/colors';
 import type { ServiceArea } from '@/types';
 
-const BUFFERS = [15, 20, 30, 45, 60];
+/** 0 = sem deslocamento (nada é reservado depois do atendimento) */
+const BUFFERS = [0, 15, 20, 30, 45, 60];
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 type Draft = Omit<ServiceArea, 'id'> & { id?: string };
@@ -85,7 +86,7 @@ export default function Regioes() {
           {BUFFERS.map((m) => (
             <Chip
               key={m}
-              label={`${m} min`}
+              label={m ? `${m} min` : 'Sem deslocamento'}
               selected={profile.travelBufferMinutes === m}
               onPress={() =>
                 requireFeature(hasHomeService, 'homeService') && updateProfile({ travelBufferMinutes: m })
@@ -130,7 +131,8 @@ export default function Regioes() {
 
       {/* Formulário do bairro */}
       <Modal visible={!!draft} transparent animationType="fade" onRequestClose={() => setDraft(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+        {/* "padding" também no Android: com o app edge-to-edge, "height" deixava o formulário embaixo do teclado */}
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <Pressable accessible={false} onPress={() => setDraft(null)} className="flex-1 justify-end bg-black/30">
             <Pressable accessible={false}
               onPress={() => {}}

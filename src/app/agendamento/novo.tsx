@@ -40,7 +40,7 @@ import {
   WEEKDAYS_SHORT,
 } from '@/lib/dates';
 import { formatBRL, formatPhone, isValidPhone, maskPhone, normalize } from '@/lib/format';
-import { hoursForDay, isWithinHours, timeOffOn, WEEKDAYS_LONG } from '@/lib/hours';
+import { hoursForDay, isWithinOpenHours, overlapsBreak, timeOffOn, WEEKDAYS_LONG } from '@/lib/hours';
 import { colors } from '@/theme/colors';
 import type { LocationType } from '@/types';
 
@@ -73,9 +73,10 @@ export default function NovoAgendamento() {
 
   const initial = editStart ?? (params.date ? new Date(params.date) : new Date());
   const initialHasTime = !!editStart || (!!params.date && minutesOfDay(initial) !== 0);
+  // Na pausa (almoço) não conta como fora do expediente: a pausa só pede confirmação
   const initialOutside =
     !!editStart &&
-    !isWithinHours(
+    !isWithinOpenHours(
       hoursForDay(editStart, businessHours),
       minutesOfDay(editStart),
       minutesOfDay(new Date(editing!.endsAt)),
@@ -197,7 +198,7 @@ export default function NovoAgendamento() {
   const need = Math.max(duration, slot);
   const now = new Date();
   /** Horários de um dia, livres ou não. ignoreHours = "fora do expediente" (dia todo). */
-  function slotsFor(d: Date, ignoreHours: boolean): { min: number; free: boolean }[] {
+  function slotsFor(d: Date, ignoreHours: boolean): { min: number; free: boolean; inBreak: boolean }[] {
     const dh = hoursForDay(d, businessHours);
     // "Fora do expediente": mostra o dia todo (00:00 até o último horário antes da meia-noite),
     // só respeitando outros agendamentos; o atendimento pode terminar no dia seguinte (BUG-015)
@@ -233,14 +234,16 @@ export default function NovoAgendamento() {
     for (let m = workStart; m + slot <= workEnd; m += slot) gridMins.push(m);
     if (originalMin !== null && !gridMins.includes(originalMin)) gridMins.push(originalMin);
     gridMins.sort((a, b) => a - b);
-    const list: { min: number; free: boolean }[] = [];
+    const list: { min: number; free: boolean; inBreak: boolean }[] = [];
     for (const m of gridMins) {
       const past = isSameDay(d, now) && m < minutesOfDay(now) && m !== originalMin;
       // Indo à casa da cliente, o deslocamento depois também precisa estar livre
       const conflict = busy.some(([s, e]) => m < e && m + need + (needsTravel ? buffer : 0) > s);
-      // O atendimento inteiro precisa caber no expediente (sem atravessar a pausa)
-      const fits = ignoreHours || isWithinHours(dh, m, m + need);
-      list.push({ min: m, free: !past && !conflict && fits });
+      // O atendimento inteiro precisa caber entre a abertura e o fechamento.
+      // A pausa (almoço) não trava: o horário fica livre e pede confirmação ao escolher.
+      const fits = ignoreHours || isWithinOpenHours(dh, m, m + need);
+      const inBreak = !ignoreHours && overlapsBreak(dh, m, m + need);
+      list.push({ min: m, free: !past && !conflict && fits, inBreak });
     }
     return list;
   }
@@ -250,7 +253,8 @@ export default function NovoAgendamento() {
     if (override || !duration || slots.some((x) => x.free)) return null;
     for (let i = 1; i <= 30; i++) {
       const d = addDays(day, i);
-      const free = slotsFor(d, false).find((x) => x.free);
+      // A sugestão automática evita a pausa
+      const free = slotsFor(d, false).find((x) => x.free && !x.inBreak);
       if (free) return { day: d, min: free.min };
     }
     return null;
@@ -259,6 +263,16 @@ export default function NovoAgendamento() {
     time !== null && duration
       ? `${formatTime(atMinutes(day, time + duration))}${time + duration > 24 * 60 ? ' do dia seguinte' : ''}`
       : null;
+  /** Escolhe um horário; se cair na pausa (almoço), pergunta antes. */
+  function pickTime(s: { min: number; inBreak: boolean }) {
+    if (!s.inBreak) return setTime(s.min);
+    confirmAction(
+      'Horário na sua pausa',
+      `Esse atendimento cai na sua pausa (${dayHours.breakStart}–${dayHours.breakEnd}). Quer agendar mesmo assim?`,
+      () => setTime(s.min),
+      'Agendar assim mesmo',
+    );
+  }
   // Horário vindo do toque na agenda ainda é válido?
   const timeValid = time !== null && slots.some((s) => s.min === time && s.free);
 
@@ -768,16 +782,22 @@ export default function NovoAgendamento() {
               const sel = time === s.min && s.free;
               return (
                 <Pressable accessibilityRole="button" accessibilityState={{ selected: !!sel, disabled: !s.free }}
-                  accessibilityLabel={`${formatTime(atMinutes(day, s.min))}${s.free ? '' : ', ocupado'}`}
+                  accessibilityLabel={`${formatTime(atMinutes(day, s.min))}${s.free ? (s.inBreak ? ', na pausa' : '') : ', ocupado'}`}
                   key={s.min}
                   disabled={!s.free}
-                  onPress={() => setTime(s.min)}
+                  onPress={() => pickTime(s)}
                   className={`mb-2 mr-2 w-[72px] items-center rounded-xl border py-2 ${
-                    sel ? 'border-primary bg-primary' : s.free ? 'border-line bg-surface' : 'border-transparent bg-transparent'
+                    sel
+                      ? 'border-primary bg-primary'
+                      : s.free
+                        ? s.inBreak
+                          ? 'border-dashed border-[#D9B871] bg-[#FBF3E4]'
+                          : 'border-line bg-surface'
+                        : 'border-transparent bg-transparent'
                   }`}>
                   <Text
                     className={`text-[14px] font-medium ${
-                      sel ? 'text-on-primary' : s.free ? 'text-ink' : 'text-muted line-through'
+                      sel ? 'text-on-primary' : s.free ? (s.inBreak ? 'text-[#8A6420]' : 'text-ink') : 'text-muted line-through'
                     }`}>
                     {formatTime(atMinutes(day, s.min))}
                   </Text>

@@ -15,7 +15,7 @@ import { OnlineRequestsBanner } from '@/components/agenda/online-requests';
 import { ShareLinkButton } from '@/components/share-link-button';
 import { preloadAppointmentRoutes } from '@/lib/preload-routes';
 import { addDays, atMinutes, formatDayTitle, isSameDay, startOfDay } from '@/lib/dates';
-import { describeHours, hoursForDay, isWithinHours, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
+import { describeHours, hoursForDay, isWithinOpenHours, overlapsBreak, timeOffOn, weekRange, WEEKDAYS_LONG } from '@/lib/hours';
 import { formatBRL } from '@/lib/format';
 import { amountDue } from '@/lib/packages';
 import { colors } from '@/theme/colors';
@@ -76,6 +76,7 @@ export default function AgendaScreen() {
   );
   const dayBlocks = blocks.filter((b) => overlapsDay(b, selected));
   const allDayBlock = dayBlocks.find((b) => b.allDay);
+  // Cancelados não aparecem na agenda (continuam no histórico da cliente)
   const active = dayAppts.filter((a) => a.status !== 'cancelado');
   // O que o pacote já pagou na venda não entra no "previsto" do dia (só extras e deslocamento)
   // O valor entra só no dia em que o atendimento começa (não conta duas vezes o que atravessa a meia-noite)
@@ -97,9 +98,18 @@ export default function AgendaScreen() {
       ? `Este dia está marcado como "${dayOff.reason ?? 'Folga'}".`
       : !dayHours.isOpen
         ? `${WEEKDAYS_LONG[selected.getDay()]} está como dia fechado no seu expediente.`
-        : !isWithinHours(dayHours, min, min + 30)
+        : !isWithinOpenHours(dayHours, min, min + 30)
           ? `Esse horário está fora do expediente (${describeHours(dayHours)}).`
           : null;
+    // Na pausa (almoço): só confirma, sem abrir o modo "fora do expediente"
+    if (!why && overlapsBreak(dayHours, min, min + 30)) {
+      return confirmAction(
+        'Horário na sua pausa',
+        `Esse horário cai na sua pausa (${dayHours.breakStart}–${dayHours.breakEnd}). Quer agendar mesmo assim?`,
+        () => go(false),
+        'Agendar assim mesmo',
+      );
+    }
     if (!why) return go(false);
     confirmAction('Fora do expediente', `${why} Quer agendar mesmo assim?`, () => go(true), 'Agendar assim mesmo');
   }
@@ -208,7 +218,7 @@ export default function AgendaScreen() {
           hours={dayHours}
           closed={closedDay}
           fallbackRange={weekRange(businessHours)}
-          appointments={dayAppts}
+          appointments={active}
           blocks={dayBlocks}
           clientsById={clientsById}
           onPressAppointment={(a) => router.push({ pathname: '/agendamento/[id]', params: { id: a.id } })}

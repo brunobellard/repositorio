@@ -83,6 +83,15 @@ describe('formatação e link', () => {
     expect(maskPhone('119876')).toBe('(11) 9876');
   });
 
+  it('CT-FMT-07 telefone colado com código do país não quebra', () => {
+    expect(maskPhone('+55 11 98765-4321')).toBe('(11) 98765-4321');
+    expect(maskPhone('+55 (11) 3456-7890')).toBe('(11) 3456-7890');
+    expect(maskPhone('0055 11 98765-4321')).toBe('(11) 98765-4321');
+    expect(maskPhone('011 98765-4321')).toBe('(11) 98765-4321');
+    // DDD 55 (RS) continua valendo
+    expect(maskPhone('55 99876-5432')).toBe('(55) 99876-5432');
+  });
+
   it('CT-FMT-02 CPF e CNPJ', () => {
     expect(maskDocument('12345678901')).toBe('123.456.789-01');
     expect(maskDocument('12345678000199')).toBe('12.345.678/0001-99');

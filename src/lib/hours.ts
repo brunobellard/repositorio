@@ -38,6 +38,17 @@ export function isWithinHours(h: BusinessHours, start: number, end: number): boo
   return workRanges(h).some(([s, e]) => start >= s && end <= e);
 }
 
+/** O período [start, end) cabe entre a abertura e o fechamento, sem considerar a pausa? */
+export function isWithinOpenHours(h: BusinessHours, start: number, end: number): boolean {
+  return h.isOpen && start >= hmToMinutes(h.openTime) && end <= hmToMinutes(h.closeTime);
+}
+
+/** O período [start, end) encosta na pausa do dia (ex: almoço)? */
+export function overlapsBreak(h: BusinessHours, start: number, end: number): boolean {
+  if (!h.isOpen || !h.breakStart || !h.breakEnd) return false;
+  return start < hmToMinutes(h.breakEnd) && end > hmToMinutes(h.breakStart);
+}
+
 /** Faixa de horas a mostrar na agenda quando o dia está fechado. */
 export function weekRange(hours: BusinessHours[]): [number, number] {
   const open = hours.filter((h) => h.isOpen);

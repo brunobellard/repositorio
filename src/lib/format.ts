@@ -35,9 +35,22 @@ export const isValidPhone = (s: string | undefined) => {
 
 export const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(s.trim());
 
-/** Máscara progressiva de telefone, para usar enquanto digita. */
+/**
+ * Dígitos de um telefone brasileiro, sem código do país nem zeros de discagem.
+ * Ex. colado do WhatsApp: "+55 11 98765-4321" -> "11987654321"; "0055..." e "011..." também.
+ * Só remove quando sobra mais de 11 dígitos (o DDD 55 do RS continua valendo).
+ */
+export function phoneDigitsBR(input: string | undefined): string {
+  let d = onlyDigits(input);
+  if (d.length > 11 && d.startsWith('00')) d = d.slice(2);
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+  if (d.length > 11 && d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+
+/** Máscara progressiva de telefone, para usar enquanto digita (aceita número colado com +55). */
 export function maskPhone(input: string): string {
-  const d = onlyDigits(input).slice(0, 11);
+  const d = phoneDigitsBR(input).slice(0, 11);
   if (d.length <= 2) return d.length ? `(${d}` : '';
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;

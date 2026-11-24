@@ -229,7 +229,7 @@ export default function DadosEstudio() {
               <Text className="text-[15px] text-ink">Regiões e taxas de deslocamento</Text>
               <Text className="text-[12px] text-muted">
                 {serviceAreas.length
-                  ? `${serviceAreas.length} ${serviceAreas.length === 1 ? 'bairro' : 'bairros'} · deslocamento de ${profile.travelBufferMinutes} min`
+                  ? `${serviceAreas.length} ${serviceAreas.length === 1 ? 'bairro' : 'bairros'} · ${profile.travelBufferMinutes ? `deslocamento de ${profile.travelBufferMinutes} min` : 'sem deslocamento'}`
                   : 'Cadastre os bairros que você atende'}
               </Text>
             </View>

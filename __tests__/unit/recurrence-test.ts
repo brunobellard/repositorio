@@ -112,9 +112,9 @@ describe('conflitos de horário', () => {
     expect(slotConflict(local(2020, 3, 4, 9), 60, ctx)).toBe('Data já passou');
   });
 
-  it('CT-AGE-03 domingo fechado, almoço e depois do expediente', () => {
+  it('CT-AGE-03 domingo fechado e depois do expediente; a pausa do almoço não trava', () => {
     expect(slotConflict(local(2030, 3, 3, 9), 60, ctx)).toBe('Estúdio fechado');
-    expect(slotConflict(local(2030, 3, 4, 11, 30), 60, ctx)).toBe('Fora do expediente');
+    expect(slotConflict(local(2030, 3, 4, 11, 30), 60, ctx)).toBeNull();
     expect(slotConflict(local(2030, 3, 4, 17, 30), 60, ctx)).toBe('Fora do expediente');
   });
 
