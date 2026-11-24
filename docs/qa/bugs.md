@@ -572,6 +572,21 @@ Source maps da web retestados (22/11, deploy b8ce8ec via `npm run export:web`, e
 
 ---
 
+## BUG-025 · Crítica · Web abre em tela branca para quem já tinha pacotes no cache local
+**Onde:** web de produção, commits c8c3665 + 0d2c3ac (pacote com vários serviços). Também deve afetar o celular quando receber essa versão (o cache fica no AsyncStorage).
+**Passos:**
+1. Ter usado o app antes da atualização, com pelo menos um pacote vendido (o cache `agenda-beleza:cache:v1:<id>` fica salvo).
+2. Abrir a versão nova logado.
+
+**Esperado:** a agenda abre normalmente.
+**Obtido:** tela branca, sem recuperar mesmo depois que os dados chegam do servidor. Console: `TypeError: Cannot read properties of undefined (reading 'includes')` em `packageCovered` → `amountDue`, chamado na soma do "previsto" da Agenda.
+**Causa:** os pacotes do cache estão no formato antigo (`serviceId`, sem `serviceIds`). O conversor do store só trata o que vem do servidor, então `pkg.serviceIds` fica indefinido e o app quebra ao desenhar a Agenda.
+**Contorno usado no teste:** apagar a chave do cache no navegador e recarregar (a agenda volta e o cache é regravado no formato novo).
+**Correção sugerida:** normalizar os pacotes ao ler o cache (`serviceIds ?? [serviceId]`) ou trocar a chave para `cache:v2`; e proteger `coversPackage`, `packageCovered` e `packageServicesLabel` com `pkg.serviceIds ?? []`.
+**Status:** aberto · repassado à sessão principal (24/11).
+
+---
+
 ## Exclusão de conta (CT-CON-09) · 20/11/2026
 Conta descartável no Free: Ajustes > Dados do estúdio > Excluir minha conta > digitar EXCLUIR > "Excluir conta para sempre". O app mostra "Sua conta foi excluída", volta ao login e o navegador fica sem dados guardados. SQL: login da conta excluída = 0; VAL-17 (dados sem perfil) = 0; VAL-18 (perfil sem login) = 0. ✅
 21/11/2026: a conta descartável do reteste do BUG-012 foi excluída pelo mesmo caminho; o app voltou ao login, sem sessão guardada no navegador. ✅
@@ -600,3 +615,16 @@ Teste rápido na web de produção (build `__common-6a71cad1…`, `entry-31f2b7b
 - Sair (Ajustes > Sair) volta para `/login` e apaga a sessão guardada. ✅
 - Entrar de novo: a agenda da semana carrega com os atendimentos; 19 chamadas ao Supabase, todas 200/201/204. ✅
 - Pendente: conferir o SDK 58 no celular na próxima build nativa (a build Android instalada ainda usa as versões antigas).
+
+## Regressão: pausa, cancelados, deslocamento, telefone, pacote com vários serviços e repetir ao editar (commits c8c3665 e 0d2c3ac) · 24/11/2026
+
+Web de produção (build `__common-2b71177f…`, `entry-db1b0835…`), conta de teste "QA Estúdio". Dados de teste criados: cliente "QA Telefone Colado".
+
+- Ao abrir: tela branca por causa do cache antigo de pacotes. Ver **BUG-025**. Depois de limpar o cache local, o resto foi testado.
+- 1. Telefone colado: "+55 11 98765-4321" vira (11) 98765-4321 no cadastro e fica salvo assim na ficha. Também "0055 11 …" e "011 …" viram (11) …; "55 99123-4567" continua (55) 99123-4567 (DDD 55 preservado). ✅
+- 2. Ajustes › Regiões: opção "Sem deslocamento" aparece e salva. Com modelo Híbrido e um bairro, Dados do estúdio mostra "1 bairro · sem deslocamento". ✅ (Desfeito depois: bairro excluído, modelo voltou para Espaço fixo e deslocamento para 30 min.)
+- 3. Pausa do almoço: no novo agendamento, 11:45, 12:00 e 12:15 (Manicure 45 min) aparecem em amarelo tracejado; ao tocar, pergunta "Esse atendimento cai na sua pausa (12:00–13:00). Quer agendar mesmo assim?". Na agenda do dia, tocar na faixa PAUSA pergunta o mesmo; "Voltar" fica na agenda e aceitar abre o novo agendamento no horário tocado. ✅
+- 4. Cancelados: o atendimento cancelado das 09:00 de 24/11 não aparece mais na agenda do dia; os 4 cancelados da série de teste continuam no histórico da cliente. ✅
+- 5. Pacote Manicure + Pedicure, 4 sessões: valor cheio R$ 300,00 (4x R$ 75,00); 10% → − R$ 30,00, total R$ 270,00, R$ 67,50 por sessão; R$ 25,00 → total R$ 275,00, R$ 68,75 por sessão. Nome sugerido "Pacote 4x Manicure + Pedicure". Venda OK (`sell_package_services` 200, SQL aplicado), lançada no Financeiro. No agendamento, o pacote não aparece só com Manicure e aparece com Manicure + Pedicure ("Restam 4 de 4 sessões"). ✅ (Pacote excluído depois; a receita saiu junto.)
+- 6. Editar um avulso (26/11 09:00) e ligar Repetir semanal, 4 sessões: aviso "Este agendamento vira a 1ª sessão da série", toast "Série criada · 4 agendamentos na série (este e mais 3)"; criados 03/12, 10/12 e 17/12 no mesmo grupo. ✅ (Série cancelada depois.)
+- Observação: no web, o aviso da pausa é o `window.confirm` do navegador.
