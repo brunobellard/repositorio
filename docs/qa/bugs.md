@@ -691,3 +691,21 @@ Observações (baixa):
 - O bloqueio de horário aparece sem o motivo escrito na grade (só no rótulo de acessibilidade); a folga de dia inteiro mostra o motivo.
 - Acessibilidade: o rótulo do número do dia diz "1 atendimentos"; as abas Dia/Semana/Mês não informam qual está selecionada (`aria-selected` vazio).
 - A semana que cruza o mês (29/11–05/12) aparece como "Dez 2026" no cabeçalho.
+
+## Reteste das observações baixas (commit 9f9cda2) · 24/11/2026
+
+Web de produção (`entry-576d994c…`), 398 px, conta de teste. Dados criados e limpos: 1 bloqueio "Curso" (sex 27, 15:00–16:00, removido) e 1 série semanal de 4 sessões da cliente fictícia "QA Telefone Colado" (sextas 16:00, 27/11 a 18/12, todas canceladas no fim).
+
+| # | Observação anterior | Resultado |
+|---|---|---|
+| 1 | Bloqueio de horário sem o motivo na grade | ✅ O bloco mostra "Curso" dentro da caixa tracejada. |
+| 2 | Semana que cruza o mês aparecia como "Dez 2026" | ✅ 29/11–05/12 mostra "Nov–Dez" com "2026" embaixo; 27/12–02/01 mostra "Dez–Jan" com "2026/27"; 06–12/12 continua "Dez 2026". |
+| 3 | Rótulo de acessibilidade "1 atendimentos" | ✅ "25 de novembro, 1 atendimento. Abrir o dia" (plural nos demais). |
+| 4 | Abas Dia/Semana/Mês sem `aria-selected` | ✅ A aba ativa vem com `aria-selected=true` e as outras com `false`, e o valor muda ao trocar. |
+| 5 | "Sessão X de N" contava as canceladas | ✅ Série de 4 com a 2ª cancelada ("Cancelar apenas este"): as ativas mostram "Sessão 1 de 3", "2 de 3", "3 de 3"; a cancelada mostra só "Toda semana", sem posição. Nas sessões canceladas das séries antigas também não aparece posição. |
+| 6 | Parte encerrada da série sem a data de fim | ✅ "Toda semana, até 11/03/2027" e "Toda semana, até 01/07/2027" (séries do teste do f2ca6fb); série criada com "Até uma data": "Toda semana, até 07/01/2027 · Sessão 1 de 6". Série com nº de sessões continua "Toda semana · Sessão 1 de 3". |
+| 7 | `/confirmar` mostrava o resultado do link anterior ao trocar de link sem recarregar | ✅ Trocando inválido → A → B → cancelado → inválido pela navegação interna, a tela fica em branco enquanto carrega e depois mostra o horário certo de cada link (27/11, 18/12, "Este horário foi cancelado.", "Link não encontrado"). Nada do link anterior aparece. |
+| 8 | Mensagem de confirmação com "📍 QA Estúdio – " vazio | ✅ Sem endereço cadastrado a linha fica "📍 QA Estúdio" (WhatsApp interceptado, nada enviado). |
+| 9 | Recibo de horário pendente dizia "Total pago" | ✅ Pendente: "Total R$ 50,00" na tela e "💳 *Total: R$ 50,00*" no WhatsApp, com o aviso "Este atendimento ainda não foi marcado como concluído." Concluído continua "Total pago R$ 35,00" / "*Total pago: R$ 35,00* (Crédito)". |
+
+**Status:** as 9 observações baixas dos testes de 2060753, f2ca6fb e 11931c5 estão fechadas. Segue sem teste apenas a sobreposição lado a lado na grade (não há atendimentos sobrepostos na conta).
