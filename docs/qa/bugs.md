@@ -588,3 +588,15 @@ Produção web, navegador embutido, conta de teste.
 - Reteste da observação (23/11, commit 222d160, export com `--clear`): ✅ o manifesto embutido no `entry-03afe00a….js` traz `name` e `web.shortName` = "Esmero"; nenhum arquivo .js publicado tem "Agenda Beleza". Favicon novo no ar (rosa, calendário e esmalte, 48×48).
 - Sugestão (UX, fora do commit): dentro do app, o logo do login, dos Termos e da Política ainda é o emoji 💅, diferente do ícone novo. Repassado à sessão principal.
 - Reteste da sugestão (23/11, commit 1ba1731): ✅ o logo do Esmero (imagem com texto alternativo "Logo do Esmero") substituiu o 💅 no login (64 px), na redefinição de senha (56 px) e no topo de /termos e /privacidade (36 px). Nenhuma dessas telas mostra mais o emoji. O 💅 continua, de propósito, em "Boas-vindas! 💅" e nos modelos de WhatsApp.
+
+## Regressão: pacotes do Expo SDK 58 (commit 957385c) · 24/11/2026
+
+Teste rápido na web de produção (build `__common-6a71cad1…`, `entry-31f2b7b1…`), conta de teste "QA Estúdio".
+
+- Console: sem erros do app; só o aviso antigo do expo-notifications na web. Um `ERR_CONNECTION_CLOSED` isolado de rede, sem efeito na tela. ✅
+- Agendamento público `/agendar/qa-estudio`: serviços, data, horário e "Seus dados" funcionam (sem enviar). Link Termos ↔ Privacidade OK. ✅
+- Abas logadas: Agenda, Clientes, Financeiro e Ajustes abrem pela URL e pela barra de abas; chamadas ao Supabase sem erro. ✅
+- Link externo: o botão de WhatsApp da cliente chama `window.open('https://wa.me/<número>', '_blank')` (interceptado, sem abrir). ✅
+- Sair (Ajustes > Sair) volta para `/login` e apaga a sessão guardada. ✅
+- Entrar de novo: a agenda da semana carrega com os atendimentos; 19 chamadas ao Supabase, todas 200/201/204. ✅
+- Pendente: conferir o SDK 58 no celular na próxima build nativa (a build Android instalada ainda usa as versões antigas).
