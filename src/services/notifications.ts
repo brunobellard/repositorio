@@ -91,7 +91,7 @@ export async function registerForPushAsync(): Promise<PushRegistration> {
       return {
         ok: false,
         reason: 'denied',
-        message: 'Permissão negada. Ative as notificações da Agenda Plena nas configurações do celular.',
+        message: 'Permissão negada. Ative as notificações do Bellaflow nas configurações do celular.',
       };
     }
 

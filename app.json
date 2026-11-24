@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Agenda Plena",
+    "name": "Bellaflow",
     "slug": "projeto_app_beleza",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -45,13 +45,13 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "Permita que a Agenda Plena use o Face ID para desbloquear o app."
+          "faceIDPermission": "Permita que o Bellaflow use o Face ID para desbloquear o app."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permita que a Agenda Plena acesse suas fotos para escolher o logo do estúdio.",
+          "photosPermission": "Permita que o Bellaflow acesse suas fotos para escolher o logo do estúdio.",
           "cameraPermission": false,
           "microphonePermission": false
         }
@@ -59,14 +59,14 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Permita que a Agenda Plena use o Face ID para desbloquear o app."
+          "faceIDPermission": "Permita que o Bellaflow use o Face ID para desbloquear o app."
         }
       ],
       "expo-sharing",
       [
         "expo-contacts",
         {
-          "contactsPermission": "Permita que a Agenda Plena leia seus contatos para você escolher quais importar como clientes."
+          "contactsPermission": "Permita que o Bellaflow leia seus contatos para você escolher quais importar como clientes."
         }
       ],
       [

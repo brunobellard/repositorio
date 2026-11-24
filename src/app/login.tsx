@@ -59,7 +59,7 @@ export default function Login() {
           <View className="mb-4">
             <AppLogo size={64} />
           </View>
-          <Text className="text-[28px] font-bold tracking-tight text-ink">Agenda Plena</Text>
+          <Text className="text-[28px] font-bold tracking-tight text-ink">Bellaflow</Text>
           <Text className="mt-1 text-center text-[14px] text-muted">
             Agenda, clientes e financeiro do seu estúdio em um só lugar
           </Text>

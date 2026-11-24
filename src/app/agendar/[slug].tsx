@@ -163,7 +163,7 @@ function buildIcs(b: Booked, title: string, location: string) {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Agenda Plena//PT-BR',
+    'PRODID:-//Bellaflow//PT-BR',
     'BEGIN:VEVENT',
     `UID:${b.id}@agenda-beleza`,
     `DTSTAMP:${icsDate(new Date().toISOString())}`,

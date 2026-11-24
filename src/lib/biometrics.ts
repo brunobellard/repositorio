@@ -35,7 +35,7 @@ export async function getBiometricSupport(): Promise<BiometricSupport> {
   }
 }
 
-export async function authenticate(promptMessage = 'Desbloquear a Agenda Plena'): Promise<boolean> {
+export async function authenticate(promptMessage = 'Desbloquear o Bellaflow'): Promise<boolean> {
   if (Platform.OS === 'web') return false;
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage,
